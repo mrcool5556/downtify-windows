@@ -35,7 +35,7 @@ fn now() -> i64 {
         .unwrap_or(0)
 }
 
-fn client_for(state: &AppState) -> Result<Client, String> {
+pub(crate) fn client_for(state: &AppState) -> Result<Client, String> {
     let s = state.settings.lock().map_err(|e| e.to_string())?;
     if !s.paired() {
         return Err("Not paired with a server yet".into());
@@ -198,6 +198,9 @@ pub async fn sync_library(state: State<'_, AppState>, refresh: bool) -> Result<S
     let playlists = client.playlists().await.map_err(String::from)?;
     let likes = client.likes().await.map_err(String::from)?;
 
+    // Being online is a good moment to deliver plays made offline.
+    let _ = flush_pending(&state, &client).await;
+
     let mut conn = state.db.lock().map_err(|e| e.to_string())?;
     let (upserted, deleted) =
         db::apply_library(&mut conn, lib.full, &lib.tracks, &lib.deleted, lib.cursor)?;
@@ -281,4 +284,242 @@ pub fn set_music_dir(state: State<AppState>, path: String) -> Result<SettingsVie
     s.music_dir = path;
     settings::save(&state.settings_path, &s)?;
     Ok(view(&s))
+}
+
+// ── Player support ──────────────────────────────────────────────────────
+
+#[tauri::command]
+pub fn set_stream_quality(state: State<AppState>, quality: String) -> Result<SettingsView, String> {
+    let q = match quality.as_str() {
+        "opus160" => "opus160",
+        _ => "original",
+    };
+    let mut s = state.settings.lock().map_err(|e| e.to_string())?;
+    s.stream_quality = q.to_string();
+    settings::save(&state.settings_path, &s)?;
+    Ok(view(&s))
+}
+
+#[derive(Serialize)]
+pub struct StreamUrl {
+    pub url: String,
+    pub expires_at: i64,
+}
+
+/// A URL the audio element can play a non-downloaded track from.
+/// Signed for 12 hours; the player asks again when it expires.
+#[tauri::command]
+pub async fn stream_url(state: State<'_, AppState>, track_id: String) -> Result<StreamUrl, String> {
+    let client = client_for(&state)?;
+    let quality = state
+        .settings
+        .lock()
+        .map_err(|e| e.to_string())?
+        .stream_quality
+        .clone();
+    let params = if quality == "opus160" {
+        serde_json::json!({ "format": "opus", "bitrate": "160" })
+    } else {
+        serde_json::json!({})
+    };
+    let ttl: u64 = 12 * 3600;
+    let urls = client
+        .sign(
+            vec![serde_json::json!({
+                "path": format!("/api/v1/tracks/{track_id}/stream"),
+                "params": params,
+            })],
+            ttl,
+        )
+        .await
+        .map_err(String::from)?;
+    let url = urls.into_iter().next().ok_or("Server returned no URL")?;
+    Ok(StreamUrl {
+        url,
+        expires_at: now() + ttl as i64 - 60,
+    })
+}
+
+#[tauri::command]
+pub async fn set_like(state: State<'_, AppState>, track_id: String, liked: bool) -> Result<bool, String> {
+    let client = client_for(&state)?;
+    client
+        .send_json(
+            reqwest::Method::PUT,
+            "/api/v1/likes",
+            &serde_json::json!({ "track_id": track_id, "liked": liked }),
+        )
+        .await
+        .map_err(String::from)?;
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    db::set_like(&conn, &track_id, liked)?;
+    Ok(liked)
+}
+
+async fn send_listen(client: &Client, l: &db::Listen) -> Result<(), ApiError> {
+    client
+        .send_json(
+            reqwest::Method::POST,
+            "/api/discover/listens",
+            &serde_json::json!({
+                "track_id": l.track_id,
+                "play_id": l.play_id,
+                "played_at": l.played_at,
+            }),
+        )
+        .await
+        .map(|_| ())
+}
+
+/// Try to deliver queued listens. Stops at the first network failure.
+async fn flush_pending(state: &AppState, client: &Client) -> Result<usize, String> {
+    let pending = {
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        db::pending_listens(&conn)?
+    };
+    let mut sent = 0;
+    for l in pending {
+        match send_listen(client, &l).await {
+            Ok(()) | Err(ApiError::Other(_)) => {
+                // Delivered, or the server refused it for good; drop it.
+                let conn = state.db.lock().map_err(|e| e.to_string())?;
+                db::remove_listen(&conn, &l.play_id)?;
+                sent += 1;
+            }
+            Err(e) => return Err(String::from(e)),
+        }
+    }
+    Ok(sent)
+}
+
+/// Report a play (after half the track). Queued if the server is away.
+#[tauri::command]
+pub async fn report_listen(state: State<'_, AppState>, track_id: String, play_id: String) -> Result<(), String> {
+    let l = db::Listen {
+        track_id,
+        play_id,
+        played_at: chrono_like_now(),
+    };
+    let client = match client_for(&state) {
+        Ok(c) => c,
+        Err(_) => return Ok(()),
+    };
+    match send_listen(&client, &l).await {
+        Ok(()) => Ok(()),
+        Err(ApiError::Other(e)) => Err(e),
+        Err(_) => {
+            let conn = state.db.lock().map_err(|e| e.to_string())?;
+            db::queue_listen(&conn, &l)
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn flush_listens(state: State<'_, AppState>) -> Result<usize, String> {
+    let client = client_for(&state)?;
+    flush_pending(&state, &client).await
+}
+
+/// "Now playing" for the server's Activity page. Best effort, online only.
+#[tauri::command]
+pub async fn report_playback(
+    state: State<'_, AppState>,
+    playback_state: String,
+    track: Value,
+    position: f64,
+) -> Result<(), String> {
+    let (client, player) = {
+        let s = state.settings.lock().map_err(|e| e.to_string())?;
+        if !s.paired() {
+            return Ok(());
+        }
+        let token = match settings::load_token() {
+            Some(t) => t,
+            None => return Ok(()),
+        };
+        (Client::new(&s.server_url, &token)?, format!("desktop-{}", s.device_id))
+    };
+    let _ = client
+        .send_json(
+            reqwest::Method::POST,
+            "/api/activity/playback",
+            &serde_json::json!({
+                "player": player,
+                "state": playback_state,
+                "track": track,
+                "position": position,
+            }),
+        )
+        .await;
+    Ok(())
+}
+
+/// Whatever the frontend wants to remember between launches
+/// (queue, current track, position, volume, shuffle, repeat).
+#[tauri::command]
+pub fn get_player_state(state: State<AppState>) -> Result<Value, String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    Ok(db::get_meta(&conn, "player_state")
+        .and_then(|txt| serde_json::from_str(&txt).ok())
+        .unwrap_or(Value::Null))
+}
+
+#[tauri::command]
+pub fn set_player_state(state: State<AppState>, player_state: Value) -> Result<(), String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    db::set_meta(&conn, "player_state", &player_state.to_string())
+}
+
+/// Tell Windows what is playing (media keys, media popup).
+#[tauri::command]
+pub fn now_playing(
+    app: tauri::AppHandle,
+    state: State<AppState>,
+    track_id: String,
+    title: String,
+    artist: String,
+    album: String,
+    status: String,
+) -> Result<(), String> {
+    #[cfg(windows)]
+    {
+        let thumb = crate::media::cover_cache_path(&app, &track_id, 300);
+        let guard = state.smtc.lock().map_err(|e| e.to_string())?;
+        if let Some(smtc) = guard.as_ref() {
+            smtc.update(&title, &artist, &album, &status, thumb.as_deref())
+                .map_err(|e| e.to_string())?;
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = (app, state, track_id, title, artist, album, status);
+    }
+    Ok(())
+}
+
+/// ISO 8601 UTC "now" without pulling in chrono.
+fn chrono_like_now() -> String {
+    let secs = now();
+    // Civil-from-days (Howard Hinnant), good for any sane date.
+    let days = secs.div_euclid(86_400);
+    let rem = secs.rem_euclid(86_400);
+    let z = days + 719_468;
+    let era = z.div_euclid(146_097);
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1460 + doe / 36_524 - doe / 146_096) / 365;
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y = if m <= 2 { y + 1 } else { y };
+    format!(
+        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
+        y,
+        m,
+        d,
+        rem / 3600,
+        (rem % 3600) / 60,
+        rem % 60
+    )
 }

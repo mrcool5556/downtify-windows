@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { Album, Artist, PlaylistSummary, Summary, Track, api, fmtDuration } from "../api";
+import { Album, Artist, PlaylistSummary, Summary, Track, api, coverUrl, fmtDuration, playerApi } from "../api";
+import { usePlayer } from "../player/usePlayer";
+import { likeBus } from "../likeBus";
 
 type Section = "tracks" | "albums" | "artists" | "playlists";
 
@@ -19,8 +21,9 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
   const [artists, setArtists] = useState<Artist[]>([]);
   const [playlists, setPlaylists] = useState<PlaylistSummary[]>([]);
   const [error, setError] = useState("");
+  const { player } = usePlayer();
 
-  const showingTracks = section === "tracks" || scope.album || scope.playlist;
+  const showingTracks = section === "tracks" || !!scope.album || !!scope.playlist;
 
   useEffect(() => {
     let cancelled = false;
@@ -34,7 +37,7 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
             artist_id: scope.album ? undefined : scope.artist?.artist_id,
             playlist: scope.playlist?.name,
             local_only: localOnly,
-            limit: 1000,
+            limit: 2000,
           });
           if (!cancelled) setTracks(list);
         } else if (section === "albums") {
@@ -53,6 +56,12 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
       cancelled = true;
     };
   }, [section, scope, search, localOnly, showingTracks]);
+
+  // Keep hearts in step with the player bar and other lists.
+  useEffect(
+    () => likeBus.on((id, liked) => setTracks((ts) => ts.map((t) => (t.id === id ? { ...t, liked } : t)))),
+    [],
+  );
 
   function go(s: Section) {
     setSection(s);
@@ -97,6 +106,7 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
               ← Back
             </button>
           ) : null}
+          {scope.album && scope.album.cover_track_id ? <img className="head-art" src={coverUrl(scope.album.cover_track_id, 150)} alt="" /> : null}
           <h2>
             {scope.album
               ? `${scope.album.album} — ${scope.album.album_artist}`
@@ -106,8 +116,19 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
                   ? scope.artist.name
                   : section[0].toUpperCase() + section.slice(1)}
           </h2>
+          {showingTracks && tracks.length > 0 && (
+            <button className="small" onClick={() => player.playList(tracks, 0)} title="Play all from the top">
+              ▶ Play all
+            </button>
+          )}
           {showingTracks && (
-            <input className="search" placeholder="Search title, artist, album" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <input
+              id="library-search"
+              className="search"
+              placeholder="Search title, artist, album"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           )}
         </div>
 
@@ -118,14 +139,18 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
             {online ? "Library is empty. Download something on the server, then press Sync." : "No library yet. Connect to the server once to sync it."}
           </div>
         ) : showingTracks ? (
-          <TrackTable tracks={tracks} />
+          <TrackTable tracks={tracks} online={online} showAlbum={!scope.album} />
         ) : section === "albums" ? (
           <div className="grid">
             {albums.map((a) => (
               <button key={a.album_id} className="tile" onClick={() => setScope({ ...scope, album: a })}>
-                <div className="tile-art">♫</div>
-                <div className="tile-title">{a.album}</div>
-                <div className="tile-sub">{a.album_artist}</div>
+                <AlbumArt trackId={a.cover_track_id} />
+                <div className="tile-title" title={a.album}>
+                  {a.album}
+                </div>
+                <div className="tile-sub" title={a.album_artist}>
+                  {a.album_artist}
+                </div>
                 <div className="tile-meta">
                   {a.local_count}/{a.count} on this PC
                 </div>
@@ -173,32 +198,87 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
   );
 }
 
-function TrackTable({ tracks }: { tracks: Track[] }) {
+function AlbumArt({ trackId }: { trackId: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!trackId || failed) return <div className="tile-art">♫</div>;
+  return <img className="tile-art" src={coverUrl(trackId, 300)} alt="" loading="lazy" onError={() => setFailed(true)} />;
+}
+
+function TrackTable({ tracks, online, showAlbum }: { tracks: Track[]; online: boolean; showAlbum: boolean }) {
+  const { player, current, playing } = usePlayer();
+  const [selected, setSelected] = useState<string | null>(null);
+
+  async function toggleLike(t: Track) {
+    if (!online) return;
+    try {
+      const liked = await playerApi.setLike(t.id, !t.liked);
+      likeBus.emit(t.id, liked);
+    } catch {
+      /* ignore; the heart stays as it was */
+    }
+  }
+
   if (tracks.length === 0) return <div className="empty">Nothing here.</div>;
   return (
     <table className="tracks">
       <thead>
         <tr>
+          <th className="c-play"></th>
           <th className="c-local" title="Downloaded to this PC"></th>
           <th>Title</th>
           <th>Artist</th>
-          <th>Album</th>
+          {showAlbum && <th>Album</th>}
+          <th className="c-like"></th>
           <th className="c-dur">Time</th>
         </tr>
       </thead>
       <tbody>
-        {tracks.map((t) => (
-          <tr key={t.id} className={t.local_path ? "local" : "remote"}>
-            <td className="c-local">{t.local_path ? "●" : ""}</td>
-            <td>
-              {t.liked ? <span className="heart">♥ </span> : null}
-              {t.title || t.file}
-            </td>
-            <td>{t.artist}</td>
-            <td>{t.album}</td>
-            <td className="c-dur">{fmtDuration(t.duration)}</td>
-          </tr>
-        ))}
+        {tracks.map((t, i) => {
+          const isCurrent = current?.id === t.id;
+          const playable = !!t.local_path || online;
+          return (
+            <tr
+              key={t.id}
+              className={`${t.local_path ? "local" : "remote"} ${isCurrent ? "current" : ""} ${selected === t.id ? "selected" : ""} ${playable ? "" : "unplayable"}`}
+              onClick={() => setSelected(t.id)}
+              onDoubleClick={() => playable && player.playList(tracks, i)}
+              title={playable ? "Double-click to play" : "Not downloaded and the server is offline"}
+            >
+              <td className="c-play">
+                <button
+                  className="icon rowplay"
+                  disabled={!playable}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isCurrent) player.toggle();
+                    else player.playList(tracks, i);
+                  }}
+                  title={isCurrent && playing ? "Pause" : "Play"}
+                >
+                  {isCurrent && playing ? "⏸" : "▶"}
+                </button>
+              </td>
+              <td className="c-local">{t.local_path ? "●" : ""}</td>
+              <td className="c-title">{t.title || t.file}</td>
+              <td>{t.artist}</td>
+              {showAlbum && <td>{t.album}</td>}
+              <td className="c-like">
+                <button
+                  className={`icon heart ${t.liked ? "on" : ""}`}
+                  disabled={!online}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleLike(t);
+                  }}
+                  title={online ? (t.liked ? "Unlike" : "Like") : "Likes need the server"}
+                >
+                  {t.liked ? "♥" : "♡"}
+                </button>
+              </td>
+              <td className="c-dur">{fmtDuration(t.duration)}</td>
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   );

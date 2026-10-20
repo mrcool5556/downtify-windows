@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, Settings, ServerStatus, Summary } from "./api";
+import { api, playerApi, Settings, ServerStatus, Summary } from "./api";
 import { Setup } from "./views/Setup";
 import { Library } from "./views/Library";
 import { SettingsView } from "./views/SettingsView";
+import { PlayerBar } from "./components/PlayerBar";
+import { QueuePanel } from "./components/QueuePanel";
+import { player } from "./player/store";
+import { usePlayer } from "./player/usePlayer";
+import { likeBus } from "./likeBus";
 
 type Page = "library" | "settings";
 
@@ -14,6 +19,7 @@ export default function App() {
   const [syncing, setSyncing] = useState(false);
   const [notice, setNotice] = useState<string>("");
   const [libraryVersion, setLibraryVersion] = useState(0);
+  const { queueOpen, current } = usePlayer();
 
   const refreshSummary = useCallback(async () => {
     try {
@@ -57,14 +63,15 @@ export default function App() {
     [checkStatus],
   );
 
-  // Boot: load settings; if paired, show the local library at once, then
-  // probe the server and sync in the background.
+  // Boot: load settings; if paired, show the local library at once and
+  // restore the player, then probe the server and sync in the background.
   useEffect(() => {
     (async () => {
       const s = await api.getSettings();
       setSettings(s);
       if (s.paired) {
         await refreshSummary();
+        player.restore();
         await checkStatus();
       }
     })();
@@ -73,6 +80,7 @@ export default function App() {
   useEffect(() => {
     if (settings?.paired && status?.online) {
       sync(false);
+      playerApi.flushListens().catch(() => {});
     }
     // only when we first learn the server is online
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -84,6 +92,49 @@ export default function App() {
     const t = setInterval(checkStatus, 30_000);
     return () => clearInterval(t);
   }, [settings?.paired, checkStatus]);
+
+  // Keyboard shortcuts.
+  const online = !!status?.online;
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const el = e.target as HTMLElement | null;
+      const typing = !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+      if (e.ctrlKey && e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        setPage("library");
+        setTimeout(() => document.getElementById("library-search")?.focus(), 0);
+        return;
+      }
+      if (typing && !(el instanceof HTMLInputElement && el.type === "range")) return;
+      if (e.key === " ") {
+        e.preventDefault();
+        player.toggle();
+      } else if (e.key === "ArrowLeft" && e.ctrlKey) {
+        e.preventDefault();
+        player.previous();
+      } else if (e.key === "ArrowRight" && e.ctrlKey) {
+        e.preventDefault();
+        player.next();
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        player.seekBy(-5);
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        player.seekBy(5);
+      } else if (e.ctrlKey && e.key.toLowerCase() === "l") {
+        e.preventDefault();
+        const t = player.getSnapshot().current;
+        if (t && online) playerApi.setLike(t.id, !t.liked).then((liked) => likeBus.emit(t.id, liked)).catch(() => {});
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [online]);
+
+  // Window title follows the song.
+  useEffect(() => {
+    document.title = current ? `${current.title} — ${current.artist} · Downtify` : "Downtify";
+  }, [current?.id, current?.title, current?.artist]);
 
   if (!settings) return <div className="boot">Loading…</div>;
 
@@ -98,7 +149,6 @@ export default function App() {
     );
   }
 
-  const online = !!status?.online;
   const unpairedRemotely = status && status.online && !status.paired;
 
   return (
@@ -159,7 +209,10 @@ export default function App() {
             }}
           />
         )}
+        {queueOpen && <QueuePanel />}
       </main>
+
+      <PlayerBar online={online} />
     </div>
   );
 }

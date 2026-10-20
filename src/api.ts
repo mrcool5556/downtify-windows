@@ -8,6 +8,8 @@ export interface Settings {
   device_id: string;
   device_name: string;
   music_dir: string;
+  stream_quality: string;
+  keep_played: boolean;
   paired: boolean;
   default_music_dir: string;
 }
@@ -133,3 +135,30 @@ export function fmtWhen(unix: number): string {
   if (!unix) return "never";
   return new Date(unix * 1000).toLocaleString();
 }
+
+// ── Player ───────────────────────────────────────────────────────────────
+
+export interface StreamUrl {
+  url: string;
+  expires_at: number;
+}
+
+export const playerApi = {
+  streamUrl: (trackId: string) => invoke<StreamUrl>("stream_url", { trackId }),
+  setLike: (trackId: string, liked: boolean) => invoke<boolean>("set_like", { trackId, liked }),
+  reportListen: (trackId: string, playId: string) => invoke<void>("report_listen", { trackId, playId }),
+  flushListens: () => invoke<number>("flush_listens"),
+  reportPlayback: (playbackState: string, track: unknown, position: number) =>
+    invoke<void>("report_playback", { playbackState, track, position }),
+  getPlayerState: () => invoke<unknown>("get_player_state"),
+  setPlayerState: (playerState: unknown) => invoke<void>("set_player_state", { playerState }),
+  nowPlaying: (t: { track_id: string; title: string; artist: string; album: string; status: string }) =>
+    invoke<void>("now_playing", { trackId: t.track_id, title: t.title, artist: t.artist, album: t.album, status: t.status }),
+  setStreamQuality: (quality: string) => invoke<Settings>("set_stream_quality", { quality }),
+};
+
+/** The custom `media` scheme as WebView2 on Windows exposes it. */
+const MEDIA_ORIGIN = "http://media.localhost";
+
+export const localTrackUrl = (id: string) => `${MEDIA_ORIGIN}/track/${id}`;
+export const coverUrl = (id: string, size: 150 | 300 | 600 = 300) => `${MEDIA_ORIGIN}/cover/${id}?size=${size}`;

@@ -16,6 +16,12 @@ pub struct Settings {
     pub device_name: String,
     /// Where downloaded tracks live on this PC.
     pub music_dir: String,
+    /// `original` or `opus160` for tracks streamed from the server.
+    #[serde(default)]
+    pub stream_quality: String,
+    /// Download whatever gets played (off by default).
+    #[serde(default)]
+    pub keep_played: bool,
 }
 
 impl Settings {

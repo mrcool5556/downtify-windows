@@ -56,6 +56,11 @@ pub fn open(path: &Path) -> Result<Connection, String> {
             size INTEGER NOT NULL DEFAULT 0,
             downloaded_at INTEGER NOT NULL DEFAULT 0
         );
+        CREATE TABLE IF NOT EXISTS pending_listens (
+            play_id TEXT PRIMARY KEY,
+            track_id TEXT NOT NULL,
+            played_at TEXT NOT NULL
+        );
         "#,
     )
     .map_err(|e| e.to_string())?;
@@ -200,10 +205,80 @@ pub fn replace_likes(conn: &mut Connection, ids: &[String]) -> Result<(), String
     tx.commit().map_err(|e| e.to_string())
 }
 
+pub fn local_path(conn: &Connection, track_id: &str) -> Option<String> {
+    conn.query_row(
+        "SELECT path FROM local_files WHERE track_id = ?1",
+        [track_id],
+        |r| r.get(0),
+    )
+    .optional()
+    .ok()
+    .flatten()
+}
+
+pub fn set_like(conn: &Connection, track_id: &str, liked: bool) -> Result<(), String> {
+    if liked {
+        // Newest first: put it ahead of everything else.
+        conn.execute(
+            "INSERT OR REPLACE INTO likes(track_id, position)
+             VALUES(?1, COALESCE((SELECT MIN(position) FROM likes), 0) - 1)",
+            [track_id],
+        )
+    } else {
+        conn.execute("DELETE FROM likes WHERE track_id = ?1", [track_id])
+    }
+    .map(|_| ())
+    .map_err(|e| e.to_string())
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Listen {
+    pub track_id: String,
+    pub play_id: String,
+    pub played_at: String,
+}
+
+pub fn queue_listen(conn: &Connection, l: &Listen) -> Result<(), String> {
+    conn.execute(
+        "INSERT OR IGNORE INTO pending_listens(play_id, track_id, played_at) VALUES(?1, ?2, ?3)",
+        params![l.play_id, l.track_id, l.played_at],
+    )
+    .map(|_| ())
+    .map_err(|e| e.to_string())
+}
+
+pub fn pending_listens(conn: &Connection) -> Result<Vec<Listen>, String> {
+    let mut stmt = conn
+        .prepare("SELECT track_id, play_id, played_at FROM pending_listens")
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |r| {
+            Ok(Listen {
+                track_id: r.get(0)?,
+                play_id: r.get(1)?,
+                played_at: r.get(2)?,
+            })
+        })
+        .map_err(|e| e.to_string())?;
+    rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+}
+
+pub fn remove_listen(conn: &Connection, play_id: &str) -> Result<(), String> {
+    conn.execute("DELETE FROM pending_listens WHERE play_id = ?1", [play_id])
+        .map(|_| ())
+        .map_err(|e| e.to_string())
+}
+
+pub fn get_track(conn: &Connection, track_id: &str) -> Result<Option<Track>, String> {
+    conn.query_row(&format!("{TRACK_SELECT} WHERE t.id = ?1"), [track_id], row_to_track)
+        .optional()
+        .map_err(|e| e.to_string())
+}
+
 pub fn clear_all(conn: &Connection) -> Result<(), String> {
     conn.execute_batch(
         "DELETE FROM tracks; DELETE FROM playlists; DELETE FROM likes;
-         DELETE FROM local_files; DELETE FROM meta;",
+         DELETE FROM local_files; DELETE FROM meta; DELETE FROM pending_listens;",
     )
     .map_err(|e| e.to_string())
 }

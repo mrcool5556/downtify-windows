@@ -235,6 +235,58 @@ impl Client {
         resp.json().await.map_err(|e| ApiError::Other(e.to_string()))
     }
 
+    /// POST or PUT a JSON body; returns the JSON reply (or Null).
+    pub async fn send_json(
+        &self,
+        method: reqwest::Method,
+        path: &str,
+        body: &Value,
+    ) -> Result<Value, ApiError> {
+        let resp = self
+            .http
+            .request(method, format!("{}{}", self.base, path))
+            .bearer_auth(&self.token)
+            .json(body)
+            .send()
+            .await
+            .map_err(|e| {
+                if e.is_connect() || e.is_timeout() {
+                    ApiError::Offline
+                } else {
+                    ApiError::Other(e.to_string())
+                }
+            })?;
+        if resp.status().as_u16() == 401 {
+            return Err(ApiError::Unpaired);
+        }
+        if !resp.status().is_success() {
+            return Err(ApiError::Other(read_error(resp).await));
+        }
+        Ok(resp.json().await.unwrap_or(Value::Null))
+    }
+
+    /// `POST /api/v1/sign`: URLs a headerless player (the audio element)
+    /// can fetch. Returns full URLs.
+    pub async fn sign(&self, items: Vec<Value>, ttl: u64) -> Result<Vec<String>, ApiError> {
+        let v = self
+            .send_json(
+                reqwest::Method::POST,
+                "/api/v1/sign",
+                &serde_json::json!({ "items": items, "ttl": ttl }),
+            )
+            .await?;
+        Ok(v
+            .get("urls")
+            .and_then(|u| u.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|u| u.as_str())
+                    .map(|u| format!("{}{}", self.base, u))
+                    .collect()
+            })
+            .unwrap_or_default())
+    }
+
     pub async fn library(&self, since: i64, refresh: bool) -> Result<LibraryResponse, ApiError> {
         let path = format!(
             "/api/v1/library?since={since}{}",

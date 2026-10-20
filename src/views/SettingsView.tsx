@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { openPath } from "@tauri-apps/plugin-opener";
-import { Settings, Summary, api, fmtWhen } from "../api";
+import { Settings, Summary, api, fmtWhen, playerApi } from "../api";
 
 interface Props {
   settings: Settings;
@@ -94,6 +94,32 @@ export function SettingsView({ settings, summary, onSettings, onResync, onUnpair
             </button>
           )}
         </div>
+      </section>
+
+      <section className="card">
+        <h2>Playback</h2>
+        <p className="hint">Downloaded tracks always play from disk. This only affects songs streamed from the server.</p>
+        <label className="check">
+          <input
+            type="radio"
+            name="quality"
+            checked={settings.stream_quality !== "opus160"}
+            onChange={() => playerApi.setStreamQuality("original").then(onSettings).catch((e) => setError(String(e)))}
+          />
+          Original quality (best at home)
+        </label>
+        <label className="check">
+          <input
+            type="radio"
+            name="quality"
+            checked={settings.stream_quality === "opus160"}
+            onChange={() => playerApi.setStreamQuality("opus160").then(onSettings).catch((e) => setError(String(e)))}
+          />
+          Smaller stream, Opus 160 kbps (away from home)
+        </label>
+        <p className="hint" style={{ marginTop: 12 }}>
+          Shortcuts: Space play/pause · ← → seek 5 s · Ctrl+← Ctrl+→ previous/next · Ctrl+F search · Ctrl+L like · scroll on volume ±2
+        </p>
       </section>
 
       {error && <div className="error">{error}</div>}
