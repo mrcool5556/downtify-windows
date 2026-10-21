@@ -71,6 +71,10 @@ function General({ settings, onSettings, setError }: Sub) {
           <input type="checkbox" checked={layout.rowArt} onChange={(e) => setLayout({ rowArt: e.target.checked })} />
           Show cover art in song rows
         </label>
+        <label className="check" title="Only matters on an admin account: the server sends admins every user's playlist">
+          <input type="checkbox" checked={layout.showOthersPlaylists} onChange={(e) => setLayout({ showOthersPlaylists: e.target.checked })} />
+          Show other users' playlists in an "Other users" section (admin accounts)
+        </label>
       </section>
       <section className="card">
         <h2>Window</h2>

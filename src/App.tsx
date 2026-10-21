@@ -313,15 +313,11 @@ export default function App() {
           <ThemeToggle />
           <div className="status">
             <span className={`dot ${online ? "on" : "off"}`} />
-            <span>{online ? "Online" : "Offline"}</span>
-            <div className="sync-box">
-              <button className="ghost" disabled={!online || syncing} onClick={() => sync(false)} title="Sync library">
-                {syncing ? "Syncing…" : "Sync"}
-              </button>
-              <small className="last-sync" title={summary?.last_sync ? fmtWhen(summary.last_sync) : "never"}>
-                {summary?.last_sync ? `synced ${fmtAgo(summary.last_sync)}` : "never synced"}
-              </small>
-            </div>
+            <span title={online ? "The server is reachable" : status?.detail || "The server is not reachable"}>{online ? "Connected" : "No server"}</span>
+            <button className="ghost syncbtn" disabled={!online || syncing} onClick={() => sync(false)} title={summary?.last_sync ? `Last synced ${fmtWhen(summary.last_sync)}` : "Never synced"}>
+              <span>{syncing ? "Syncing…" : "Sync"}</span>
+              <small>{summary?.last_sync ? fmtAgo(summary.last_sync) : "never"}</small>
+            </button>
           </div>
           <WindowControls />
         </div>
@@ -343,6 +339,7 @@ export default function App() {
           online={online}
           summary={summary}
           version={libraryVersion}
+          username={settings.username}
           renderSettings={(tab, setTab) => (
             <SettingsView
               tab={tab}

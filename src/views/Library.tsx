@@ -66,11 +66,13 @@ export function Library({
   summary,
   version,
   renderSettings,
+  username,
 }: {
   online: boolean;
   summary: Summary | null;
   version: number;
   renderSettings: (tab: string, setTab: (t: string) => void) => JSX.Element;
+  username: string;
 }) {
   const { view } = useNav();
   const section = view.section;
@@ -477,7 +479,7 @@ export function Library({
           </form>
         )}
         <div className="sidebar-playlists">
-          {sidebarSections(playlists, publicOpen).map((sec) => (
+          {sidebarSections(playlists, publicOpen, username, layout.showOthersPlaylists).map((sec) => (
             <div key={sec.key} className="pl-section">
               {sec.title && (
                 <button className={`pl-section-title ${sec.foldable ? "foldable" : ""}`} onClick={() => sec.foldable && setPublicOpen((o) => !o)} disabled={!sec.foldable}>
@@ -522,7 +524,7 @@ export function Library({
               ) : (
                 <span className="pl-name">
                   {playlistLabel(p)}
-                  {!p.mine && <small className="pl-owner"> · {p.owner}</small>}
+                  {(!p.mine || (p.owner && username && p.owner.toLowerCase() !== username.toLowerCase() && !p.liked)) && <small className="pl-owner"> · {p.owner}</small>}
                 </span>
               )}
             </button>
@@ -532,13 +534,22 @@ export function Library({
           {playlists.length === 0 && <div className="sidebar-empty">No playlists yet</div>}
         </div>
         <div className="sidebar-foot">
-          <label className="check" title="Show only songs that are on this PC">
-            <input type="checkbox" checked={localOnly} onChange={(e) => setLocalOnly(e.target.checked)} />
-            <span className="lbl">On this PC only</span>
-          </label>
+          <button
+            className={`nav modebtn ${localOnly ? "active on" : ""}`}
+            onClick={() => setLocalOnly(!localOnly)}
+            title={localOnly ? "Offline mode: showing only songs on this PC. Click to show everything" : "Show only songs that are on this PC"}
+          >
+            <span className="nav-icon">
+              <DownloadGlyph on={localOnly} />
+            </span>
+            <span className="lbl">Offline mode</span>
+            <span className={`pill-toggle ${localOnly ? "on" : ""}`}>
+              <span className="pill-knob" />
+            </span>
+          </button>
           {summary && (
-            <small className="lbl">
-              {summary.local_tracks} of {summary.tracks} downloaded
+            <small className="lbl foot-count">
+              {summary.local_tracks} of {summary.tracks} on this PC
             </small>
           )}
           <button className={`nav ${section === "settings" ? "active" : ""}`} onClick={() => nav.push({ section: "settings", scope: {}, search: "", tab: view.tab ?? "general" })} title="Settings">
@@ -731,7 +742,7 @@ export function Library({
           </ul>
         ) : (
           <div className="playlist-sections">
-            {sidebarSections(playlists, true).map((sec) => (
+            {sidebarSections(playlists, true, username, layout.showOthersPlaylists).map((sec) => (
               <div key={sec.key}>
                 {sec.title && (
                   <h3>
@@ -857,14 +868,19 @@ interface PlSection {
   foldable: boolean;
 }
 
-/** Your own, shared with you (plus followed), and the rest of the public ones. */
-function sidebarSections(all: PlaylistSummary[], publicOpen: boolean): PlSection[] {
-  const mine = all.filter((p) => p.mine);
+/** Your own, shared with you (plus followed), the public ones, and (admins, opt-in) other users'. */
+function sidebarSections(all: PlaylistSummary[], publicOpen: boolean, username: string, showOthers: boolean): PlSection[] {
+  const me = username.toLowerCase();
+  // An admin gets every user's playlist marked editable; keep "yours" to what you own.
+  const isOwn = (p: PlaylistSummary) => p.mine && (!p.owner || !me || p.owner.toLowerCase() === me || p.liked);
+  const mine = all.filter(isOwn);
+  const others = all.filter((p) => p.mine && !isOwn(p));
   const shared = all.filter((p) => !p.mine && (p.shared_with_me || p.followed));
   const pub = all.filter((p) => !p.mine && !p.shared_with_me && !p.followed && p.visibility === "public");
   const out: PlSection[] = [{ key: "mine", title: "", items: mine, count: mine.length, foldable: false }];
   if (shared.length) out.push({ key: "shared", title: "Shared with me", items: shared, count: shared.length, foldable: false });
   if (pub.length) out.push({ key: "public", title: "Public playlists", items: publicOpen ? pub : [], count: pub.length, foldable: true });
+  if (showOthers && others.length) out.push({ key: "others", title: "Other users (admin)", items: others, count: others.length, foldable: false });
   return out;
 }
 

@@ -9,10 +9,12 @@ export interface LayoutPrefs {
   rowArt: boolean;
   theme: Theme;
   sidebarCollapsed: boolean;
+  /** Admin accounts receive every user's playlist; show them in their own section. */
+  showOthersPlaylists: boolean;
 }
 
 const KEY = "downtify.layout";
-const DEFAULTS: LayoutPrefs = { density: "compact", rowArt: true, theme: "dark", sidebarCollapsed: false };
+const DEFAULTS: LayoutPrefs = { density: "compact", rowArt: true, theme: "dark", sidebarCollapsed: false, showOthersPlaylists: false };
 
 let prefs: LayoutPrefs = load();
 const listeners = new Set<() => void>();

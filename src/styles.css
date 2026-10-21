@@ -2478,3 +2478,64 @@ html[data-mini] #root {
   width: 46px;
   height: 46px;
 }
+
+
+/* Sync button with the time inside */
+.syncbtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.1;
+  padding: 4px 12px;
+  gap: 1px;
+}
+.syncbtn small {
+  font-size: 10px;
+  color: var(--fg-2);
+}
+
+/* Offline mode toggle in the sidebar */
+.modebtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.modebtn .lbl {
+  flex: 1;
+}
+.pill-toggle {
+  width: 28px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--border);
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.pill-toggle .pill-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--fg);
+  transition: transform 0.15s;
+}
+.pill-toggle.on {
+  background: var(--accent);
+}
+.pill-toggle.on .pill-knob {
+  transform: translateX(12px);
+  background: #06230f;
+}
+.modebtn.on {
+  color: var(--accent);
+}
+.foot-count {
+  padding: 0 10px 4px;
+  color: var(--fg-2);
+}
+.sidebar-collapsed .pill-toggle {
+  display: none;
+}
