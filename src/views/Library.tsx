@@ -1273,7 +1273,6 @@ function useSelection(tracks: Track[]) {
 function startDrag(e: React.DragEvent, tracks: Track[], fromPlaylist?: string) {
   const payload: DragPayload = { ids: tracks.map((t) => t.id), fromPlaylist };
   e.dataTransfer.setData(DRAG_MIME, JSON.stringify(payload));
-  e.dataTransfer.setData("text/plain", tracks.map((t) => `${t.artist} - ${t.title}`).join("\n"));
   e.dataTransfer.effectAllowed = "copyMove";
   const ghost = document.createElement("div");
   ghost.className = "drag-ghost";

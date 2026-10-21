@@ -296,6 +296,8 @@ export default function App() {
             value={query}
             onChange={(e) => onQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && onSearchEnter()}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => e.preventDefault()}
           />
           {isLink ? (
             <button className="small primary" onClick={onSearchEnter} disabled={!online} title="Ask the server to download this">
