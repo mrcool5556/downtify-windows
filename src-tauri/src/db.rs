@@ -304,6 +304,29 @@ pub fn playlist_track_ids(conn: &Connection, name: &str) -> Result<Vec<String>, 
         .unwrap_or_default())
 }
 
+/// Track ids for server file paths, in the given order (unknown paths skipped).
+pub fn ids_for_files(conn: &Connection, files: &[String]) -> Result<Vec<String>, String> {
+    let mut stmt = conn
+        .prepare("SELECT id FROM tracks WHERE json_extract(json, '$.file') = ?1 AND orphaned = 0 LIMIT 1")
+        .map_err(|e| e.to_string())?;
+    let mut out = Vec::with_capacity(files.len());
+    for f in files {
+        if let Some(id) = stmt.query_row([f], |r| r.get::<_, String>(0)).optional().map_err(|e| e.to_string())? {
+            out.push(id);
+        }
+    }
+    Ok(out)
+}
+
+pub fn set_playlist_tracks(conn: &Connection, name: &str, ids: &[String]) -> Result<(), String> {
+    conn.execute(
+        "UPDATE playlists SET track_ids = ?1, count = ?2 WHERE name = ?3",
+        params![serde_json::to_string(ids).unwrap_or_else(|_| "[]".into()), ids.len() as i64, name],
+    )
+    .map(|_| ())
+    .map_err(|e| e.to_string())
+}
+
 pub fn keep_synced(conn: &Connection) -> Result<Vec<String>, String> {
     let mut stmt = conn.prepare("SELECT name FROM keep_synced").map_err(|e| e.to_string())?;
     let rows = stmt.query_map([], |r| r.get::<_, String>(0)).map_err(|e| e.to_string())?;

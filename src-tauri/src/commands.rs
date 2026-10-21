@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tauri::{Manager, State};
+use tauri::{Emitter, Manager, State};
 
 use crate::db;
 use crate::downloads;
@@ -758,8 +758,11 @@ pub struct EditResult {
 
 /// Add/remove tracks by id. The server wants file paths, so ids are
 /// translated here; ids without a server file (orphans) are skipped.
+/// The reply carries the playlist's new file list, which is applied
+/// locally at once; the full server re-read happens in the background.
 #[tauri::command]
 pub async fn edit_playlist_tracks(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
     name: String,
     add: Vec<String>,
@@ -797,7 +800,26 @@ pub async fn edit_playlist_tracks(
         )
         .await
         .map_err(web_err)?;
-    let playlists = pull_playlists(&state, &client).await?;
+    // Instant local update from the reply's file list.
+    let playlists = {
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        if let Some(files) = v.get("files").and_then(|f| f.as_array()) {
+            let paths: Vec<String> = files.iter().filter_map(|f| f.as_str().map(|s| s.to_string())).collect();
+            let ids = db::ids_for_files(&conn, &paths)?;
+            db::set_playlist_tracks(&conn, &name, &ids)?;
+        }
+        db::list_playlists(&conn)?
+    };
+    // Background: the authoritative re-read (also catches renames etc.).
+    let app2 = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let st = app2.state::<AppState>();
+        if let Ok(c) = client_for(&st) {
+            if pull_playlists(&st, &c).await.is_ok() {
+                let _ = app2.emit("playlists-refreshed", ());
+            }
+        }
+    });
     Ok(EditResult {
         playlists,
         added: v.get("added").and_then(|x| x.as_i64()).unwrap_or(0),

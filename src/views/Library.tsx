@@ -25,6 +25,7 @@ import { Downloads } from "./Downloads";
 import { downloadsApi, localBus, useDownloads } from "../downloads";
 import { MenuItem, useContextMenu } from "../components/ContextMenu";
 import { navBus } from "../navBus";
+import { listen } from "@tauri-apps/api/event";
 import { Section, nav, useNav } from "../nav";
 import { setLayout } from "../layout";
 
@@ -163,11 +164,15 @@ export function Library({
   const [tracksVersion, setTracksVersion] = useState(0);
   const refreshLists = useCallback(() => {
     setTracksVersion((v) => v + 1);
-    // The server's playlist listing can lag an edit by a moment; look again.
-    setTimeout(() => {
+  }, []);
+  // The authoritative server re-read finishes a little later; pick it up.
+  useEffect(() => {
+    let un: (() => void) | undefined;
+    listen("playlists-refreshed", () => {
       api.listPlaylists().then(setPlaylists).catch(() => {});
       setTracksVersion((v) => v + 1);
-    }, 1500);
+    }).then((u) => (un = u));
+    return () => un?.();
   }, []);
   const reloadPlaylists = useCallback(
     (list?: PlaylistSummary[]) => {
