@@ -58,7 +58,7 @@ export interface MenuEnv {
   currentPlaylist?: PlaylistSummary;
 }
 
-export function Library({ online, summary }: { online: boolean; summary: Summary | null }) {
+export function Library({ online, summary, version }: { online: boolean; summary: Summary | null; version: number }) {
   const [section, setSection] = useState<Section>("home");
   const [scope, setScope] = useState<Scope>({});
   const [search, setSearch] = useState("");
@@ -145,7 +145,7 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
 
   useEffect(() => {
     reloadPlaylists();
-  }, [summary?.playlists, summary?.local_tracks, reloadPlaylists]);
+  }, [summary?.playlists, summary?.local_tracks, reloadPlaylists, version]);
 
   const [tracksVersion, setTracksVersion] = useState(0);
   useEffect(() => {
@@ -176,7 +176,7 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
     return () => {
       cancelled = true;
     };
-  }, [section, scope, search, localOnly, showingTracks, tracksVersion]);
+  }, [section, scope, search, localOnly, showingTracks, tracksVersion, version]);
 
   useEffect(() => likeBus.on((id, liked) => setTracks((ts) => ts.map((t) => (t.id === id ? { ...t, liked } : t)))), []);
   useEffect(

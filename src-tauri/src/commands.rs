@@ -708,7 +708,17 @@ fn web_err(e: ApiError) -> String {
 }
 
 /// Pull playlists and likes again and store them; the UI re-reads.
+/// A `refresh=true` library call first makes the server rescan its
+/// folder, otherwise the playlist list can lag an edit by a minute.
 async fn pull_playlists(state: &AppState, client: &Client) -> Result<Vec<db::PlaylistSummary>, String> {
+    let since = {
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        db::cursor(&conn)
+    };
+    if let Ok(lib) = client.library(since, true).await {
+        let mut conn = state.db.lock().map_err(|e| e.to_string())?;
+        let _ = db::apply_library(&mut conn, lib.full, &lib.tracks, &lib.deleted, lib.cursor);
+    }
     let playlists = client.playlists().await.map_err(String::from)?;
     let likes = client.likes().await.map_err(String::from)?;
     let mut conn = state.db.lock().map_err(|e| e.to_string())?;

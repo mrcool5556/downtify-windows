@@ -208,7 +208,7 @@ export default function App() {
 
       <main className="content">
         {page === "library" ? (
-          <Library key={libraryVersion} online={online} summary={summary} />
+          <Library online={online} summary={summary} version={libraryVersion} />
         ) : (
           <SettingsView
             settings={settings}
