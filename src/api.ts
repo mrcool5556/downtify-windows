@@ -51,6 +51,7 @@ export interface Track {
   playlists: string[];
   local_path: string | null;
   liked: boolean;
+  orphaned: boolean;
 }
 
 export interface Album {
@@ -77,6 +78,7 @@ export interface PlaylistSummary {
   count: number;
   local_count: number;
   cover: string;
+  keep_synced: boolean;
 }
 
 export interface Summary {

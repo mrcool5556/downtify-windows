@@ -3,6 +3,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { Settings, Summary, api, fmtWhen, playerApi } from "../api";
 import { DensityPicker, setLayout, useLayout } from "../layout";
+import { downloadsApi } from "../downloads";
 
 interface Props {
   settings: Settings;
@@ -83,7 +84,20 @@ export function SettingsView({ settings, summary, onSettings, onResync, onUnpair
 
       <section className="card">
         <h2>Music folder</h2>
-        <p className="hint">Downloaded tracks are saved here as ordinary tagged files, so other players can use them too.</p>
+        <p className="hint">Downloaded tracks are saved here as ordinary tagged files, in the same folders as on the server, so other players can use them too.</p>
+        <label className="check" style={{ marginBottom: 10 }}>
+          <input
+            type="checkbox"
+            checked={settings.keep_played}
+            onChange={(e) =>
+              downloadsApi
+                .setKeepPlayed(e.target.checked)
+                .then((s) => onSettings(s as Settings))
+                .catch((err) => setError(String(err)))
+            }
+          />
+          Keep what I play (download every song when it starts playing)
+        </label>
         <code className="path">{settings.music_dir}</code>
         <div className="row">
           <button onClick={chooseFolder}>Change folder…</button>

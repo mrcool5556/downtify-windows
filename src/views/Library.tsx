@@ -3,8 +3,11 @@ import { Album, Artist, PlaylistSummary, Summary, Track, api, coverUrl, fmtDurat
 import { usePlayer } from "../player/usePlayer";
 import { likeBus } from "../likeBus";
 import { DensityPicker, useLayout } from "../layout";
+import { DownloadButton } from "../components/DownloadButton";
+import { Downloads } from "./Downloads";
+import { downloadsApi, localBus, useDownloads } from "../downloads";
 
-type Section = "home" | "tracks" | "albums" | "artists" | "playlists";
+type Section = "home" | "tracks" | "albums" | "artists" | "playlists" | "downloads";
 
 interface Scope {
   album?: Album;
@@ -18,6 +21,7 @@ const SECTION_TITLE: Record<Section, string> = {
   albums: "Albums",
   artists: "Artists",
   playlists: "Playlists",
+  downloads: "Downloads",
 };
 
 export function Library({ online, summary }: { online: boolean; summary: Summary | null }) {
@@ -101,6 +105,17 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
     () => likeBus.on((id, liked) => setTracks((ts) => ts.map((t) => (t.id === id ? { ...t, liked } : t)))),
     [],
   );
+  // ...and local files as downloads finish or copies are removed.
+  useEffect(
+    () =>
+      localBus.on((id, local_path) => {
+        setTracks((ts) => ts.map((t) => (t.id === id ? { ...t, local_path } : t)));
+        api.listPlaylists().then(setPlaylists).catch(() => {});
+      }),
+    [],
+  );
+  const downloads = useDownloads();
+  const activeDownloads = downloads.filter((d) => d.status === "queued" || d.status === "downloading").length;
 
   function go(s: Section) {
     setSection(s);
@@ -128,6 +143,10 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
       <aside className="sidebar">
         <button className={`nav ${section === "home" ? "active" : ""}`} onClick={() => go("home")}>
           <span className="nav-icon">⌂</span> Home
+        </button>
+        <button className={`nav ${section === "downloads" ? "active" : ""}`} onClick={() => go("downloads")}>
+          <span className="nav-icon">⤓</span> Downloads
+          {activeDownloads > 0 && <small className="badge">{activeDownloads}</small>}
         </button>
         <div className="sidebar-title">Your playlists</div>
         <div className="sidebar-playlists">
@@ -171,6 +190,13 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
           {scope.album && scope.album.cover_track_id ? <img className="head-art" src={coverUrl(scope.album.cover_track_id, 150)} alt="" /> : null}
           {scope.playlist ? <PlaylistArt p={scope.playlist} size={30} /> : null}
           <h2>{title}</h2>
+          {scope.playlist && (
+            <KeepSynced
+              p={playlists.find((x) => x.name === scope.playlist!.name) ?? scope.playlist}
+              online={online}
+              onChange={() => api.listPlaylists().then(setPlaylists).catch(() => {})}
+            />
+          )}
           {showingTracks && <DensityPicker small />}
           {showingTracks && (
             <input
@@ -189,6 +215,8 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
           <div className="empty">
             {online ? "Library is empty. Download something on the server, then press Sync." : "No library yet. Connect to the server once to sync it."}
           </div>
+        ) : section === "downloads" ? (
+          <Downloads />
         ) : section === "home" ? (
           <Home
             summary={summary}
@@ -451,6 +479,7 @@ function TrackTable({
             <th>Artist</th>
             {showAlbum && <th>Album</th>}
             <th className="c-like"></th>
+            <th className="c-dl"></th>
             <th className="c-dur">Time</th>
           </tr>
         </thead>
@@ -486,7 +515,10 @@ function TrackTable({
                 <RowArt track={t} />
               </td>
               <td className="c-local">{t.local_path ? "●" : ""}</td>
-              <td className="c-title">{t.title || t.file}</td>
+              <td className="c-title">
+                {t.title || t.file}
+                {t.orphaned && <span className="orphan" title="No longer on the server; your copy stays until you remove it"> · gone from server</span>}
+              </td>
               <td>{t.artist}</td>
               {showAlbum && <td>{t.album}</td>}
               <td className="c-like">
@@ -502,11 +534,68 @@ function TrackTable({
                   {t.liked ? "♥" : "♡"}
                 </button>
               </td>
+              <td className="c-dl">
+                <DownloadButton track={t} online={online} />
+              </td>
               <td className="c-dur">{fmtDuration(t.duration)}</td>
             </tr>
           );
         })}
       </tbody>
     </table>
+  );
+}
+
+function KeepSynced({ p, online, onChange }: { p: PlaylistSummary; online: boolean; onChange: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [confirm, setConfirm] = useState(false);
+  async function toggle() {
+    setBusy(true);
+    try {
+      await downloadsApi.setKeepSynced(p.name, !p.keep_synced);
+      onChange();
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function removeAll() {
+    setBusy(true);
+    try {
+      const ids = (await api.listTracks({ playlist: p.name, local_only: true, limit: 10000 })).map((t) => t.id);
+      if (p.keep_synced) await downloadsApi.setKeepSynced(p.name, false);
+      await downloadsApi.removeLocal(ids);
+      onChange();
+    } finally {
+      setBusy(false);
+      setConfirm(false);
+    }
+  }
+  return (
+    <div className="keep">
+      <label className="switch" title={online ? "Download this playlist and keep new additions coming" : "Needs the server to start"}>
+        <input type="checkbox" checked={p.keep_synced} disabled={busy || (!online && !p.keep_synced)} onChange={toggle} />
+        <span className="slider" />
+        <span>Keep synced to this PC</span>
+      </label>
+      <small>
+        {p.local_count} of {p.count} on this PC
+      </small>
+      {p.local_count > 0 &&
+        (confirm ? (
+          <span className="dl-confirm">
+            Remove {p.local_count} files?
+            <button className="small danger" onClick={removeAll} disabled={busy}>
+              Remove
+            </button>
+            <button className="small ghost" onClick={() => setConfirm(false)}>
+              Keep
+            </button>
+          </span>
+        ) : (
+          <button className="small ghost" onClick={() => setConfirm(true)} title="Delete this playlist's files from this PC">
+            Remove from this PC
+          </button>
+        ))}
+    </div>
   );
 }

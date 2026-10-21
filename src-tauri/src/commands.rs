@@ -6,6 +6,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::State;
 
 use crate::db;
+use crate::downloads;
 use crate::server::{self, ApiError, Client, ServerInfo};
 use crate::settings::{self, Settings};
 use crate::AppState;
@@ -188,7 +189,7 @@ pub struct SyncResult {
 
 /// Pull library changes since the last cursor, then playlists and likes.
 #[tauri::command]
-pub async fn sync_library(state: State<'_, AppState>, refresh: bool) -> Result<SyncResult, String> {
+pub async fn sync_library(app: tauri::AppHandle, state: State<'_, AppState>, refresh: bool) -> Result<SyncResult, String> {
     let client = client_for(&state)?;
     let since = {
         let conn = state.db.lock().map_err(|e| e.to_string())?;
@@ -207,6 +208,12 @@ pub async fn sync_library(state: State<'_, AppState>, refresh: bool) -> Result<S
     db::replace_playlists(&mut conn, &playlists)?;
     db::replace_likes(&mut conn, &likes)?;
     db::set_meta(&conn, "last_sync", &now().to_string())?;
+    let missing = downloads::missing_for_keep_synced(&conn)?;
+    drop(conn);
+    if !missing.is_empty() {
+        downloads::enqueue(&app, missing);
+    }
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
     Ok(SyncResult {
         full: lib.full,
         upserted,
@@ -542,4 +549,85 @@ pub fn recent_plays(state: State<AppState>, limit: Option<i64>) -> Result<Vec<db
 pub fn recent_albums(state: State<AppState>, limit: Option<i64>) -> Result<Vec<db::Album>, String> {
     let conn = state.db.lock().map_err(|e| e.to_string())?;
     db::recent_albums(&conn, limit.unwrap_or(12))
+}
+
+// ── Downloads ───────────────────────────────────────────────────────────
+
+/// On start: forget local files that vanished from disk.
+pub fn verify_local_files(app: &tauri::AppHandle) {
+    use tauri::Manager;
+    let state = app.state::<AppState>();
+    let conn = match state.db.lock() {
+        Ok(c) => c,
+        Err(_) => return,
+    };
+    if let Ok(files) = db::local_files(&conn) {
+        for (id, path) in files {
+            if !std::path::Path::new(&path).is_file() {
+                let _ = db::clear_local_file(&conn, &id);
+            }
+        }
+    }
+    drop(conn);
+}
+
+#[tauri::command]
+pub fn download_tracks(app: tauri::AppHandle, track_ids: Vec<String>) -> Result<usize, String> {
+    Ok(downloads::enqueue(&app, track_ids))
+}
+
+#[tauri::command]
+pub fn cancel_download(app: tauri::AppHandle, track_id: String) {
+    downloads::cancel(&app, &track_id);
+}
+
+#[tauri::command]
+pub fn download_states(state: State<AppState>) -> Vec<downloads::Progress> {
+    downloads::snapshot(&state.downloads)
+}
+
+#[tauri::command]
+pub fn clear_finished_downloads(state: State<AppState>) {
+    downloads::clear_finished(&state.downloads);
+}
+
+#[tauri::command]
+pub fn remove_local(app: tauri::AppHandle, track_ids: Vec<String>) -> Result<usize, String> {
+    downloads::remove_local(&app, &track_ids)
+}
+
+/// Keep a playlist (or the liked list) downloaded; queues what's missing now.
+#[tauri::command]
+pub fn set_keep_synced(app: tauri::AppHandle, state: State<AppState>, name: String, on: bool) -> Result<usize, String> {
+    let missing = {
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        db::set_keep_synced(&conn, &name, on)?;
+        if on {
+            db::playlist_track_ids(&conn, &name)?
+                .into_iter()
+                .filter(|id| db::local_path(&conn, id).is_none())
+                .collect::<Vec<_>>()
+        } else {
+            Vec::new()
+        }
+    };
+    Ok(if missing.is_empty() { 0 } else { downloads::enqueue(&app, missing) })
+}
+
+/// Queue whatever keep-synced lists are missing (used after a sync).
+#[tauri::command]
+pub fn sync_keep_synced(app: tauri::AppHandle, state: State<AppState>) -> Result<usize, String> {
+    let missing = {
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        downloads::missing_for_keep_synced(&conn)?
+    };
+    Ok(if missing.is_empty() { 0 } else { downloads::enqueue(&app, missing) })
+}
+
+#[tauri::command]
+pub fn set_keep_played(state: State<AppState>, on: bool) -> Result<SettingsView, String> {
+    let mut s = state.settings.lock().map_err(|e| e.to_string())?;
+    s.keep_played = on;
+    settings::save(&state.settings_path, &s)?;
+    Ok(view(&s))
 }

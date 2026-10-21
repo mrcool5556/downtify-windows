@@ -2,6 +2,7 @@ import { useState } from "react";
 import { coverUrl, fmtDuration, playerApi } from "../api";
 import { usePlayer } from "../player/usePlayer";
 import { likeBus } from "../likeBus";
+import { DownloadButton } from "./DownloadButton";
 
 export function PlayerBar({ online, onReveal }: { online: boolean; onReveal: () => void }) {
   const p = usePlayer();
@@ -52,6 +53,7 @@ export function PlayerBar({ online, onReveal }: { online: boolean; onReveal: () 
             >
               {current.liked ? "♥" : "♡"}
             </button>
+            <DownloadButton track={current} online={online} size={18} />
           </>
         ) : (
           <div className="pb-meta muted">Nothing playing. Double-click a song to start.</div>

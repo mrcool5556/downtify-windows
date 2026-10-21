@@ -3,7 +3,8 @@
 // Framework-free; React reads it through usePlayer().
 
 import { listen } from "@tauri-apps/api/event";
-import { Track, homeApi, localTrackUrl, playerApi } from "../api";
+import { Track, api, homeApi, localTrackUrl, playerApi } from "../api";
+import { invoke } from "@tauri-apps/api/core";
 
 export type Repeat = "off" | "all" | "one";
 
@@ -246,6 +247,13 @@ class PlayerStore {
     this.pushSmtc(autoplay ? "playing" : "paused");
     if (autoplay) {
       homeApi.recordPlay(track.id).catch(() => {});
+      if (!track.local_path) {
+        api.getSettings()
+          .then((s) => {
+            if (s.keep_played) invoke("download_tracks", { trackIds: [track.id] }).catch(() => {});
+          })
+          .catch(() => {});
+      }
       this.audio.play().catch(() => {});
     } else {
       this.set({ loading: false });

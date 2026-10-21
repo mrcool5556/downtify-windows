@@ -33,7 +33,11 @@ pub fn open(path: &Path) -> Result<Connection, String> {
             track_number INTEGER NOT NULL DEFAULT 0,
             duration REAL NOT NULL DEFAULT 0,
             added INTEGER NOT NULL DEFAULT 0,
+            orphaned INTEGER NOT NULL DEFAULT 0,
             json TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS keep_synced (
+            name TEXT PRIMARY KEY
         );
         CREATE INDEX IF NOT EXISTS tracks_album ON tracks(album_id);
         CREATE INDEX IF NOT EXISTS tracks_artist ON tracks(artist_id);
@@ -70,6 +74,8 @@ pub fn open(path: &Path) -> Result<Connection, String> {
         "#,
     )
     .map_err(|e| e.to_string())?;
+    // Older databases: add columns introduced later.
+    let _ = conn.execute("ALTER TABLE tracks ADD COLUMN orphaned INTEGER NOT NULL DEFAULT 0", []);
     Ok(conn)
 }
 
@@ -114,8 +120,12 @@ pub fn apply_library(
     let tx = conn.transaction().map_err(|e| e.to_string())?;
     let mut removed = 0usize;
     if full {
+        // Keep anything we have on disk; the upserts below un-orphan
+        // whatever the server still lists.
         removed = tx
-            .execute("DELETE FROM tracks", [])
+            .execute("DELETE FROM tracks WHERE id NOT IN (SELECT track_id FROM local_files)", [])
+            .map_err(|e| e.to_string())?;
+        tx.execute("UPDATE tracks SET orphaned = 1", [])
             .map_err(|e| e.to_string())?;
     }
     {
@@ -128,7 +138,8 @@ pub fn apply_library(
                     title = excluded.title, artist = excluded.artist, album = excluded.album,
                     album_artist = excluded.album_artist, album_id = excluded.album_id,
                     artist_id = excluded.artist_id, track_number = excluded.track_number,
-                    duration = excluded.duration, added = excluded.added, json = excluded.json",
+                    duration = excluded.duration, added = excluded.added, json = excluded.json,
+                    orphaned = 0",
             )
             .map_err(|e| e.to_string())?;
         for t in tracks {
@@ -153,10 +164,17 @@ pub fn apply_library(
         }
         if !full {
             let mut del = tx
-                .prepare("DELETE FROM tracks WHERE id = ?1")
+                .prepare("DELETE FROM tracks WHERE id = ?1 AND id NOT IN (SELECT track_id FROM local_files)")
+                .map_err(|e| e.to_string())?;
+            let mut orphan = tx
+                .prepare("UPDATE tracks SET orphaned = 1 WHERE id = ?1")
                 .map_err(|e| e.to_string())?;
             for id in deleted {
-                removed += del.execute([id]).map_err(|e| e.to_string())?;
+                let n = del.execute([id]).map_err(|e| e.to_string())?;
+                if n == 0 {
+                    orphan.execute([id]).map_err(|e| e.to_string())?;
+                }
+                removed += n;
             }
         }
     }
@@ -220,6 +238,69 @@ pub fn local_path(conn: &Connection, track_id: &str) -> Option<String> {
     .optional()
     .ok()
     .flatten()
+}
+
+pub fn set_local_file(conn: &Connection, track_id: &str, path: &str, size: i64) -> Result<(), String> {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or(0);
+    conn.execute(
+        "INSERT INTO local_files(track_id, path, size, downloaded_at) VALUES(?1, ?2, ?3, ?4)
+         ON CONFLICT(track_id) DO UPDATE SET path = excluded.path, size = excluded.size, downloaded_at = excluded.downloaded_at",
+        params![track_id, path, size, now],
+    )
+    .map(|_| ())
+    .map_err(|e| e.to_string())
+}
+
+pub fn clear_local_file(conn: &Connection, track_id: &str) -> Result<(), String> {
+    conn.execute("DELETE FROM local_files WHERE track_id = ?1", [track_id])
+        .map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM tracks WHERE id = ?1 AND orphaned = 1", [track_id])
+        .map(|_| ())
+        .map_err(|e| e.to_string())
+}
+
+pub fn track_exists(conn: &Connection, track_id: &str) -> Result<bool, String> {
+    conn.query_row("SELECT 1 FROM tracks WHERE id = ?1 AND orphaned = 0", [track_id], |_| Ok(()))
+        .optional()
+        .map(|o| o.is_some())
+        .map_err(|e| e.to_string())
+}
+
+pub fn playlist_track_ids(conn: &Connection, name: &str) -> Result<Vec<String>, String> {
+    Ok(conn
+        .query_row("SELECT track_ids FROM playlists WHERE name = ?1", [name], |r| r.get::<_, String>(0))
+        .optional()
+        .map_err(|e| e.to_string())?
+        .and_then(|txt| serde_json::from_str(&txt).ok())
+        .unwrap_or_default())
+}
+
+pub fn keep_synced(conn: &Connection) -> Result<Vec<String>, String> {
+    let mut stmt = conn.prepare("SELECT name FROM keep_synced").map_err(|e| e.to_string())?;
+    let rows = stmt.query_map([], |r| r.get::<_, String>(0)).map_err(|e| e.to_string())?;
+    rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+}
+
+pub fn set_keep_synced(conn: &Connection, name: &str, on: bool) -> Result<(), String> {
+    if on {
+        conn.execute("INSERT OR IGNORE INTO keep_synced(name) VALUES(?1)", [name])
+    } else {
+        conn.execute("DELETE FROM keep_synced WHERE name = ?1", [name])
+    }
+    .map(|_| ())
+    .map_err(|e| e.to_string())
+}
+
+/// All local files (for checking what's still on disk at start).
+pub fn local_files(conn: &Connection) -> Result<Vec<(String, String)>, String> {
+    let mut stmt = conn.prepare("SELECT track_id, path FROM local_files").map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))
+        .map_err(|e| e.to_string())?;
+    rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
 }
 
 pub fn set_like(conn: &Connection, track_id: &str, liked: bool) -> Result<(), String> {
@@ -338,7 +419,7 @@ pub fn recent_albums(conn: &Connection, limit: i64) -> Result<Vec<Album>, String
 pub fn clear_all(conn: &Connection) -> Result<(), String> {
     conn.execute_batch(
         "DELETE FROM tracks; DELETE FROM playlists; DELETE FROM likes;
-         DELETE FROM local_files; DELETE FROM meta; DELETE FROM pending_listens; DELETE FROM history;",
+         DELETE FROM local_files; DELETE FROM meta; DELETE FROM pending_listens; DELETE FROM history; DELETE FROM keep_synced;",
     )
     .map_err(|e| e.to_string())
 }
@@ -350,9 +431,10 @@ pub struct Track {
     pub row: Value,
     pub local_path: Option<String>,
     pub liked: bool,
+    pub orphaned: bool,
 }
 
-const TRACK_SELECT: &str = "SELECT t.json, l.path, (k.track_id IS NOT NULL)
+const TRACK_SELECT: &str = "SELECT t.json, l.path, (k.track_id IS NOT NULL), t.orphaned
     FROM tracks t
     LEFT JOIN local_files l ON l.track_id = t.id
     LEFT JOIN likes k ON k.track_id = t.id";
@@ -361,10 +443,12 @@ fn row_to_track(r: &rusqlite::Row) -> rusqlite::Result<Track> {
     let json: String = r.get(0)?;
     let local_path: Option<String> = r.get(1)?;
     let liked: bool = r.get(2)?;
+    let orphaned: bool = r.get(3)?;
     Ok(Track {
         row: serde_json::from_str(&json).unwrap_or(Value::Null),
         local_path,
         liked,
+        orphaned,
     })
 }
 
@@ -526,6 +610,7 @@ pub struct PlaylistSummary {
     pub count: i64,
     pub local_count: i64,
     pub cover: String,
+    pub keep_synced: bool,
 }
 
 pub fn list_playlists(conn: &Connection) -> Result<Vec<PlaylistSummary>, String> {
@@ -535,6 +620,7 @@ pub fn list_playlists(conn: &Connection) -> Result<Vec<PlaylistSummary>, String>
     let mut local = conn
         .prepare("SELECT 1 FROM local_files WHERE track_id = ?1")
         .map_err(|e| e.to_string())?;
+    let kept = keep_synced(conn)?;
     let rows = stmt
         .query_map([], |r| {
             Ok((
@@ -557,7 +643,8 @@ pub fn list_playlists(conn: &Connection) -> Result<Vec<PlaylistSummary>, String>
                 local_count += 1;
             }
         }
-        out.push(PlaylistSummary { name, liked, manual, count, cover, local_count });
+        let keep_synced = kept.iter().any(|k| k == &name);
+        out.push(PlaylistSummary { name, liked, manual, count, cover, local_count, keep_synced });
     }
     Ok(out)
 }

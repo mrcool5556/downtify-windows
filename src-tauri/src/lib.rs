@@ -1,5 +1,6 @@
 mod commands;
 mod db;
+mod downloads;
 mod media;
 mod server;
 mod settings;
@@ -17,6 +18,7 @@ pub struct AppState {
     pub settings_path: PathBuf,
     pub settings: Mutex<settings::Settings>,
     pub db: Mutex<Connection>,
+    pub downloads: downloads::Shared,
     #[cfg(windows)]
     pub smtc: Mutex<Option<smtc::Smtc>>,
 }
@@ -56,9 +58,11 @@ pub fn run() {
                 settings_path,
                 settings: Mutex::new(settings),
                 db: Mutex::new(db),
+                downloads: downloads::new(),
                 #[cfg(windows)]
                 smtc: Mutex::new(smtc),
             });
+            commands::verify_local_files(app.handle());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -86,6 +90,14 @@ pub fn run() {
             commands::record_play,
             commands::recent_plays,
             commands::recent_albums,
+            commands::download_tracks,
+            commands::cancel_download,
+            commands::download_states,
+            commands::clear_finished_downloads,
+            commands::remove_local,
+            commands::set_keep_synced,
+            commands::sync_keep_synced,
+            commands::set_keep_played,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Downtify");
