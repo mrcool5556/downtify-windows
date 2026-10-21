@@ -2423,3 +2423,52 @@ html[data-mini] body,
 html[data-mini] #root {
   background: transparent;
 }
+
+/* Mini: tighter vertical rhythm (window is 102px closed) */
+.mini-main {
+  height: 84px;
+  padding: 4px 0 0 10px;
+  gap: 6px;
+}
+.mini-side-row {
+  height: 26px;
+}
+.mini-side-row.chrome {
+  margin-top: -4px;
+  height: 24px;
+}
+.mini-side-row.chrome .winbtn,
+.mini-side-row.chrome .icon.pin {
+  width: 28px;
+}
+.mini-art {
+  width: 40px;
+  height: 40px;
+}
+.mini-play.big {
+  width: 32px;
+  height: 32px;
+}
+.mini-controls .icon:not(.big) {
+  padding: 2px 5px;
+}
+.mini-modes .icon {
+  padding: 0 5px;
+}
+.mini-modes .icon svg {
+  width: 14px;
+  height: 14px;
+}
+.mini-seek {
+  height: 4px;
+}
+.mini-handle {
+  height: 12px;
+}
+.mini-handle-arrow {
+  top: -4px;
+  font-size: 11px;
+}
+.mini-drawer {
+  padding-top: 4px;
+}
