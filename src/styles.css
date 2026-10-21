@@ -1056,3 +1056,28 @@ table.tracks th {
   top: var(--head-h);
   z-index: 2;
 }
+
+/* ── Scrollbars: slimmer, green thumb ─────────────────────────────── */
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--accent-2);
+  border-radius: 6px;
+  border: 2px solid var(--bg);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+  width: 0;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
