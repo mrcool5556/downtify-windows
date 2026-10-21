@@ -41,7 +41,10 @@ pub fn run() {
                 app.get_webview_window("main")
                     .and_then(|w| w.hwnd().ok())
                     .and_then(|h| match smtc::init(&handle, h.0 as isize) {
-                        Ok(s) => Some(s),
+                        Ok(s) => {
+                            println!("media keys: Windows media controls attached");
+                            Some(s)
+                        }
                         Err(e) => {
                             eprintln!("media keys unavailable: {e}");
                             None

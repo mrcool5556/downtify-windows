@@ -16,7 +16,8 @@
         "width": 1100,
         "height": 720,
         "minWidth": 820,
-        "minHeight": 520
+        "minHeight": 520,
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,HardwareMediaKeyHandling,MediaSessionService"
       }
     ],
     "security": {
@@ -25,7 +26,9 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": [
+      "nsis"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
