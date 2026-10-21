@@ -229,6 +229,11 @@ export default function App() {
     return () => window.removeEventListener("popstate", onPop);
   }, []);
 
+  // Only the mini needs a see-through window; the full one paints solid.
+  useEffect(() => {
+    document.documentElement.toggleAttribute("data-mini", !!settings?.mini);
+  }, [settings?.mini]);
+
   // Window title and tray tooltip follow the song.
   useEffect(() => {
     const text = current ? `${current.title} — ${current.artist}` : "";

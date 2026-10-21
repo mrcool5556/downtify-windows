@@ -2411,3 +2411,15 @@ button.icon svg {
 .mini.faded .mini-opacity-ctl {
   filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, 0.8));
 }
+
+/* Solid page background unless the mini is showing */
+html:not([data-mini]),
+html:not([data-mini]) body,
+html:not([data-mini]) #root {
+  background: var(--bg);
+}
+html[data-mini],
+html[data-mini] body,
+html[data-mini] #root {
+  background: transparent;
+}
