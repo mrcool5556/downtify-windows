@@ -133,6 +133,7 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
                 min={0}
                 max={100}
                 value={p.muted ? 0 : Math.round(p.volume * 100)}
+                style={{ backgroundSize: `${p.muted ? 0 : p.volume * 100}% 100%` }}
                 onChange={(e) => player.setVolume(Number(e.target.value) / 100)}
                 onWheel={(e) => {
                   e.preventDefault();
@@ -175,6 +176,7 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
                 max={100}
                 step={5}
                 value={settings.mini_opacity}
+                style={{ backgroundSize: `${((settings.mini_opacity - 10) / 90) * 100}% 100%` }}
                 title={`Opacity ${settings.mini_opacity}%`}
                 onChange={(e) => invoke<Settings>("set_mini_opacity", { percent: Number(e.target.value) }).then(onSettings).catch(() => {})}
               />
