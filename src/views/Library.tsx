@@ -698,6 +698,7 @@ export function Library({
           />
         ) : showingTracks && layout.density === "grid" ? (
           <TrackGrid
+            key={`${section}:${JSON.stringify(scope)}`}
             tracks={tracks}
             online={online}
             onPlay={(i) => player.playList(tracks, i, playContext)}
@@ -708,6 +709,7 @@ export function Library({
           />
         ) : showingTracks ? (
           <TrackTable
+            key={`${section}:${JSON.stringify(scope)}`}
             tracks={tracks}
             online={online}
             showAlbum={!scope.album}
@@ -1350,6 +1352,9 @@ function TrackTable({ tracks, online, showAlbum, onPlay, compact, env, openMenu,
   const { player, current, playing } = usePlayer();
   const sel = useSelection(tracks);
   const widths = useCols();
+  // A finished drag can leave the browser holding a stale row node; a fresh
+  // tbody after every drag end keeps what you see equal to the data.
+  const [bodyKey, setBodyKey] = useState(0);
 
   async function toggleLike(t: Track) {
     if (!online) return;
@@ -1387,7 +1392,7 @@ function TrackTable({ tracks, online, showAlbum, onPlay, compact, env, openMenu,
           </tr>
         </thead>
       )}
-      <tbody>
+      <tbody key={bodyKey}>
         {tracks.map((t, i) => {
           const isCurrent = current?.id === t.id;
           const playable = !!t.local_path || online;
@@ -1401,6 +1406,7 @@ function TrackTable({ tracks, online, showAlbum, onPlay, compact, env, openMenu,
               onContextMenu={(e) => openMenu(e, trackMenu(sel.forMenu(i), env, { playFirst: () => onPlay(i), addToPlaylist, removeFromPlaylist }))}
               draggable
               onDragStart={(e) => startDrag(e, sel.selected.has(t.id) ? tracks.filter((x) => sel.selected.has(x.id)) : [t], env.currentPlaylist?.name)}
+              onDragEnd={() => setTimeout(() => setBodyKey((k) => k + 1), 0)}
               title={playable ? "Double-click to play · right-click for more" : "Not downloaded and the server is offline"}
             >
               <td className="c-play">
