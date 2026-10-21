@@ -2343,3 +2343,27 @@ button.icon svg {
 .mini-handle:hover .mini-handle-bar {
   background: var(--fg);
 }
+
+/* Mini faded: play button and window buttons stay visible on white */
+.mini.faded .mini-play.big {
+  background: rgba(0, 0, 0, 0.78);
+  color: #fff;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6), 0 0 6px rgba(0, 0, 0, 0.6);
+  filter: none;
+}
+.mini.faded .mini-play.big:hover:not(:disabled) {
+  background: #000;
+  color: #fff;
+}
+.mini.faded .winbtn {
+  color: #e8eaed;
+  filter: drop-shadow(0 0 2px #000) drop-shadow(0 0 3px #000);
+}
+.mini.faded .mini-side-row.chrome .winbtn,
+.mini.faded .mini-side-row.chrome .icon.pin {
+  border-left-color: rgba(128, 128, 128, 0.5);
+}
+.mini.faded .mini-volume,
+.mini.faded .mini-opacity-ctl {
+  filter: drop-shadow(0 0 2px #000);
+}
