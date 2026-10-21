@@ -7,7 +7,7 @@ import { DownloadButton } from "./DownloadButton";
 import { WindowControls } from "./WindowControls";
 import { useContextMenu } from "./ContextMenu";
 import { trackMenu } from "../views/Library";
-import { MiniIcon, OpacityBackgroundIcon, OpacityWindowIcon, PinIcon, RepeatIcon, RepeatOneIcon, ShuffleIcon, VolumeIcon } from "./Icons";
+import { OpacityBackgroundIcon, OpacityWindowIcon, PinIcon, RepeatIcon, RepeatOneIcon, ShuffleIcon, VolumeIcon } from "./Icons";
 
 interface Props {
   settings: Settings;
@@ -19,7 +19,6 @@ interface Props {
 export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Props) {
   const p = usePlayer();
   const { player, current } = p;
-  const [nextOpen, setNextOpen] = useState(false);
   const [coverOk, setCoverOk] = useState(true);
   const fadeTimer = useRef<number | undefined>(undefined);
   const ctx = useContextMenu();
@@ -43,8 +42,8 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
   const bgAlpha = windowMode || hovered ? 1 : settings.mini_opacity / 100;
 
   const upcoming = p.order.slice(p.cursor + 1, p.cursor + 6).map((qi) => ({ qi, t: p.queue[qi] }));
-  const next = upcoming[0]?.t;
   const pct = p.duration ? (p.position / p.duration) * 100 : 0;
+  const expanded = settings.mini_expanded;
 
   async function toggleLike() {
     if (!current || !online) return;
@@ -56,33 +55,16 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
     }
   }
 
-  const env = {
-    online,
-    playlists: [],
-    setNotice: () => {},
-    reloadPlaylists: () => {},
-    promptNewPlaylist: () => {},
-    currentPlaylist: undefined,
-  };
+  const env = { online, playlists: [], setNotice: () => {}, reloadPlaylists: () => {}, promptNewPlaylist: () => {}, currentPlaylist: undefined };
 
   return (
     <div className="mini" onMouseEnter={onEnter} onMouseLeave={onLeave} data-tauri-drag-region style={{ "--mini-alpha": bgAlpha } as React.CSSProperties}>
       {ctx.menu}
-      <div className="mini-top" data-tauri-drag-region>
-        <div className="mini-top-right">
-          <button
-            className={`icon pin ${settings.mini_pinned ? "on" : ""}`}
-            onClick={() => invoke<Settings>("set_mini_pinned", { on: !settings.mini_pinned }).then(onSettings).catch(() => {})}
-            title={settings.mini_pinned ? "Pinned above other windows (click to unpin)" : "Pin above other windows"}
-          >
-            <PinIcon />
-          </button>
-          <WindowControls onRestoreFull={onRestoreFull} />
-        </div>
-      </div>
-      <div className="mini-row1" data-tauri-drag-region>
+
+      <div className="mini-main" data-tauri-drag-region>
         <div
           className="mini-track"
+          data-tauri-drag-region
           onContextMenu={(e) => current && ctx.open(e, trackMenu([current], env, { playFirst: () => player.play(), addToPlaylist: async () => {} }))}
         >
           {current && coverOk && current.has_cover ? (
@@ -90,107 +72,76 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
           ) : (
             <div className="mini-art placeholder">♫</div>
           )}
-          <div className="mini-meta">
+          <div className="mini-meta" data-tauri-drag-region>
             <div className="mini-title">{current ? current.title || current.file : "Nothing playing"}</div>
             <div className="mini-sub">{current ? current.artist : "Open the full window to pick a song"}</div>
           </div>
         </div>
 
-        <div className="mini-controls">
-          <button className="icon" onClick={() => player.previous()} disabled={!current} title="Previous">
-            ⏮
-          </button>
-          <button className="icon big mini-play" onClick={() => player.toggle()} disabled={!current && p.queue.length === 0} title="Play / pause">
-            {p.playing ? "⏸" : "▶"}
-          </button>
-          <button className="icon" onClick={() => player.next()} disabled={!current} title="Next">
-            ⏭
-          </button>
+        <div className="mini-center" data-tauri-drag-region>
+          <div className="mini-controls">
+            <button className="icon" onClick={() => player.previous()} disabled={!current} title="Previous">
+              ⏮
+            </button>
+            <button className="icon big mini-play" onClick={() => player.toggle()} disabled={!current && p.queue.length === 0} title="Play / pause">
+              {p.playing ? "⏸" : "▶"}
+            </button>
+            <button className="icon" onClick={() => player.next()} disabled={!current} title="Next">
+              ⏭
+            </button>
+          </div>
+          <div className="mini-modes">
+            <button className={`icon ${p.shuffle ? "on" : ""}`} onClick={() => player.toggleShuffle()} title="Shuffle">
+              <ShuffleIcon />
+            </button>
+            <button className={`icon ${p.repeat !== "off" ? "on" : ""}`} onClick={() => player.cycleRepeat()} title={`Repeat: ${p.repeat}`}>
+              {p.repeat === "one" ? <RepeatOneIcon /> : <RepeatIcon />}
+            </button>
+          </div>
         </div>
 
-        <div className="mini-right">
-          {current && (
-            <>
-              <button className={`icon heart ${current.liked ? "on" : ""}`} onClick={toggleLike} disabled={!online} title={current.liked ? "Unlike" : "Like"}>
-                {current.liked ? "♥" : "♡"}
-              </button>
-              <DownloadButton track={current} online={online} size={16} />
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className="mini-row2" data-tauri-drag-region>
-        <button className={`icon ${p.shuffle ? "on" : ""}`} onClick={() => player.toggleShuffle()} title="Shuffle">
-          <ShuffleIcon />
-        </button>
-        <button className={`icon ${p.repeat !== "off" ? "on" : ""}`} onClick={() => player.cycleRepeat()} title={`Repeat: ${p.repeat}`}>
-          {p.repeat === "one" ? <RepeatOneIcon /> : <RepeatIcon />}
-        </button>
-
-        <div className="mini-next">
-          <button className="mini-next-btn" onClick={() => setNextOpen((o) => !o)} disabled={!next} title="Up next">
-            {next ? (
+        <div className="mini-side">
+          <div className="mini-side-row chrome">
+            <button
+              className={`icon pin ${settings.mini_pinned ? "on" : ""}`}
+              onClick={() => invoke<Settings>("set_mini_pinned", { on: !settings.mini_pinned }).then(onSettings).catch(() => {})}
+              title={settings.mini_pinned ? "Pinned above other windows (click to unpin)" : "Pin above other windows"}
+            >
+              <PinIcon />
+            </button>
+            <WindowControls onRestoreFull={onRestoreFull} />
+          </div>
+          <div className="mini-side-row">
+            {current ? (
               <>
-                <span className="mini-next-label">Next:</span> {next.title} <span className="mini-next-artist">— {next.artist}</span>
+                <button className={`icon heart ${current.liked ? "on" : ""}`} onClick={toggleLike} disabled={!online} title={current.liked ? "Unlike" : "Like"}>
+                  {current.liked ? "♥" : "♡"}
+                </button>
+                <DownloadButton track={current} online={online} size={16} />
               </>
             ) : (
-              <span className="mini-next-label">End of queue</span>
+              <span />
             )}
-          </button>
-          {nextOpen && upcoming.length > 0 && (
-            <div className="mini-next-pop" onMouseLeave={() => setNextOpen(false)}>
-              {upcoming.map(({ qi, t }, i) => (
-                <button
-                  key={`${qi}-${i}`}
-                  className="mini-next-item"
-                  onClick={() => {
-                    player.playQueueIndex(qi);
-                    setNextOpen(false);
-                  }}
-                >
-                  <span className="q-title">{t.title}</span>
-                  <span className="q-sub">{t.artist}</span>
-                  <small>{fmtDuration(t.duration)}</small>
-                </button>
-              ))}
-            </div>
-          )}
+          </div>
+          <div className="mini-side-row">
+            <label className="mini-volume" title="Volume (scroll to change by 2)">
+              <span>
+                <VolumeIcon muted={p.muted || p.volume === 0} />
+              </span>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={p.muted ? 0 : Math.round(p.volume * 100)}
+                onChange={(e) => player.setVolume(Number(e.target.value) / 100)}
+                onWheel={(e) => {
+                  e.preventDefault();
+                  player.setVolume((p.muted ? 0 : p.volume) + (e.deltaY < 0 ? 0.02 : -0.02));
+                }}
+              />
+            </label>
+          </div>
         </div>
-
-        <button
-          className="icon"
-          onClick={() => invoke<Settings>("set_mini_opacity_mode", { mode: windowMode ? "background" : "window" }).then(onSettings).catch(() => {})}
-          title={windowMode ? "Fading the whole window. Click to fade only the background" : "Fading only the background; song stays solid. Click to fade the whole window"}
-        >
-          {windowMode ? <OpacityWindowIcon /> : <OpacityBackgroundIcon />}
-        </button>
-        <label className="mini-opacity" title={`Opacity ${settings.mini_opacity}%`}>
-          <input
-            type="range"
-            min={10}
-            max={100}
-            step={5}
-            value={settings.mini_opacity}
-            onChange={(e) => invoke<Settings>("set_mini_opacity", { percent: Number(e.target.value) }).then(onSettings).catch(() => {})}
-          />
-        </label>
-        <label className="mini-volume" title="Volume (scroll to change by 2)">
-          <span>
-            <VolumeIcon muted={p.muted || p.volume === 0} />
-          </span>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={p.muted ? 0 : Math.round(p.volume * 100)}
-            onChange={(e) => player.setVolume(Number(e.target.value) / 100)}
-            onWheel={(e) => {
-              e.preventDefault();
-              player.setVolume((p.muted ? 0 : p.volume) + (e.deltaY < 0 ? 0.02 : -0.02));
-            }}
-          />
-        </label>
       </div>
 
       <input
@@ -205,6 +156,52 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
         style={{ backgroundSize: `${pct}% 100%` }}
         title={`${fmtDuration(p.position)} / ${fmtDuration(p.duration)}`}
       />
+
+      {expanded && (
+        <div className="mini-drawer">
+          <div className="mini-drawer-head">
+            <span>Up next</span>
+            <span className="mini-opacity-ctl">
+              <button
+                className="icon"
+                onClick={() => invoke<Settings>("set_mini_opacity_mode", { mode: windowMode ? "background" : "window" }).then(onSettings).catch(() => {})}
+                title={windowMode ? "Fading the whole window. Click to fade only the background" : "Fading only the background; song stays solid. Click to fade the whole window"}
+              >
+                {windowMode ? <OpacityWindowIcon /> : <OpacityBackgroundIcon />}
+              </button>
+              <input
+                type="range"
+                min={10}
+                max={100}
+                step={5}
+                value={settings.mini_opacity}
+                title={`Opacity ${settings.mini_opacity}%`}
+                onChange={(e) => invoke<Settings>("set_mini_opacity", { percent: Number(e.target.value) }).then(onSettings).catch(() => {})}
+              />
+              <small>{settings.mini_opacity}%</small>
+            </span>
+          </div>
+          <div className="mini-queue">
+            {upcoming.length === 0 && <div className="mini-queue-empty">End of queue</div>}
+            {upcoming.map(({ qi, t }, i) => (
+              <button key={`${qi}-${i}`} className="mini-next-item" onClick={() => player.playQueueIndex(qi)} title="Play now">
+                <span className="q-title">{t.title}</span>
+                <span className="q-sub">{t.artist}</span>
+                <small>{fmtDuration(t.duration)}</small>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <button
+        className="mini-handle"
+        onClick={() => invoke<Settings>("set_mini_expanded", { on: !expanded }).then(onSettings).catch(() => {})}
+        title={expanded ? "Hide up next and opacity" : "Show up next and opacity"}
+      >
+        <span className="mini-handle-bar" />
+        <span className="mini-handle-arrow">{expanded ? "⌃" : "⌄"}</span>
+      </button>
     </div>
   );
 }

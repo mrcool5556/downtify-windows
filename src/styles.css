@@ -2153,3 +2153,147 @@ button.icon svg {
   width: 12px;
   height: 12px;
 }
+
+
+/* ── Mini v3: three columns, seek, drawer, handle ─────────────────── */
+.mini-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: stretch;
+  gap: 8px;
+  padding: 6px 0 2px 10px;
+  height: 96px;
+  box-sizing: border-box;
+}
+.mini-track {
+  align-self: center;
+}
+.mini-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+.mini-modes {
+  display: flex;
+  gap: 2px;
+}
+.mini-modes .icon {
+  padding: 2px 6px;
+}
+.mini-side {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  min-width: 128px;
+}
+.mini-side-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  height: 28px;
+}
+.mini-side-row.chrome {
+  margin-top: -6px;
+  height: 26px;
+}
+.mini-side-row.chrome .winctl {
+  margin: 0;
+  height: 100%;
+}
+.mini-side-row.chrome .winbtn,
+.mini-side-row.chrome .icon.pin {
+  width: 30px;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  border-radius: 0;
+  padding: 0;
+  border-left: 1px solid var(--border);
+}
+.mini-side-row.chrome .icon.pin {
+  border-left: none;
+}
+.mini-side-row.chrome .icon.pin svg {
+  width: 12px;
+  height: 12px;
+}
+.mini-side-row .mini-volume {
+  padding-right: 6px;
+}
+.mini-side-row .mini-volume input {
+  width: 80px;
+}
+.mini-drawer {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 6px 10px 0;
+  overflow: hidden;
+}
+.mini-drawer-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--fg-2);
+  margin-bottom: 4px;
+}
+.mini-opacity-ctl {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.mini-opacity-ctl input {
+  width: 90px;
+}
+.mini-opacity-ctl small {
+  width: 32px;
+  text-align: right;
+}
+.mini-queue {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+.mini-queue-empty {
+  color: var(--fg-2);
+  font-size: 12px;
+  padding: 6px;
+}
+.mini-handle {
+  height: 14px;
+  width: 100%;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--fg-2);
+  position: relative;
+}
+.mini-handle:hover {
+  background: var(--bg-3);
+  border-color: transparent;
+  color: var(--fg);
+}
+.mini-handle-bar {
+  width: 36px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border);
+}
+.mini-handle-arrow {
+  position: absolute;
+  right: 8px;
+  top: -3px;
+  font-size: 12px;
+}
+.mini-seek {
+  flex-shrink: 0;
+}

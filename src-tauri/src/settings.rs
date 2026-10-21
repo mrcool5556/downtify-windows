@@ -38,6 +38,9 @@ pub struct Settings {
     /// `window` fades everything; `background` keeps text and art solid.
     #[serde(default = "default_opacity_mode")]
     pub mini_opacity_mode: String,
+    /// The up-next / opacity drawer under the seek bar is open.
+    #[serde(default)]
+    pub mini_expanded: bool,
     #[serde(default)]
     pub mini_bounds: Option<crate::window_mode::Bounds>,
     #[serde(default)]

@@ -8,7 +8,16 @@ use tauri::{AppHandle, LogicalPosition, LogicalSize, Manager, WebviewWindow};
 use crate::settings::{self, Settings};
 use crate::AppState;
 
-pub const MINI_HEIGHT: f64 = 126.0;
+pub const MINI_HEIGHT: f64 = 118.0;
+pub const MINI_DRAWER: f64 = 168.0;
+
+pub fn mini_height(s: &Settings) -> f64 {
+    if s.mini_expanded {
+        MINI_HEIGHT + MINI_DRAWER
+    } else {
+        MINI_HEIGHT
+    }
+}
 pub const MINI_MIN_WIDTH: f64 = 360.0;
 pub const MINI_MAX_WIDTH: f64 = 700.0;
 pub const FULL_MIN: (f64, f64) = (820.0, 520.0);
@@ -61,10 +70,11 @@ pub fn apply(app: &AppHandle, s: &Settings) {
     if s.mini {
         let b = s.mini_bounds;
         let width = b.map(|b| b.w).unwrap_or(520.0).clamp(MINI_MIN_WIDTH, MINI_MAX_WIDTH);
+        let h = mini_height(s);
         let _ = win.unmaximize();
-        let _ = win.set_min_size(Some(LogicalSize::new(MINI_MIN_WIDTH, MINI_HEIGHT)));
-        let _ = win.set_max_size(Some(LogicalSize::new(MINI_MAX_WIDTH, MINI_HEIGHT)));
-        let _ = win.set_size(LogicalSize::new(width, MINI_HEIGHT));
+        let _ = win.set_min_size(Some(LogicalSize::new(MINI_MIN_WIDTH, h)));
+        let _ = win.set_max_size(Some(LogicalSize::new(MINI_MAX_WIDTH, h)));
+        let _ = win.set_size(LogicalSize::new(width, h));
         match b {
             Some(b) => {
                 let _ = win.set_position(LogicalPosition::new(b.x, b.y));
@@ -75,7 +85,7 @@ pub fn apply(app: &AppHandle, s: &Settings) {
                     let scale = mon.scale_factor();
                     let size = mon.size().to_logical::<f64>(scale);
                     let pos = mon.position().to_logical::<f64>(scale);
-                    let _ = win.set_position(LogicalPosition::new(pos.x + size.width - width - 24.0, pos.y + size.height - MINI_HEIGHT - 72.0));
+                    let _ = win.set_position(LogicalPosition::new(pos.x + size.width - width - 24.0, pos.y + size.height - h - 72.0));
                 }
             }
         }
