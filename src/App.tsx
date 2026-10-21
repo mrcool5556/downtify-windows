@@ -8,6 +8,7 @@ import { QueuePanel } from "./components/QueuePanel";
 import { player } from "./player/store";
 import { usePlayer } from "./player/usePlayer";
 import { likeBus } from "./likeBus";
+import { localBus } from "./downloads";
 
 type Page = "library" | "settings";
 
@@ -80,6 +81,9 @@ export default function App() {
     // only when we first learn the server is online
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings?.paired, status?.online]);
+
+  // Downloaded count follows files landing or being removed.
+  useEffect(() => localBus.on(() => refreshSummary()), [refreshSummary]);
 
   // Notices are transient.
   useEffect(() => {
