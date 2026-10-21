@@ -2472,3 +2472,9 @@ html[data-mini] #root {
 .mini-drawer {
   padding-top: 4px;
 }
+
+/* Mini: slightly larger cover */
+.mini-art {
+  width: 46px;
+  height: 46px;
+}

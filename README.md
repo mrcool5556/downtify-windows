@@ -4,6 +4,12 @@ A Windows desktop client for a self-hosted [Downtify](https://github.com/henriqu
 
 Built with Tauri 2, React and Rust. Early and under active development; expect rough edges. Issues and ideas are welcome.
 
+<p align="center">
+  <img src="docs/screenshots/mini-solid.png" alt="Mini player" width="460">
+  <br>
+  <img src="docs/screenshots/mini-drawer-faded.png" alt="Mini player with the up-next drawer open, faded over the desktop" width="460">
+</p>
+
 ## What it does
 
 - **Pairs** with your Downtify server using the same pairing code flow as the Android app. The device token lives in Windows Credential Manager.
@@ -14,6 +20,8 @@ Built with Tauri 2, React and Rust. Early and under active development; expect r
 - **Edits playlists** after an optional one-time sign-in: create, rename, add and remove songs, drag and drop between playlists, right-click menus everywhere, multi-select.
 - **Shares playlists** (Downtify 3.7+): make a playlist private, shared with named people, or public; see "Shared with me" and "Public playlists" in the sidebar; follow public ones, save a copy of any you can open, and detach an imported playlist to make it editable.
 - **Home** page with recently added albums and songs, recently played, and your playlists front and centre.
+- **Mini player** (Ctrl+M): a small always-on-top bar with playback, heart, download, volume, an up-next drawer, and adjustable opacity that fades only the background so the song stays readable over whatever is behind it.
+- **Frameless window**, light and dark themes, tray icon with close-to-tray and start-with-Windows, global search that also takes a Spotify or YouTube Music link to download.
 
 Plays are reported to the server the way the web player does (queued while offline), and the server's Activity page sees what is playing.
 
@@ -54,7 +62,8 @@ Settings live in `%APPDATA%\dev.george.downtify\settings.json`, the library inde
 | Downloads, keep-synced playlists, offline | done |
 | Playlist editing, context menus, drag and drop | done |
 | Playlist sharing, follow, save a copy, detach (server 3.7+) | done |
-| Tray icon, close to tray, start with Windows | planned |
+| Tray icon, close to tray, start with Windows | done |
+| Mini player, frameless window, themes | done |
 | Lyrics, gapless, equaliser | not planned yet |
 
 Sharing and detaching need Downtify 3.7.0 or newer on the server (added in response to [henriquesebastiao/downtify#465](https://github.com/henriquesebastiao/downtify/issues/465)). Older servers still work for everything else.
