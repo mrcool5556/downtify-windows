@@ -160,16 +160,28 @@ export function Library({
 
   const showingTracks = section === "tracks" || !!scope.album || !!scope.playlist;
 
-  const reloadPlaylists = useCallback((list?: PlaylistSummary[]) => {
-    if (list) setPlaylists(list);
-    else api.listPlaylists().then(setPlaylists).catch(() => {});
+  const [tracksVersion, setTracksVersion] = useState(0);
+  const refreshLists = useCallback(() => {
+    setTracksVersion((v) => v + 1);
+    // The server's playlist listing can lag an edit by a moment; look again.
+    setTimeout(() => {
+      api.listPlaylists().then(setPlaylists).catch(() => {});
+      setTracksVersion((v) => v + 1);
+    }, 1500);
   }, []);
+  const reloadPlaylists = useCallback(
+    (list?: PlaylistSummary[]) => {
+      if (list) setPlaylists(list);
+      else api.listPlaylists().then(setPlaylists).catch(() => {});
+      refreshLists();
+    },
+    [refreshLists],
+  );
 
   useEffect(() => {
     reloadPlaylists();
   }, [summary?.playlists, summary?.local_tracks, reloadPlaylists, version]);
 
-  const [tracksVersion, setTracksVersion] = useState(0);
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -308,7 +320,6 @@ export function Library({
       const r = await playlistsApi.editTracks(name, ids, []);
       reloadPlaylists(r.playlists);
       setNotice(`Added ${r.added} to "${name}"${r.skipped ? ` (${r.skipped} skipped: not on the server)` : ""}${r.added === 0 && !r.skipped ? " (already there)" : ""}`);
-      if (scope.playlist?.name === name) setTracksVersion((v) => v + 1);
     } catch (e) {
       setNotice(String(e));
     }
@@ -319,7 +330,6 @@ export function Library({
       const r = await playlistsApi.editTracks(name, [], ids);
       reloadPlaylists(r.playlists);
       setNotice(`Removed ${r.removed} from "${name}"`);
-      if (scope.playlist?.name === name) setTracksVersion((v) => v + 1);
     } catch (e) {
       setNotice(String(e));
     }
