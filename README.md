@@ -1,35 +1,37 @@
 # Downtify for Windows
 
-A Windows client for a self-hosted [Downtify](https://github.com/henriquesebastiao/downtify) server, built with Tauri 2, React and Rust.
+A Windows desktop client for a self-hosted [Downtify](https://github.com/henriquesebastiao/downtify) music server. Pair it once, and it keeps a local copy of your library index and the songs you choose, so it still opens and plays your music when the server is down.
 
-It keeps a local copy of your library index and lets you download tracks to this PC, so the app still opens and plays your downloaded music when the server is down.
+Built with Tauri 2, React and Rust. Early and under active development; expect rough edges. Issues and ideas are welcome.
 
-## How it works
+## What it does
 
-1. **Pair once.** Open your server's web page, go to Settings → Apps → Pair a phone, and type the code into the app. The device token is stored in Windows Credential Manager.
-2. **Sync.** The app mirrors the server's track list, playlists and likes into a local SQLite database using the server's delta-sync API (`/api/v1/library`).
-3. **Download.** Tracks you pick are saved as ordinary tagged audio files in your music folder (default `Music\Downtify`, changeable in Settings).
-4. **Offline.** With the server unreachable the app shows the local library and plays downloaded tracks. When the server returns, it syncs quietly.
+- **Pairs** with your Downtify server using the same pairing code flow as the Android app. The device token lives in Windows Credential Manager.
+- **Syncs** your songs, albums, artists, playlists and likes into a local SQLite index using the server's delta-sync API, so re-syncs are cheap.
+- **Plays** your music: local file first, otherwise streamed from the server (original quality, or Opus 160 kbps when away from home). Player bar with seek, volume, shuffle, repeat, queue, likes, and Windows media keys.
+- **Downloads** songs or whole playlists to your music folder (default `Music\Downtify`, changeable), mirroring the server's folder layout as ordinary tagged files other players can use. Three at a time, resumable. "Keep synced to this PC" on a playlist pulls new additions after every sync.
+- **Works offline**: with the server unreachable the app shows your local library and plays downloaded songs. Songs deleted on the server stay on your PC, marked, until you remove them.
+- **Edits playlists** after an optional one-time sign-in: create, rename, add and remove songs, drag and drop between playlists, right-click menus everywhere, multi-select.
+- **Home** page with recently added albums and songs, recently played, and your playlists front and centre.
 
-## Status
+Plays are reported to the server the way the web player does (queued while offline), and the server's Activity page sees what is playing.
 
-| Slice | State |
-|-------|-------|
-| 1. Scaffold, pairing, library sync, browse | done |
-| 2. Download tracks / albums / playlists to the music folder | next |
-| 3. Player (local file first, stream when not downloaded) | planned |
-| 4. Cover art, lyrics, likes, tray icon | planned |
+## Install
 
-## Development
+Download the latest installer from the Releases page and run it. Windows 11 ships WebView2; on Windows 10 the installer fetches it if needed.
 
-Requirements: Node 20+, pnpm, Rust stable, Tauri CLI (`cargo install tauri-cli --version '^2'`), WebView2 (ships with Windows 11).
+On first launch, type your server address, press Check, then open **Settings → Apps → Pair a phone** on the server's web page and enter the code.
+
+## Build from source
+
+Requirements: Node 20+, pnpm, Rust stable, the Tauri CLI (`cargo install tauri-cli --version '^2'`).
 
 ```bash
 pnpm install
 cargo tauri dev
 ```
 
-Build an installer (NSIS) into `src-tauri/target/release/bundle/nsis`:
+Installer (NSIS) into `src-tauri/target/release/bundle/nsis`:
 
 ```bash
 cargo tauri build
@@ -37,10 +39,24 @@ cargo tauri build
 
 ## Layout
 
-- `src/` React frontend (`views/Setup`, `views/Library`, `views/SettingsView`, `api.ts` wraps Tauri commands).
-- `src-tauri/src/server.rs` HTTP client for the Downtify client API.
-- `src-tauri/src/db.rs` local SQLite library.
-- `src-tauri/src/settings.rs` settings JSON and the device token.
-- `src-tauri/src/commands.rs` Tauri commands the frontend calls.
+- `src/` React frontend: `views/` (Setup, Library with Home, Downloads, Settings), `components/` (player bar, queue, context menu, download button), `player/store.ts` (the audio engine and queue), `downloads.ts`, `layout.tsx`.
+- `src-tauri/src/` Rust: `server.rs` (Downtify client API), `db.rs` (local SQLite), `downloads.rs` (download manager), `media.rs` (local file and cover protocol), `smtc.rs` (Windows media keys), `commands.rs`, `settings.rs`.
 
-Settings live in `%APPDATA%\dev.george.downtify\settings.json`, the library database in `%APPDATA%\dev.george.downtify\library.sqlite`.
+Settings live in `%APPDATA%\dev.george.downtify\settings.json`, the library index in `%APPDATA%\dev.george.downtify\library.sqlite`, cached covers under `%LOCALAPPDATA%\dev.george.downtify`.
+
+## Status
+
+| Area | State |
+|------|-------|
+| Pairing, sync, browse | done |
+| Player, media keys, queue | done |
+| Downloads, keep-synced playlists, offline | done |
+| Playlist editing, context menus, drag and drop | done |
+| Tray icon, close to tray, start with Windows | planned |
+| Lyrics, gapless, equaliser | not planned yet |
+
+Server-side limits worth knowing: imported playlists (from a Spotify or YouTube Music link) can't be edited on Downtify, and playlists can't be shared with other users. See [IDEAS.md](IDEAS.md).
+
+## Licence
+
+AGPL-3.0. See [LICENSE](LICENSE).
