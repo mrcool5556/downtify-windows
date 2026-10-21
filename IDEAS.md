@@ -8,7 +8,7 @@ Passing ideas, parked with enough detail to pick up later. Newest first.
 
 **Blocker:** the server refuses with "is imported and cannot be edited" (`downtify/manual_playlists.py`, `_require_manual`). Imported playlists stay tied to their source so the server can re-check it and download missing songs.
 
-**Routes:** upstream issue (filed together with the public-playlists one), or a fork that lets an imported playlist be "detached" into an editable one. App-side workaround: select all, Add to playlist, New playlist, which makes an editable copy.
+**Routes:** upstream issue henriquesebastiao/downtify#465 (filed 2026-10-20), or a fork that lets an imported playlist be "detached" into an editable one. App-side workaround: select all, Add to playlist, New playlist, which makes an editable copy.
 
 ## Public / shared playlists (2026-10-20)
 
@@ -21,4 +21,4 @@ Passing ideas, parked with enough detail to pick up later. Newest first.
 2. Web UI: a toggle on the playlist page.
 3. This app: a toggle on the playlist page, next to "Keep synced to this PC".
 
-**Routes:** ask the Downtify author (issue or PR on github.com/henriquesebastiao/downtify), or run a small fork of the server container.
+**Routes:** upstream issue henriquesebastiao/downtify#465 (filed 2026-10-20), or run a small fork of the server container.
