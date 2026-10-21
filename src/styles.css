@@ -2696,3 +2696,14 @@ table.tracks td.c-dl {
   width: 36px;
   text-align: right;
 }
+
+/* Mini: hairline gaps around the seek bar */
+.mini-seek {
+  margin: 3px 0 2px;
+  width: calc(100% - 12px);
+  align-self: center;
+  border-radius: 2px;
+}
+.mini-handle {
+  height: 11px;
+}
