@@ -337,7 +337,7 @@ export function Library({ online, summary, version }: { online: boolean; summary
       { label: "Add to queue", onClick: () => load().then((ts) => player.addToQueue(ts)) },
       { separator: true },
       {
-        label: "Keep synced to this PC",
+        label: "Available offline",
         checked: p.keep_synced,
         disabled: !online && !p.keep_synced,
         onClick: () => downloadsApi.setKeepSynced(p.name, !p.keep_synced).then(() => reloadPlaylists()),
@@ -504,7 +504,7 @@ export function Library({ online, summary, version }: { online: boolean; summary
             {title}
           </h2>
           {headerPlaylist && (
-            <small className="head-count" title={headerPlaylist.keep_synced ? "Kept synced to this PC (right-click to change)" : "Right-click for Keep synced, Remove from this PC, Rename…"}>
+            <small className="head-count" title={headerPlaylist.keep_synced ? "Available offline: every song, and new ones as they are added (right-click to change)" : "Right-click for Available offline, Remove from this PC, Rename…"}>
               {headerPlaylist.keep_synced ? "⟳ " : ""}
               {headerPlaylist.local_count} of {headerPlaylist.count} on this PC
             </small>
