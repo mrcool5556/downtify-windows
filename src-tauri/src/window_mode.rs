@@ -8,7 +8,7 @@ use tauri::{AppHandle, LogicalPosition, LogicalSize, Manager, WebviewWindow};
 use crate::settings::{self, Settings};
 use crate::AppState;
 
-pub const MINI_HEIGHT: f64 = 112.0;
+pub const MINI_HEIGHT: f64 = 126.0;
 pub const MINI_MIN_WIDTH: f64 = 360.0;
 pub const MINI_MAX_WIDTH: f64 = 700.0;
 pub const FULL_MIN: (f64, f64) = (820.0, 520.0);

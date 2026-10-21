@@ -2071,3 +2071,44 @@ body[data-mini] {
   margin: 0;
   display: block;
 }
+
+/* Mini: top strip with pin | min | restore | close */
+.mini-top {
+  height: 20px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: stretch;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.mini-top-right {
+  display: flex;
+  align-items: stretch;
+}
+.mini-top-right .icon.pin {
+  padding: 0 10px;
+  font-size: 11px;
+  border-radius: 0;
+}
+.mini-top-right .winctl {
+  margin: 0;
+}
+.mini-top-right .winbtn,
+.mini-top-right .icon.pin {
+  width: 32px;
+  border-left: 1px solid var(--border);
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+.mini-top-right .winbtn svg {
+  width: 9px;
+  height: 9px;
+}
+.mini-row1 {
+  padding-right: 10px;
+  padding-top: 6px;
+}
+.mini-right {
+  align-self: center;
+}

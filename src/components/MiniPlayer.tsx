@@ -62,6 +62,18 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
   return (
     <div className="mini" onMouseEnter={onEnter} onMouseLeave={onLeave} data-tauri-drag-region>
       {ctx.menu}
+      <div className="mini-top" data-tauri-drag-region>
+        <div className="mini-top-right">
+          <button
+            className={`icon pin ${settings.mini_pinned ? "on" : ""}`}
+            onClick={() => invoke<Settings>("set_mini_pinned", { on: !settings.mini_pinned }).then(onSettings).catch(() => {})}
+            title={settings.mini_pinned ? "Pinned above other windows (click to unpin)" : "Pin above other windows"}
+          >
+            📌
+          </button>
+          <WindowControls onRestoreFull={onRestoreFull} />
+        </div>
+      </div>
       <div className="mini-row1" data-tauri-drag-region>
         <div
           className="mini-track"
@@ -99,7 +111,6 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
               <DownloadButton track={current} online={online} size={16} />
             </>
           )}
-          <WindowControls onRestoreFull={onRestoreFull} />
         </div>
       </div>
 
@@ -141,13 +152,6 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
           )}
         </div>
 
-        <button
-          className={`icon ${settings.mini_pinned ? "on" : ""}`}
-          onClick={() => invoke<Settings>("set_mini_pinned", { on: !settings.mini_pinned }).then(onSettings).catch(() => {})}
-          title={settings.mini_pinned ? "Pinned above other windows (click to unpin)" : "Pin above other windows"}
-        >
-          📌
-        </button>
         <label className="mini-opacity" title={`Opacity ${settings.mini_opacity}%`}>
           <span className="mini-opacity-icon">◐</span>
           <input
