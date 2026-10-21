@@ -1454,5 +1454,8 @@ h2.has-menu {
   vertical-align: -2px;
 }
 .head-count .dl-glyph {
-  margin-right: 2px;
+  margin-left: 2px;
+}
+.ctx-icon {
+  margin-left: 8px;
 }

@@ -506,7 +506,7 @@ export function Library({ online, summary, version }: { online: boolean; summary
           </h2>
           {headerPlaylist && (
             <small className="head-count" title={headerPlaylist.keep_synced ? "Synced to this PC: every song, and new ones as they are added (right-click to change)" : "Right-click for Sync to this PC, Remove from this PC, Rename…"}>
-              <DownloadGlyph on={headerPlaylist.keep_synced} /> {headerPlaylist.local_count} of {headerPlaylist.count} on this PC
+              {headerPlaylist.local_count} of {headerPlaylist.count} on this PC <DownloadGlyph on={headerPlaylist.keep_synced} />
             </small>
           )}
           {showingTracks && <DensityPicker small />}

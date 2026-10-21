@@ -91,8 +91,8 @@ function MenuList({ items, onClose }: { items: MenuItem[]; onClose: () => void }
             }}
           >
             <span className="ctx-check">{it.checked ? "✓" : ""}</span>
-            {it.icon && <span className="ctx-icon">{it.icon}</span>}
             <span className="ctx-label">{it.label}</span>
+            {it.icon && <span className="ctx-icon">{it.icon}</span>}
             {it.hint && <span className="ctx-hint">{it.hint}</span>}
             {it.submenu && <span className="ctx-arrow">›</span>}
             {it.submenu && openSub === i && (
