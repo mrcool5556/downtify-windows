@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Album, Artist, PlaylistSummary, Summary, Track, api, coverUrl, fmtDuration, playerApi } from "../api";
 import { usePlayer } from "../player/usePlayer";
 import { likeBus } from "../likeBus";
@@ -21,7 +21,33 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
   const [artists, setArtists] = useState<Artist[]>([]);
   const [playlists, setPlaylists] = useState<PlaylistSummary[]>([]);
   const [error, setError] = useState("");
-  const { player } = usePlayer();
+  const { player, revealNonce, context, current } = usePlayer();
+  const [revealPending, setRevealPending] = useState(false);
+
+  const playContext = { section, scope, search, localOnly };
+
+  // "Show the list this is playing from": restore that view, then scroll
+  // to the current song once its rows are in.
+  const lastReveal = useRef(revealNonce);
+  useEffect(() => {
+    if (revealNonce === lastReveal.current) return;
+    lastReveal.current = revealNonce;
+    if (!context) return;
+    setSection(context.section as Section);
+    setScope((context.scope as Scope) ?? {});
+    setSearch(context.search ?? "");
+    setLocalOnly(!!context.localOnly);
+    setRevealPending(true);
+  }, [revealNonce, context]);
+
+  useEffect(() => {
+    if (!revealPending || !current) return;
+    const row = document.querySelector<HTMLElement>(`tr[data-track-id="${CSS.escape(current.id)}"]`);
+    if (row) {
+      row.scrollIntoView({ block: "center" });
+      setRevealPending(false);
+    }
+  }, [revealPending, tracks, current]);
 
   const showingTracks = section === "tracks" || !!scope.album || !!scope.playlist;
 
@@ -117,7 +143,7 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
                   : section[0].toUpperCase() + section.slice(1)}
           </h2>
           {showingTracks && tracks.length > 0 && (
-            <button className="small" onClick={() => player.playList(tracks, 0)} title="Play all from the top">
+            <button className="small" onClick={() => player.playList(tracks, 0, playContext)} title="Play all from the top">
               ▶ Play all
             </button>
           )}
@@ -139,7 +165,7 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
             {online ? "Library is empty. Download something on the server, then press Sync." : "No library yet. Connect to the server once to sync it."}
           </div>
         ) : showingTracks ? (
-          <TrackTable tracks={tracks} online={online} showAlbum={!scope.album} />
+          <TrackTable tracks={tracks} online={online} showAlbum={!scope.album} onPlay={(i) => player.playList(tracks, i, playContext)} />
         ) : section === "albums" ? (
           <div className="grid">
             {albums.map((a) => (
@@ -204,7 +230,7 @@ function AlbumArt({ trackId }: { trackId: string }) {
   return <img className="tile-art" src={coverUrl(trackId, 300)} alt="" loading="lazy" onError={() => setFailed(true)} />;
 }
 
-function TrackTable({ tracks, online, showAlbum }: { tracks: Track[]; online: boolean; showAlbum: boolean }) {
+function TrackTable({ tracks, online, showAlbum, onPlay }: { tracks: Track[]; online: boolean; showAlbum: boolean; onPlay: (index: number) => void }) {
   const { player, current, playing } = usePlayer();
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -241,7 +267,8 @@ function TrackTable({ tracks, online, showAlbum }: { tracks: Track[]; online: bo
               key={t.id}
               className={`${t.local_path ? "local" : "remote"} ${isCurrent ? "current" : ""} ${selected === t.id ? "selected" : ""} ${playable ? "" : "unplayable"}`}
               onClick={() => setSelected(t.id)}
-              onDoubleClick={() => playable && player.playList(tracks, i)}
+              data-track-id={t.id}
+              onDoubleClick={() => playable && onPlay(i)}
               title={playable ? "Double-click to play" : "Not downloaded and the server is offline"}
             >
               <td className="c-play">
@@ -251,7 +278,7 @@ function TrackTable({ tracks, online, showAlbum }: { tracks: Track[]; online: bo
                   onClick={(e) => {
                     e.stopPropagation();
                     if (isCurrent) player.toggle();
-                    else player.playList(tracks, i);
+                    else onPlay(i);
                   }}
                   title={isCurrent && playing ? "Pause" : "Play"}
                 >

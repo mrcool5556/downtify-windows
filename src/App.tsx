@@ -212,7 +212,13 @@ export default function App() {
         {queueOpen && <QueuePanel />}
       </main>
 
-      <PlayerBar online={online} />
+      <PlayerBar
+        online={online}
+        onReveal={() => {
+          setPage("library");
+          player.reveal();
+        }}
+      />
     </div>
   );
 }

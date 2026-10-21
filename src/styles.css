@@ -692,3 +692,49 @@ img.tile-art {
   color: var(--fg-2);
   font-size: 12px;
 }
+
+/* ── Layout: never scroll the whole app sideways ───────────────────── */
+html,
+body {
+  overflow: hidden;
+}
+.shell {
+  width: 100%;
+  overflow: hidden;
+}
+.content,
+.library,
+.pane {
+  min-width: 0;
+}
+table.tracks {
+  table-layout: fixed;
+}
+table.tracks th,
+table.tracks td {
+  max-width: none;
+}
+table.tracks .c-title,
+table.tracks th:nth-child(3) {
+  width: 36%;
+}
+.pane-head .search {
+  width: 240px;
+  flex-shrink: 1;
+  min-width: 120px;
+}
+.playerbar {
+  min-width: 0;
+  overflow: hidden;
+}
+button.pb-title.linkish {
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+}
+button.pb-title.linkish:hover {
+  text-decoration: underline;
+}

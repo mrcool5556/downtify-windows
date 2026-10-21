@@ -7,6 +7,14 @@ import { Track, localTrackUrl, playerApi } from "../api";
 
 export type Repeat = "off" | "all" | "one";
 
+/** Where the queue came from, so the UI can jump back to that list. */
+export interface PlayContext {
+  section: string;
+  scope: unknown;
+  search: string;
+  localOnly: boolean;
+}
+
 export interface PlayerSnapshot {
   queue: Track[];
   /** Play order as indices into `queue` (identity order unless shuffled). */
@@ -24,6 +32,9 @@ export interface PlayerSnapshot {
   repeat: Repeat;
   error: string;
   queueOpen: boolean;
+  context: PlayContext | null;
+  /** Bumped when the user asks to see the list the queue came from. */
+  revealNonce: number;
 }
 
 type Listener = () => void;
@@ -63,6 +74,8 @@ class PlayerStore {
     repeat: "off",
     error: "",
     queueOpen: false,
+    context: null,
+    revealNonce: 0,
   };
   private streamCache = new Map<string, { url: string; expires_at: number }>();
   private playId = "";
@@ -167,6 +180,7 @@ class PlayerStore {
         repeat: s.repeat === "all" || s.repeat === "one" ? s.repeat : "off",
         current: cursor >= 0 ? queue[order[cursor]] : null,
         position: typeof s.position === "number" ? s.position : 0,
+        context: (s.context as PlayContext | null) ?? null,
       });
       if (cursor >= 0) {
         // Load the track so the bar shows it, but do not start playing.
@@ -194,6 +208,7 @@ class PlayerStore {
         volume: s.volume,
         shuffle: s.shuffle,
         repeat: s.repeat,
+        context: s.context,
       })
       .catch(() => {});
   }
@@ -240,14 +255,19 @@ class PlayerStore {
   // ── Controls ────────────────────────────────────────────────────────
 
   /** Play `tracks[startIndex]` and make `tracks` the queue. */
-  playList(tracks: Track[], startIndex: number) {
+  playList(tracks: Track[], startIndex: number, context: PlayContext | null = null) {
     if (tracks.length === 0) return;
     const start = Math.max(0, Math.min(startIndex, tracks.length - 1));
     const order = this.snap.shuffle ? shuffledOrder(tracks.length, start) : tracks.map((_, i) => i);
     const cursor = order.indexOf(start);
     this.pendingSeek = null;
-    this.set({ queue: tracks, order, cursor, current: tracks[start] });
+    this.set({ queue: tracks, order, cursor, current: tracks[start], context });
     this.loadCurrent(true);
+  }
+
+  /** Ask the library to show the list the queue came from. */
+  reveal() {
+    this.set({ revealNonce: this.snap.revealNonce + 1 });
   }
 
   play() {

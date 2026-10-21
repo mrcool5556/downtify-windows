@@ -3,7 +3,7 @@ import { coverUrl, fmtDuration, playerApi } from "../api";
 import { usePlayer } from "../player/usePlayer";
 import { likeBus } from "../likeBus";
 
-export function PlayerBar({ online }: { online: boolean }) {
+export function PlayerBar({ online, onReveal }: { online: boolean; onReveal: () => void }) {
   const p = usePlayer();
   const { player, current } = p;
   const [likeBusy, setLikeBusy] = useState(false);
@@ -35,9 +35,9 @@ export function PlayerBar({ online }: { online: boolean }) {
               <div className="pb-art placeholder">♫</div>
             )}
             <div className="pb-meta">
-              <div className="pb-title" title={current.title}>
+              <button className="pb-title linkish" title="Show the list this is playing from" onClick={onReveal}>
                 {current.title || current.file}
-              </div>
+              </button>
               <div className="pb-sub" title={`${current.artist} — ${current.album}`}>
                 {current.artist}
                 {current.album ? ` — ${current.album}` : ""}
