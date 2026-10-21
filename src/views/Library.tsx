@@ -110,7 +110,7 @@ export function Library({
     nav.push({
       section: context.section as Section,
       scope: ((context.scope as Scope) ?? {}) as Record<string, unknown>,
-      search: context.section === "home" ? "" : (context.search ?? ""),
+      search: "",
     });
     setLocalOnly(!!context.localOnly);
     setRevealPending(true);
@@ -700,6 +700,17 @@ export function Library({
             addToPlaylist={addToPlaylist}
             removeFromPlaylist={removeFromPlaylist}
           />
+        ) : section === "albums" && scope.artist ? (
+          <ArtistPage
+            artist={scope.artist}
+            albums={albums}
+            online={online}
+            env={env}
+            openMenu={ctx.open}
+            addToPlaylist={addToPlaylist}
+            onOpenAlbum={(a) => setScope({ ...scope, album: a })}
+            albumMenu={albumMenu}
+          />
         ) : section === "albums" ? (
           <AlbumGrid albums={albums} onOpen={(a) => setScope({ ...scope, album: a })} onMenu={(e, a) => ctx.open(e, albumMenu(a))} />
         ) : section === "artists" ? (
@@ -1090,6 +1101,49 @@ function Home({
           <TrackTable tracks={recentPlays} online={online} showAlbum onPlay={(i) => player.playList(recentPlays, i, hctx("recent-plays"))} compact env={homeEnv} openMenu={openMenu} addToPlaylist={addToPlaylist} />
         </>
       )}
+    </div>
+  );
+}
+
+function ArtistPage({
+  artist,
+  albums,
+  online,
+  env,
+  openMenu,
+  addToPlaylist,
+  onOpenAlbum,
+  albumMenu,
+}: {
+  artist: Artist;
+  albums: Album[];
+  online: boolean;
+  env: MenuEnv;
+  openMenu: (e: React.MouseEvent, items: MenuItem[]) => void;
+  addToPlaylist: (name: string, ids: string[]) => Promise<void>;
+  onOpenAlbum: (a: Album) => void;
+  albumMenu: (a: Album) => MenuItem[];
+}) {
+  const [songs, setSongs] = useState<Track[]>([]);
+  const { player } = usePlayer();
+  useEffect(() => {
+    api.listTracks({ artist_id: artist.artist_id, limit: 5000 }).then(setSongs).catch(() => {});
+  }, [artist.artist_id]);
+  useEffect(() => likeBus.on((id, liked) => setSongs((ts) => ts.map((t) => (t.id === id ? { ...t, liked } : t)))), []);
+  useEffect(() => localBus.on((id, local_path) => setSongs((ts) => ts.map((t) => (t.id === id ? { ...t, local_path } : t)))), []);
+  const actx = { section: "albums", scope: { artist }, search: "", localOnly: false };
+  return (
+    <div className="artist-page">
+      {albums.length > 0 && (
+        <>
+          <h3>Albums</h3>
+          <AlbumGrid albums={albums} onOpen={onOpenAlbum} onMenu={(e, a) => openMenu(e, albumMenu(a))} />
+        </>
+      )}
+      <h3>
+        Songs <small>{songs.length}</small>
+      </h3>
+      <TrackTable tracks={songs} online={online} showAlbum onPlay={(i) => player.playList(songs, i, actx)} env={{ ...env, currentPlaylist: undefined }} openMenu={openMenu} addToPlaylist={addToPlaylist} />
     </div>
   );
 }

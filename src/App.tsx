@@ -187,9 +187,36 @@ export default function App() {
         if (t && online) playerApi.setLike(t.id, !t.liked).then((liked) => likeBus.emit(t.id, liked)).catch(() => {});
       }
     }
+    // Mouse side buttons: ours, never the webview's own history.
+    function onMouse(e: MouseEvent) {
+      if (e.button === 3 || e.button === 4) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.type === "mouseup") {
+          if (e.button === 3) nav.back();
+          else nav.forward();
+        }
+      }
+    }
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("mousedown", onMouse, true);
+    window.addEventListener("mouseup", onMouse, true);
+    window.addEventListener("auxclick", onMouse, true);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mousedown", onMouse, true);
+      window.removeEventListener("mouseup", onMouse, true);
+      window.removeEventListener("auxclick", onMouse, true);
+    };
   }, [online]);
+
+  // Safety net: if the webview ever navigates its own history, stay put.
+  useEffect(() => {
+    history.pushState(null, "", location.href);
+    const onPop = () => history.pushState(null, "", location.href);
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
 
   // Window title and tray tooltip follow the song.
   useEffect(() => {

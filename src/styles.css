@@ -1841,3 +1841,15 @@ table.tracks thead th {
 .sidebar-collapsed .nav-icon {
   font-size: 18px;
 }
+
+.artist-page h3 {
+  font-size: 15px;
+  margin: 6px 0 10px;
+}
+.artist-page h3 + .grid {
+  margin-bottom: 18px;
+}
+.artist-page h3 small {
+  color: var(--fg-2);
+  font-weight: 400;
+}
