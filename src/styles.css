@@ -905,3 +905,26 @@ table.tracks .c-art {
   line-height: 1;
   margin-top: 2px;
 }
+
+/* Tighter rows, smaller art, green hue on the playing row */
+table.tracks td {
+  padding: 3px 8px;
+}
+table.tracks .c-art {
+  width: 32px;
+  padding: 2px 4px;
+}
+.row-art {
+  width: 24px;
+  height: 24px;
+  font-size: 11px;
+}
+table.tracks tr.current td {
+  background: rgba(30, 215, 96, 0.12);
+}
+table.tracks tr.current.selected td {
+  background: rgba(30, 215, 96, 0.2);
+}
+table.tracks tr.current td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
