@@ -12,7 +12,7 @@ import { usePlayer } from "./player/usePlayer";
 import { likeBus } from "./likeBus";
 import { localBus } from "./downloads";
 import { nav, useNav } from "./nav";
-import { ThemeToggle } from "./layout";
+import { ThemeToggle, useLayout } from "./layout";
 import { WindowControls } from "./components/WindowControls";
 import { MiniPlayer } from "./components/MiniPlayer";
 
@@ -32,6 +32,7 @@ export default function App() {
   const [shortcuts, setShortcuts] = useState(false);
   const { queueOpen, current } = usePlayer();
   const { view, canBack, canForward } = useNav();
+  const layout = useLayout();
   const searchRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
 
@@ -262,26 +263,28 @@ export default function App() {
   }
 
   return (
-    <div className="shell">
+    <div className={`shell ${layout.sidebarCollapsed ? "sidebar-collapsed" : ""}`}>
       <header className="topbar" data-tauri-drag-region onDoubleClick={(e) => {
         const el = e.target as HTMLElement;
         if (el.closest("button, input, .searchbox")) return;
         import("@tauri-apps/api/window").then((m) => m.getCurrentWindow().toggleMaximize());
       }}>
-        <div className="brand" data-tauri-drag-region>
-          <span className="logo" aria-hidden>
-            ♫
-          </span>
-          <span>Downtify</span>
-          {settings.server_name && settings.server_name.toLowerCase() !== "downtify" && <span className="server-name">{settings.server_name}</span>}
-        </div>
-        <div className="histnav">
-          <button className="icon" disabled={!canBack} onClick={() => nav.back()} title="Back (Alt+←)">
-            ‹
-          </button>
-          <button className="icon" disabled={!canForward} onClick={() => nav.forward()} title="Forward (Alt+→)">
-            ›
-          </button>
+        <div className="topleft" data-tauri-drag-region>
+          <div className="brand" data-tauri-drag-region>
+            <span className="logo" aria-hidden>
+              ♫
+            </span>
+            <span className="lbl">Downtify</span>
+            {settings.server_name && settings.server_name.toLowerCase() !== "downtify" && <span className="server-name lbl">{settings.server_name}</span>}
+          </div>
+          <div className="histnav">
+            <button className="icon" disabled={!canBack} onClick={() => nav.back()} title="Back (Alt+←)">
+              ‹
+            </button>
+            <button className="icon" disabled={!canForward} onClick={() => nav.forward()} title="Forward (Alt+→)">
+              ›
+            </button>
+          </div>
         </div>
         <div className={`searchbox ${isLink ? "link" : ""}`}>
           <span className="searchbox-icon" aria-hidden>

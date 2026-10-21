@@ -2603,3 +2603,50 @@ table.tracks td.c-dl {
 .modebtn.on .foot-count {
   color: var(--accent-2);
 }
+
+/* Top bar: left block sits above the sidebar; search starts at the content edge */
+.shell {
+  --sidebar-w: 230px;
+}
+.shell.sidebar-collapsed {
+  --sidebar-w: 56px;
+}
+.topbar {
+  padding-left: 0;
+  gap: 0;
+}
+.topleft {
+  width: var(--sidebar-w);
+  flex-shrink: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px 0 16px;
+  align-self: stretch;
+  background: var(--bg-2);
+  border-right: 1px solid var(--border);
+}
+.shell.sidebar-collapsed .topleft {
+  flex-direction: column;
+  justify-content: center;
+  padding: 0;
+  gap: 0;
+}
+.shell.sidebar-collapsed .topleft .lbl {
+  display: none;
+}
+.shell.sidebar-collapsed .histnav .icon {
+  padding: 0 4px;
+  font-size: 16px;
+}
+.topbar .searchbox {
+  margin-left: 16px;
+  max-width: 480px;
+}
+.topbar-right {
+  padding-right: 0;
+}
+.sidebar {
+  border-top: none;
+}
