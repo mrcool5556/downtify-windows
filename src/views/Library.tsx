@@ -534,6 +534,10 @@ export function Library({
           {playlists.length === 0 && <div className="sidebar-empty">No playlists yet</div>}
         </div>
         <div className="sidebar-foot">
+          <div className="conn lbl" title={online ? "The server is reachable" : "The server is not reachable; downloaded songs still play"}>
+            <span className={`dot ${online ? "on" : "off"}`} />
+            <span>{online ? "Server connected" : "Server unreachable"}</span>
+          </div>
           <button
             className={`nav modebtn ${localOnly ? "active on" : ""}`}
             onClick={() => setLocalOnly(!localOnly)}
@@ -1212,7 +1216,9 @@ function ColResizer({ col }: { col: keyof ColWidths }) {
         const startW = th.getBoundingClientRect().width;
         const tableW = table.getBoundingClientRect().width;
         const onMove = (ev: MouseEvent) => {
-          const pct = Math.max(8, Math.min(70, ((startW + ev.clientX - startX) / tableW) * 100));
+          const other = col === "title" ? cols.artist : cols.title;
+          const maxPct = Math.max(8, 78 - other);
+          const pct = Math.max(8, Math.min(maxPct, ((startW + ev.clientX - startX) / tableW) * 100));
           setCols({ ...cols, [col]: pct });
         };
         const onUp = () => {
@@ -1382,12 +1388,7 @@ function TrackTable({ tracks, online, showAlbum, onPlay, compact, env, openMenu,
               Artist
               <ColResizer col="artist" />
             </th>
-            {showAlbum && (
-              <th className="c-album">
-                Album
-                <ColResizer col="album" />
-              </th>
-            )}
+            {showAlbum && <th className="c-album">Album</th>}
             <th className="c-like"></th>
             <th className="c-dl"></th>
             <th className="c-dur">Time</th>

@@ -2539,3 +2539,40 @@ html[data-mini] #root {
 .sidebar-collapsed .pill-toggle {
   display: none;
 }
+
+/* Columns: album takes the remainder; icon cells never clip */
+table.tracks th.c-album {
+  width: auto;
+}
+table.tracks td.c-play,
+table.tracks td.c-art,
+table.tracks td.c-like,
+table.tracks td.c-dl,
+table.tracks td.c-dur {
+  overflow: visible;
+  text-overflow: clip;
+}
+table.tracks th.c-like,
+table.tracks td.c-like,
+table.tracks th.c-dl,
+table.tracks td.c-dl {
+  min-width: 30px;
+}
+
+/* Connection status lives with Offline mode in the sidebar */
+.conn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px 2px;
+  color: var(--fg-2);
+  font-size: 12px;
+}
+.sidebar-collapsed .conn {
+  display: flex;
+  justify-content: center;
+  padding: 6px 0;
+}
+.sidebar-collapsed .conn span:not(.dot) {
+  display: none;
+}

@@ -312,8 +312,6 @@ export default function App() {
           </button>
           <ThemeToggle />
           <div className="status">
-            <span className={`dot ${online ? "on" : "off"}`} />
-            <span title={online ? "The server is reachable" : status?.detail || "The server is not reachable"}>{online ? "Connected" : "No server"}</span>
             <button className="ghost syncbtn" disabled={!online || syncing} onClick={() => sync(false)} title={summary?.last_sync ? `Last synced ${fmtWhen(summary.last_sync)}` : "Never synced"}>
               <span>{syncing ? "Syncing…" : "Sync"}</span>
               <small>{summary?.last_sync ? fmtAgo(summary.last_sync) : "never"}</small>
