@@ -2676,3 +2676,23 @@ table.tracks td.c-dl {
 .q-row .q-remove {
   width: 22px;
 }
+
+/* Queue rows: heart then time, both anchored right */
+.q-row {
+  justify-content: flex-start;
+}
+.q-row .q-main {
+  flex: 1;
+  min-width: 0;
+}
+.q-end {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.q-end small {
+  width: 36px;
+  text-align: right;
+}

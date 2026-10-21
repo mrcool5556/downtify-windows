@@ -107,18 +107,20 @@ export function QueuePanel({ online }: { online: boolean }) {
                     <span className="q-title">{t.title || t.file}</span>
                     <span className="q-sub">{t.artist}</span>
                   </span>
-                  <small>{fmtDuration(t.duration)}</small>
-                  <button
-                    className={`icon heart ${t.liked ? "on" : ""}`}
-                    disabled={!online}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      playerApi.setLike(t.id, !t.liked).then((liked) => likeBus.emit(t.id, liked)).catch(() => {});
-                    }}
-                    title={t.liked ? "Unlike" : "Like"}
-                  >
-                    {t.liked ? "♥" : "♡"}
-                  </button>
+                  <span className="q-end">
+                    <button
+                      className={`icon heart ${t.liked ? "on" : ""}`}
+                      disabled={!online}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        playerApi.setLike(t.id, !t.liked).then((liked) => likeBus.emit(t.id, liked)).catch(() => {});
+                      }}
+                      title={t.liked ? "Unlike" : "Like"}
+                    >
+                      {t.liked ? "♥" : "♡"}
+                    </button>
+                    <small>{fmtDuration(t.duration)}</small>
+                  </span>
                 </div>
               </li>
             ))}
@@ -215,10 +217,12 @@ const QueueRow = forwardRef<HTMLLIElement, RowProps>(function QueueRow(
           <span className="q-title">{t.title || t.file}</span>
           <span className="q-sub">{t.artist}</span>
         </span>
-        <small>{fmtDuration(t.duration)}</small>
-        <button className={`icon heart ${t.liked ? "on" : ""}`} disabled={!online} onClick={toggleLike} title={t.liked ? "Unlike" : "Like"}>
-          {t.liked ? "♥" : "♡"}
-        </button>
+        <span className="q-end">
+          <button className={`icon heart ${t.liked ? "on" : ""}`} disabled={!online} onClick={toggleLike} title={t.liked ? "Unlike" : "Like"}>
+            {t.liked ? "♥" : "♡"}
+          </button>
+          <small>{fmtDuration(t.duration)}</small>
+        </span>
         <button
           className="icon q-remove"
           title="Remove from queue"
