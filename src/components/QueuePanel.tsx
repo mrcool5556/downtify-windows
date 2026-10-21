@@ -1,5 +1,5 @@
 import { forwardRef, useCallback, useEffect, useRef, useState } from "react";
-import { fmtDuration, playerApi, PlaylistSummary, playlistsApi } from "../api";
+import { Track, fmtDuration, homeApi, playerApi, PlaylistSummary, playlistsApi } from "../api";
 import { usePlayer } from "../player/usePlayer";
 import { likeBus } from "../likeBus";
 import { MenuItem, useContextMenu } from "../components/ContextMenu";
@@ -14,6 +14,12 @@ export function QueuePanel({ online }: { online: boolean }) {
   const [notice, setNotice] = useState("");
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [dragOver, setDragOver] = useState<number | null>(null);
+  const [tab, setTab] = useState<"queue" | "recent">("queue");
+  const [recent, setRecent] = useState<Track[]>([]);
+  useEffect(() => {
+    if (tab === "recent") homeApi.recentPlays(50).then(setRecent).catch(() => {});
+  }, [tab, current?.id]);
+  useEffect(() => likeBus.on((id, liked) => setRecent((ts) => ts.map((t) => (t.id === id ? { ...t, liked } : t)))), []);
 
   useEffect(() => {
     api.listPlaylists().then(setPlaylists).catch(() => {});
@@ -66,19 +72,59 @@ export function QueuePanel({ online }: { online: boolean }) {
     <aside className="queue">
       {ctx.menu}
       <div className="queue-head">
-        <h3>Queue</h3>
-        <small>
-          {queue.length} {queue.length === 1 ? "song" : "songs"}
-        </small>
-        <button className="small" onClick={jumpToCurrent} title="Scroll to the playing song" disabled={!current}>
-          Jump to current
-        </button>
+        <div className="seg seg-small tabs2">
+          <button className={tab === "queue" ? "on" : ""} onClick={() => setTab("queue")}>
+            Queue <small>{queue.length}</small>
+          </button>
+          <button className={tab === "recent" ? "on" : ""} onClick={() => setTab("recent")}>
+            Recently played
+          </button>
+        </div>
+        {tab === "queue" && (
+          <button className="icon" onClick={jumpToCurrent} title="Jump to the playing song" disabled={!current}>
+            ⌖
+          </button>
+        )}
         <button className="icon" onClick={() => player.setQueueOpen(false)} title="Close">
           ✕
         </button>
       </div>
       {notice && <div className="toast">{notice}</div>}
-      {queue.length === 0 ? (
+      {tab === "recent" ? (
+        recent.length === 0 ? (
+          <div className="empty">Nothing played yet.</div>
+        ) : (
+          <ol className="queue-list">
+            {recent.map((t, i) => (
+              <li key={`${t.id}-${i}`}>
+                <div
+                  className="rowbtn q-row"
+                  onDoubleClick={() => player.playList(recent, i, { section: "home", scope: {}, search: "recent-plays", localOnly: false })}
+                  onContextMenu={(e) => ctx.open(e, trackMenu([t], env, { playFirst: () => player.playList(recent, i), addToPlaylist }))}
+                  title="Double-click to play · right-click for more"
+                >
+                  <span className="q-main">
+                    <span className="q-title">{t.title || t.file}</span>
+                    <span className="q-sub">{t.artist}</span>
+                  </span>
+                  <small>{fmtDuration(t.duration)}</small>
+                  <button
+                    className={`icon heart ${t.liked ? "on" : ""}`}
+                    disabled={!online}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      playerApi.setLike(t.id, !t.liked).then((liked) => likeBus.emit(t.id, liked)).catch(() => {});
+                    }}
+                    title={t.liked ? "Unlike" : "Like"}
+                  >
+                    {t.liked ? "♥" : "♡"}
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )
+      ) : queue.length === 0 ? (
         <div className="empty">Nothing queued.</div>
       ) : (
         <ol className="queue-list">
@@ -169,6 +215,7 @@ const QueueRow = forwardRef<HTMLLIElement, RowProps>(function QueueRow(
           <span className="q-title">{t.title || t.file}</span>
           <span className="q-sub">{t.artist}</span>
         </span>
+        <small>{fmtDuration(t.duration)}</small>
         <button className={`icon heart ${t.liked ? "on" : ""}`} disabled={!online} onClick={toggleLike} title={t.liked ? "Unlike" : "Like"}>
           {t.liked ? "♥" : "♡"}
         </button>
@@ -182,7 +229,6 @@ const QueueRow = forwardRef<HTMLLIElement, RowProps>(function QueueRow(
         >
           ✕
         </button>
-        <small>{fmtDuration(t.duration)}</small>
       </div>
     </li>
   );

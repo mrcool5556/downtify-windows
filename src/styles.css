@@ -2650,3 +2650,29 @@ table.tracks td.c-dl {
 .sidebar {
   border-top: none;
 }
+
+/* Queue panel: tabs, heart at the right */
+.queue-head {
+  gap: 6px;
+}
+.tabs2 {
+  flex: 1;
+}
+.tabs2 button {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+.tabs2 button small {
+  color: var(--fg-2);
+}
+.q-row small {
+  color: var(--fg-2);
+  font-variant-numeric: tabular-nums;
+  width: 36px;
+  text-align: right;
+}
+.q-row .q-remove {
+  width: 22px;
+}
