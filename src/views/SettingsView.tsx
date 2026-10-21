@@ -2,6 +2,7 @@ import { useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { Settings, Summary, api, fmtWhen, playerApi } from "../api";
+import { DensityPicker, setLayout, useLayout } from "../layout";
 
 interface Props {
   settings: Settings;
@@ -13,6 +14,7 @@ interface Props {
 
 export function SettingsView({ settings, summary, onSettings, onResync, onUnpaired }: Props) {
   const [error, setError] = useState("");
+  const layout = useLayout();
   const [confirmUnpair, setConfirmUnpair] = useState(false);
 
   async function chooseFolder() {
@@ -94,6 +96,19 @@ export function SettingsView({ settings, summary, onSettings, onResync, onUnpair
             </button>
           )}
         </div>
+      </section>
+
+      <section className="card">
+        <h2>Layout</h2>
+        <p className="hint">How song lists look. Remembered on this PC.</p>
+        <div className="row" style={{ marginBottom: 10 }}>
+          <span style={{ width: 120 }}>Row density</span>
+          <DensityPicker />
+        </div>
+        <label className="check">
+          <input type="checkbox" checked={layout.rowArt} onChange={(e) => setLayout({ rowArt: e.target.checked })} />
+          Show cover art in song rows
+        </label>
       </section>
 
       <section className="card">

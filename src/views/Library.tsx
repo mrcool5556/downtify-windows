@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Album, Artist, PlaylistSummary, Summary, Track, api, coverUrl, fmtDuration, homeApi, playerApi, playlistCoverUrl } from "../api";
 import { usePlayer } from "../player/usePlayer";
 import { likeBus } from "../likeBus";
+import { DensityPicker, useLayout } from "../layout";
 
 type Section = "home" | "tracks" | "albums" | "artists" | "playlists";
 
@@ -31,6 +32,7 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
   const [error, setError] = useState("");
   const { player, revealNonce, context, current } = usePlayer();
   const [revealPending, setRevealPending] = useState(false);
+  const layout = useLayout();
 
   const playContext = { section, scope, search, localOnly };
 
@@ -122,7 +124,7 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
         : SECTION_TITLE[section];
 
   return (
-    <div className="library">
+    <div className={`library density-${layout.density} ${layout.rowArt ? "" : "no-row-art"}`}>
       <aside className="sidebar">
         <button className={`nav ${section === "home" ? "active" : ""}`} onClick={() => go("home")}>
           <span className="nav-icon">⌂</span> Home
@@ -174,6 +176,7 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
               ▶ Play all
             </button>
           )}
+          {showingTracks && <DensityPicker small />}
           {showingTracks && (
             <input
               id="library-search"

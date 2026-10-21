@@ -928,3 +928,48 @@ table.tracks tr.current.selected td {
 table.tracks tr.current td:first-child {
   box-shadow: inset 3px 0 0 var(--accent);
 }
+
+/* ── Density + layout prefs ────────────────────────────────────────── */
+table.tracks th.c-local,
+table.tracks td.c-local {
+  width: 12px;
+  padding-left: 0;
+  padding-right: 0;
+  font-size: 9px;
+  text-align: center;
+}
+.density-comfortable table.tracks td {
+  padding: 7px 8px;
+}
+.density-comfortable table.tracks .c-art {
+  width: 44px;
+}
+.density-comfortable .row-art {
+  width: 36px;
+  height: 36px;
+  font-size: 14px;
+}
+.no-row-art table.tracks .c-art {
+  display: none;
+}
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.seg button {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 5px 10px;
+  color: var(--fg-2);
+}
+.seg button.on {
+  background: var(--bg-3);
+  color: var(--fg);
+}
+.seg-small button {
+  padding: 3px 8px;
+  font-size: 12px;
+}
