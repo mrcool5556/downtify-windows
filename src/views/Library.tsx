@@ -546,16 +546,18 @@ export function Library({
             <span className="nav-icon">
               <DownloadGlyph on={localOnly} />
             </span>
-            <span className="lbl">Offline mode</span>
+            <span className="lbl modelbl">
+              <span>Offline mode</span>
+              {summary && (
+                <small className="foot-count">
+                  {summary.local_tracks} of {summary.tracks} on this PC
+                </small>
+              )}
+            </span>
             <span className={`pill-toggle ${localOnly ? "on" : ""}`}>
               <span className="pill-knob" />
             </span>
           </button>
-          {summary && (
-            <small className="lbl foot-count">
-              {summary.local_tracks} of {summary.tracks} on this PC
-            </small>
-          )}
           <button className={`nav ${section === "settings" ? "active" : ""}`} onClick={() => nav.push({ section: "settings", scope: {}, search: "", tab: view.tab ?? "general" })} title="Settings">
             <span className="nav-icon">⚙</span> <span className="lbl">Settings</span>
           </button>

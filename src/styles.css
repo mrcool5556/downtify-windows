@@ -2576,3 +2576,30 @@ table.tracks td.c-dl {
 .sidebar-collapsed .conn span:not(.dot) {
   display: none;
 }
+
+/* Sidebar foot: no dead space, count tucked under Offline mode */
+.sidebar-foot {
+  gap: 0;
+  padding: 4px 10px 6px;
+}
+.sidebar-foot .nav {
+  padding: 5px 10px;
+  margin: 0 -10px;
+}
+.conn {
+  padding: 4px 0 2px;
+}
+.modelbl {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.modelbl .foot-count {
+  padding: 0;
+  font-size: 10.5px;
+  color: var(--fg-2);
+  font-weight: 400;
+}
+.modebtn.on .foot-count {
+  color: var(--accent-2);
+}
