@@ -338,6 +338,7 @@ export function Library({ online, summary, version }: { online: boolean; summary
       { separator: true },
       {
         label: "Available offline",
+        icon: <DownloadGlyph on={p.keep_synced} />,
         checked: p.keep_synced,
         disabled: !online && !p.keep_synced,
         onClick: () => downloadsApi.setKeepSynced(p.name, !p.keep_synced).then(() => reloadPlaylists()),
@@ -505,8 +506,7 @@ export function Library({ online, summary, version }: { online: boolean; summary
           </h2>
           {headerPlaylist && (
             <small className="head-count" title={headerPlaylist.keep_synced ? "Available offline: every song, and new ones as they are added (right-click to change)" : "Right-click for Available offline, Remove from this PC, Rename…"}>
-              {headerPlaylist.keep_synced ? "⟳ " : ""}
-              {headerPlaylist.local_count} of {headerPlaylist.count} on this PC
+              <DownloadGlyph on={headerPlaylist.keep_synced} /> {headerPlaylist.local_count} of {headerPlaylist.count} on this PC
             </small>
           )}
           {showingTracks && <DensityPicker small />}
@@ -699,6 +699,17 @@ export function trackMenu(
     items.push({ separator: true }, ...opts.extra);
   }
   return items;
+}
+
+/** The small download arrow used next to "Available offline". Green when on. */
+function DownloadGlyph({ on }: { on: boolean }) {
+  return (
+    <svg className={`dl-glyph ${on ? "on" : ""}`} width="14" height="14" viewBox="0 0 16 16" aria-hidden>
+      <circle cx="8" cy="8" r="7" fill={on ? "var(--accent)" : "none"} stroke={on ? "var(--accent)" : "currentColor"} strokeWidth="1.3" />
+      <path d="M8 4v6M5.5 7.8 8 10.3l2.5-2.5" fill="none" stroke={on ? "#06230f" : "currentColor"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5 12h6" stroke={on ? "#06230f" : "currentColor"} strokeWidth="1.3" strokeLinecap="round" />
+    </svg>
+  );
 }
 
 /** The server names the liked list after itself; we just say Liked Songs. */

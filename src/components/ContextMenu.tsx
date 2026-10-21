@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 
 export interface MenuItem {
   label?: string;
+  icon?: React.ReactNode;
   onClick?: () => void;
   disabled?: boolean;
   danger?: boolean;
@@ -90,6 +91,7 @@ function MenuList({ items, onClose }: { items: MenuItem[]; onClose: () => void }
             }}
           >
             <span className="ctx-check">{it.checked ? "✓" : ""}</span>
+            {it.icon && <span className="ctx-icon">{it.icon}</span>}
             <span className="ctx-label">{it.label}</span>
             {it.hint && <span className="ctx-hint">{it.hint}</span>}
             {it.submenu && <span className="ctx-arrow">›</span>}

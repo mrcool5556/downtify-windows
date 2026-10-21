@@ -1443,3 +1443,16 @@ input.rename {
 h2.has-menu {
   cursor: context-menu;
 }
+
+.ctx-icon {
+  display: inline-flex;
+  width: 16px;
+  justify-content: center;
+  color: var(--fg-2);
+}
+.dl-glyph {
+  vertical-align: -2px;
+}
+.head-count .dl-glyph {
+  margin-right: 2px;
+}
