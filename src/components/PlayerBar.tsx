@@ -4,6 +4,7 @@ import { usePlayer } from "../player/usePlayer";
 import { likeBus } from "../likeBus";
 import { DownloadButton } from "./DownloadButton";
 import { useContextMenu } from "./ContextMenu";
+import { navBus } from "../navBus";
 import { trackMenu } from "../views/Library";
 import { useEffect, useState as useState2 } from "react";
 import { api, PlaylistSummary, playlistsApi } from "../api";
@@ -74,8 +75,39 @@ export function PlayerBar({ online, onReveal }: { online: boolean; onReveal: () 
                 {current.title || current.file}
               </button>
               <div className="pb-sub" title={`${current.artist} — ${current.album}`}>
-                {current.artist}
-                {current.album ? ` — ${current.album}` : ""}
+                {current.artist_id ? (
+                  <button
+                    className="cell-link"
+                    title="Go to artist"
+                    onClick={() => {
+                      onReveal();
+                      navBus.go({ artist_id: current.artist_id, artist: current.album_artist || current.artist });
+                    }}
+                  >
+                    {current.artist}
+                  </button>
+                ) : (
+                  current.artist
+                )}
+                {current.album ? (
+                  <>
+                    {" — "}
+                    {current.album_id ? (
+                      <button
+                        className="cell-link"
+                        title="Go to album"
+                        onClick={() => {
+                          onReveal();
+                          navBus.go({ album_id: current.album_id, album: current.album, album_artist: current.album_artist, artist_id: current.artist_id, cover_track_id: current.id });
+                        }}
+                      >
+                        {current.album}
+                      </button>
+                    ) : (
+                      current.album
+                    )}
+                  </>
+                ) : null}
                 {!current.local_path && <span className="pb-stream" title="Streaming from the server"> · streaming</span>}
               </div>
             </div>

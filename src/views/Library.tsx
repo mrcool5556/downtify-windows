@@ -494,6 +494,8 @@ export function Library({ online, summary, version }: { online: boolean; summary
           {scope.album && scope.album.cover_track_id ? <img className="head-art" src={coverUrl(scope.album.cover_track_id, 150)} alt="" /> : null}
           {headerPlaylist ? <PlaylistArt p={headerPlaylist} size={30} /> : null}
           <h2
+            className={headerPlaylist || scope.album ? "has-menu" : ""}
+            title={headerPlaylist || scope.album ? "Right-click for options" : undefined}
             onContextMenu={(e) => {
               if (headerPlaylist) ctx.open(e, playlistMenu(headerPlaylist));
               else if (scope.album) ctx.open(e, albumMenu(scope.album));
@@ -501,7 +503,12 @@ export function Library({ online, summary, version }: { online: boolean; summary
           >
             {title}
           </h2>
-          {headerPlaylist && <KeepSynced p={headerPlaylist} online={online} onChange={() => reloadPlaylists()} />}
+          {headerPlaylist && (
+            <small className="head-count" title={headerPlaylist.keep_synced ? "Kept synced to this PC (right-click to change)" : "Right-click for Keep synced, Remove from this PC, Rename…"}>
+              {headerPlaylist.keep_synced ? "⟳ " : ""}
+              {headerPlaylist.local_count} of {headerPlaylist.count} on this PC
+            </small>
+          )}
           {showingTracks && <DensityPicker small />}
           {showingTracks && <input id="library-search" className="search" placeholder="Search title, artist, album" value={search} onChange={(e) => setSearch(e.target.value)} />}
         </div>
@@ -750,60 +757,6 @@ function AlbumGrid({ albums, onOpen, onMenu }: { albums: Album[]; onOpen: (a: Al
           </div>
         </button>
       ))}
-    </div>
-  );
-}
-
-function KeepSynced({ p, online, onChange }: { p: PlaylistSummary; online: boolean; onChange: () => void }) {
-  const [busy, setBusy] = useState(false);
-  const [confirm, setConfirm] = useState(false);
-  async function toggle() {
-    setBusy(true);
-    try {
-      await downloadsApi.setKeepSynced(p.name, !p.keep_synced);
-      onChange();
-    } finally {
-      setBusy(false);
-    }
-  }
-  async function removeAll() {
-    setBusy(true);
-    try {
-      const ids = (await api.listTracks({ playlist: p.name, local_only: true, limit: 10000 })).map((t) => t.id);
-      if (p.keep_synced) await downloadsApi.setKeepSynced(p.name, false);
-      await downloadsApi.removeLocal(ids);
-      onChange();
-    } finally {
-      setBusy(false);
-      setConfirm(false);
-    }
-  }
-  return (
-    <div className="keep">
-      <label className="switch" title={online ? "Download this playlist and keep new additions coming" : "Needs the server to start"}>
-        <input type="checkbox" checked={p.keep_synced} disabled={busy || (!online && !p.keep_synced)} onChange={toggle} />
-        <span className="slider" />
-        <span>Keep synced to this PC</span>
-      </label>
-      <small>
-        {p.local_count} of {p.count} on this PC
-      </small>
-      {p.local_count > 0 &&
-        (confirm ? (
-          <span className="dl-confirm">
-            Remove {p.local_count} files?
-            <button className="small danger" onClick={removeAll} disabled={busy}>
-              Remove
-            </button>
-            <button className="small ghost" onClick={() => setConfirm(false)}>
-              Keep
-            </button>
-          </span>
-        ) : (
-          <button className="small ghost" onClick={() => setConfirm(true)} title="Delete this playlist's files from this PC">
-            Remove from this PC
-          </button>
-        ))}
     </div>
   );
 }
@@ -1092,8 +1045,40 @@ function TrackTable({ tracks, online, showAlbum, onPlay, compact, env, openMenu,
                   </span>
                 )}
               </td>
-              <td>{t.artist}</td>
-              {showAlbum && <td>{t.album}</td>}
+              <td>
+                {t.artist_id ? (
+                  <button
+                    className="cell-link"
+                    title="Go to artist"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navBus.go({ artist_id: t.artist_id, artist: t.album_artist || t.artist });
+                    }}
+                  >
+                    {t.artist}
+                  </button>
+                ) : (
+                  t.artist
+                )}
+              </td>
+              {showAlbum && (
+                <td>
+                  {t.album_id ? (
+                    <button
+                      className="cell-link"
+                      title="Go to album"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navBus.go({ album_id: t.album_id, album: t.album, album_artist: t.album_artist, artist_id: t.artist_id, cover_track_id: t.id });
+                      }}
+                    >
+                      {t.album}
+                    </button>
+                  ) : (
+                    t.album
+                  )}
+                </td>
+              )}
               <td className="c-like">
                 <button
                   className={`icon heart ${t.liked ? "on" : ""}`}

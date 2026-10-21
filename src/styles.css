@@ -1416,3 +1416,30 @@ input.rename {
 .downloads > h3:first-child {
   margin-top: 4px;
 }
+
+/* Clickable artist / album text */
+.cell-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.cell-link:hover {
+  text-decoration: underline;
+  color: var(--fg);
+  border-color: transparent;
+}
+.head-count {
+  color: var(--fg-2);
+  white-space: nowrap;
+  margin-left: 4px;
+}
+h2.has-menu {
+  cursor: context-menu;
+}
