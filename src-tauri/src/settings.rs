@@ -76,3 +76,24 @@ pub fn clear_token() {
         let _ = e.delete_credential();
     }
 }
+
+const KEYRING_WEB: &str = "web-session";
+
+fn web_entry() -> Result<keyring::Entry, String> {
+    keyring::Entry::new(KEYRING_SERVICE, KEYRING_WEB).map_err(|e| e.to_string())
+}
+
+/// The browser-style session used only for playlist editing.
+pub fn load_web_session() -> Option<String> {
+    web_entry().ok()?.get_password().ok().filter(|s| !s.is_empty())
+}
+
+pub fn save_web_session(token: &str) -> Result<(), String> {
+    web_entry()?.set_password(token).map_err(|e| e.to_string())
+}
+
+pub fn clear_web_session() {
+    if let Ok(e) = web_entry() {
+        let _ = e.delete_credential();
+    }
+}

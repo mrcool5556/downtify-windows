@@ -181,3 +181,31 @@ export const homeApi = {
 };
 
 export const playlistCoverUrl = (cover: string) => `${MEDIA_ORIGIN}/playlist-cover?file=${encodeURIComponent(cover)}`;
+
+// ── Playlist editing (browser-style session) ────────────────────────────
+
+export interface WebStatus {
+  signed_in: boolean;
+  username: string;
+}
+
+export interface EditResult {
+  playlists: PlaylistSummary[];
+  added: number;
+  removed: number;
+  skipped: number;
+}
+
+export const playlistsApi = {
+  webSignIn: (username: string, password: string) => invoke<WebStatus>("web_sign_in", { username, password }),
+  webSignOut: () => invoke<WebStatus>("web_sign_out"),
+  webStatus: () => invoke<WebStatus>("web_status"),
+  refresh: () => invoke<PlaylistSummary[]>("refresh_playlists"),
+  create: (name: string) => invoke<PlaylistSummary[]>("create_playlist", { name }),
+  editTracks: (name: string, add: string[], remove: string[]) => invoke<EditResult>("edit_playlist_tracks", { name, add, remove }),
+  rename: (name: string, newName: string) => invoke<PlaylistSummary[]>("rename_playlist", { name, newName }),
+  delete: (name: string) => invoke<PlaylistSummary[]>("delete_playlist", { name }),
+};
+
+/** Playlists you made in the Library can be edited; imported ones and Liked Songs cannot. */
+export const isEditable = (p: PlaylistSummary) => p.manual && !p.liked;

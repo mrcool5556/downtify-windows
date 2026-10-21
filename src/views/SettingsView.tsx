@@ -4,6 +4,8 @@ import { openPath } from "@tauri-apps/plugin-opener";
 import { Settings, Summary, api, fmtWhen, playerApi } from "../api";
 import { DensityPicker, setLayout, useLayout } from "../layout";
 import { downloadsApi } from "../downloads";
+import { useEffect } from "react";
+import { WebStatus, playlistsApi } from "../api";
 
 interface Props {
   settings: Settings;
@@ -16,6 +18,24 @@ interface Props {
 export function SettingsView({ settings, summary, onSettings, onResync, onUnpaired }: Props) {
   const [error, setError] = useState("");
   const layout = useLayout();
+  const [web, setWeb] = useState<WebStatus | null>(null);
+  const [cred, setCred] = useState({ username: settings.username, password: "" });
+  const [signing, setSigning] = useState(false);
+  useEffect(() => {
+    playlistsApi.webStatus().then(setWeb).catch(() => setWeb({ signed_in: false, username: "" }));
+  }, []);
+  async function signIn() {
+    setSigning(true);
+    setError("");
+    try {
+      setWeb(await playlistsApi.webSignIn(cred.username, cred.password));
+      setCred((c) => ({ ...c, password: "" }));
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setSigning(false);
+    }
+  }
   const [confirmUnpair, setConfirmUnpair] = useState(false);
 
   async function chooseFolder() {
@@ -80,6 +100,41 @@ export function SettingsView({ settings, summary, onSettings, onResync, onUnpair
             </span>
           )}
         </div>
+      </section>
+
+      <section className="card">
+        <h2>Playlist editing</h2>
+        <p className="hint">
+          Creating, renaming and editing playlists needs a signed-in account on the server, not just the pairing. Sign in once here; the session lasts 30 days from its last use and the
+          app only keeps the session, never the password.
+        </p>
+        {web?.signed_in ? (
+          <div className="row">
+            <span>
+              Signed in as <b>{web.username}</b>
+            </span>
+            <button
+              className="ghost"
+              onClick={() => playlistsApi.webSignOut().then(setWeb)}
+            >
+              Forget sign-in
+            </button>
+          </div>
+        ) : (
+          <form
+            className="row"
+            onSubmit={(e) => {
+              e.preventDefault();
+              signIn();
+            }}
+          >
+            <input placeholder="Username" value={cred.username} onChange={(e) => setCred({ ...cred, username: e.target.value })} autoComplete="username" />
+            <input placeholder="Password" type="password" value={cred.password} onChange={(e) => setCred({ ...cred, password: e.target.value })} autoComplete="current-password" />
+            <button className="primary" type="submit" disabled={signing || !cred.username || !cred.password}>
+              {signing ? "Signing in…" : "Sign in"}
+            </button>
+          </form>
+        )}
       </section>
 
       <section className="card">

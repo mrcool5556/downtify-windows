@@ -326,6 +326,84 @@ class PlayerStore {
     this.goTo(this.snap.cursor - 1, true);
   }
 
+  /** Put tracks right after the current song. */
+  playNext(tracks: Track[]) {
+    if (tracks.length === 0) return;
+    if (this.snap.queue.length === 0) {
+      this.playList(tracks, 0);
+      return;
+    }
+    const { queue, order, cursor } = this.snap;
+    const base = queue.length;
+    const newQueue = [...queue, ...tracks];
+    const inserted = tracks.map((_, i) => base + i);
+    const at = cursor + 1;
+    const newOrder = [...order.slice(0, at), ...inserted, ...order.slice(at)];
+    this.set({ queue: newQueue, order: newOrder });
+    this.scheduleSave();
+  }
+
+  /** Append tracks to the end of the queue. */
+  addToQueue(tracks: Track[]) {
+    if (tracks.length === 0) return;
+    if (this.snap.queue.length === 0) {
+      this.playList(tracks, 0);
+      return;
+    }
+    const { queue, order } = this.snap;
+    const base = queue.length;
+    this.set({ queue: [...queue, ...tracks], order: [...order, ...tracks.map((_, i) => base + i)] });
+    this.scheduleSave();
+  }
+
+  /** Remove one entry (index into `queue`). Removing the current song skips it. */
+  removeFromQueue(index: number) {
+    const { queue, order, cursor } = this.snap;
+    if (index < 0 || index >= queue.length) return;
+    const wasCurrent = cursor >= 0 && order[cursor] === index;
+    const newQueue = queue.filter((_, i) => i !== index);
+    const remap = (i: number) => (i > index ? i - 1 : i);
+    const newOrder = order.filter((i) => i !== index).map(remap);
+    let newCursor = cursor;
+    if (wasCurrent) {
+      newCursor = Math.min(cursor, newOrder.length - 1);
+      this.set({ queue: newQueue, order: newOrder, cursor: newCursor, current: newCursor >= 0 ? newQueue[newOrder[newCursor]] : null });
+      if (newCursor >= 0) this.loadCurrent(this.snap.playing);
+      else {
+        this.audio.pause();
+        this.audio.removeAttribute("src");
+        this.pushSmtc("stopped");
+      }
+    } else {
+      const pos = order.indexOf(index);
+      if (pos >= 0 && pos < cursor) newCursor = cursor - 1;
+      this.set({ queue: newQueue, order: newOrder, cursor: newCursor });
+    }
+    this.scheduleSave();
+  }
+
+  /** Reorder within the play order: move the entry at order position `from` to `to`. */
+  moveInOrder(from: number, to: number) {
+    const { order, cursor } = this.snap;
+    if (from === to || from < 0 || to < 0 || from >= order.length || to >= order.length) return;
+    const newOrder = [...order];
+    const [item] = newOrder.splice(from, 1);
+    newOrder.splice(to, 0, item);
+    let newCursor = cursor;
+    if (cursor === from) newCursor = to;
+    else if (from < cursor && to >= cursor) newCursor = cursor - 1;
+    else if (from > cursor && to <= cursor) newCursor = cursor + 1;
+    this.set({ order: newOrder, cursor: newCursor });
+    this.scheduleSave();
+  }
+
+  /** Shuffle-play a list from a random start. */
+  shufflePlay(tracks: Track[], context: PlayContext | null = null) {
+    if (tracks.length === 0) return;
+    if (!this.snap.shuffle) this.set({ shuffle: true });
+    this.playList(tracks, Math.floor(Math.random() * tracks.length), context);
+  }
+
   /** Jump to a queue entry (index into `queue`, not `order`). */
   playQueueIndex(index: number) {
     const cursor = this.snap.order.indexOf(index);

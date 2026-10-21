@@ -177,6 +177,44 @@ pub async fn pair(base: &str, code: &str, device_name: &str) -> Result<PairRespo
     resp.json().await.map_err(|e| e.to_string())
 }
 
+pub const SESSION_COOKIE: &str = "downtify_session";
+
+/// `POST /api/auth/login`: a browser-style session for the routes a
+/// device token may not call (playlist editing). Returns the session
+/// token from the Set-Cookie header and the user's name.
+pub async fn login(base: &str, username: &str, password: &str) -> Result<(String, String), String> {
+    let client = http(Duration::from_secs(10))?;
+    let resp = client
+        .post(format!("{base}/api/auth/login"))
+        .header("Origin", base)
+        .json(&serde_json::json!({ "username": username, "password": password }))
+        .send()
+        .await
+        .map_err(|e| friendly_net(&e))?;
+    if !resp.status().is_success() {
+        return Err(read_error(resp).await);
+    }
+    let mut session = String::new();
+    for value in resp.headers().get_all(reqwest::header::SET_COOKIE) {
+        if let Ok(s) = value.to_str() {
+            if let Some(rest) = s.strip_prefix(&format!("{SESSION_COOKIE}=")) {
+                session = rest.split(';').next().unwrap_or("").to_string();
+            }
+        }
+    }
+    if session.is_empty() {
+        return Err("Server did not return a session".into());
+    }
+    let body: Value = resp.json().await.unwrap_or(Value::Null);
+    let user = body
+        .get("user")
+        .and_then(|u| u.get("username"))
+        .and_then(|u| u.as_str())
+        .unwrap_or(username)
+        .to_string();
+    Ok((session, user))
+}
+
 #[derive(Debug)]
 pub enum ApiError {
     /// 401: the device was unpaired or the token is wrong.
@@ -210,6 +248,40 @@ impl Client {
             base: base.to_string(),
             token: token.to_string(),
         })
+    }
+
+    /// A request as the signed-in browser session (playlist editing).
+    /// The server refuses unsafe methods without a same-origin header.
+    pub async fn web_json(
+        &self,
+        session: &str,
+        method: reqwest::Method,
+        path: &str,
+        body: Option<&Value>,
+    ) -> Result<Value, ApiError> {
+        let mut req = self
+            .http
+            .request(method, format!("{}{}", self.base, path))
+            .header(reqwest::header::COOKIE, format!("{SESSION_COOKIE}={session}"))
+            .header("Origin", &self.base)
+            .header("Referer", format!("{}/", self.base));
+        if let Some(b) = body {
+            req = req.json(b);
+        }
+        let resp = req.send().await.map_err(|e| {
+            if e.is_connect() || e.is_timeout() {
+                ApiError::Offline
+            } else {
+                ApiError::Other(e.to_string())
+            }
+        })?;
+        if resp.status().as_u16() == 401 {
+            return Err(ApiError::Unpaired);
+        }
+        if !resp.status().is_success() {
+            return Err(ApiError::Other(read_error(resp).await));
+        }
+        Ok(resp.json().await.unwrap_or(Value::Null))
     }
 
     pub fn get(&self, path: &str) -> reqwest::RequestBuilder {

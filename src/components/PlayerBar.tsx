@@ -3,12 +3,45 @@ import { coverUrl, fmtDuration, playerApi } from "../api";
 import { usePlayer } from "../player/usePlayer";
 import { likeBus } from "../likeBus";
 import { DownloadButton } from "./DownloadButton";
+import { useContextMenu } from "./ContextMenu";
+import { trackMenu } from "../views/Library";
+import { useEffect, useState as useState2 } from "react";
+import { api, PlaylistSummary, playlistsApi } from "../api";
 
 export function PlayerBar({ online, onReveal }: { online: boolean; onReveal: () => void }) {
   const p = usePlayer();
   const { player, current } = p;
   const [likeBusy, setLikeBusy] = useState(false);
   const [coverOk, setCoverOk] = useState(true);
+  const ctx = useContextMenu();
+  const [playlists, setPlaylists] = useState2<PlaylistSummary[]>([]);
+  useEffect(() => {
+    if (ctx.isOpen) return;
+    api.listPlaylists().then(setPlaylists).catch(() => {});
+  }, [ctx.isOpen, current?.id]);
+  const [barNotice, setBarNotice] = useState2("");
+  useEffect(() => {
+    if (!barNotice) return;
+    const t = setTimeout(() => setBarNotice(""), 4000);
+    return () => clearTimeout(t);
+  }, [barNotice]);
+  const env = {
+    online,
+    playlists,
+    setNotice: setBarNotice,
+    reloadPlaylists: () => api.listPlaylists().then(setPlaylists).catch(() => {}),
+    promptNewPlaylist: () => setBarNotice("Create playlists from the + in the sidebar"),
+    currentPlaylist: undefined,
+  };
+  async function addToPlaylist(name: string, ids: string[]) {
+    try {
+      const r = await playlistsApi.editTracks(name, ids, []);
+      setPlaylists(r.playlists);
+      setBarNotice(`Added to "${name}"`);
+    } catch (e) {
+      setBarNotice(String(e));
+    }
+  }
 
   async function toggleLike() {
     if (!current || likeBusy || !online) return;
@@ -27,7 +60,8 @@ export function PlayerBar({ online, onReveal }: { online: boolean; onReveal: () 
 
   return (
     <footer className="playerbar">
-      <div className="pb-track">
+      {ctx.menu}
+      <div className="pb-track" onContextMenu={(e) => current && ctx.open(e, trackMenu([current], env, { playFirst: () => player.play(), addToPlaylist }))}>
         {current ? (
           <>
             {coverOk && current.has_cover ? (
@@ -93,6 +127,7 @@ export function PlayerBar({ online, onReveal }: { online: boolean; onReveal: () 
           <span className="pb-time">{fmtDuration(p.duration)}</span>
         </div>
         {p.error && <div className="pb-error">{p.error}</div>}
+        {barNotice && !p.error && <div className="pb-loading">{barNotice}</div>}
         {p.loading && !p.error && <div className="pb-loading">Loading…</div>}
       </div>
 

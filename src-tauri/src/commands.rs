@@ -631,3 +631,222 @@ pub fn set_keep_played(state: State<AppState>, on: bool) -> Result<SettingsView,
     settings::save(&state.settings_path, &s)?;
     Ok(view(&s))
 }
+
+// ── Playlist editing (needs the browser-style session) ──────────────────
+
+#[derive(Serialize)]
+pub struct WebStatus {
+    pub signed_in: bool,
+    pub username: String,
+}
+
+#[tauri::command]
+pub async fn web_sign_in(state: State<'_, AppState>, username: String, password: String) -> Result<WebStatus, String> {
+    let base = {
+        let s = state.settings.lock().map_err(|e| e.to_string())?;
+        if !s.paired() {
+            return Err("Pair with the server first".into());
+        }
+        s.server_url.clone()
+    };
+    let (session, user) = server::login(&base, username.trim(), &password).await?;
+    settings::save_web_session(&session)?;
+    Ok(WebStatus { signed_in: true, username: user })
+}
+
+#[tauri::command]
+pub fn web_sign_out() -> WebStatus {
+    settings::clear_web_session();
+    WebStatus { signed_in: false, username: String::new() }
+}
+
+/// Is the playlist-editing session still good? Cheap; safe to call often.
+#[tauri::command]
+pub async fn web_status(state: State<'_, AppState>) -> Result<WebStatus, String> {
+    let session = match settings::load_web_session() {
+        Some(s) => s,
+        None => return Ok(WebStatus { signed_in: false, username: String::new() }),
+    };
+    let client = client_for(&state)?;
+    match client.web_json(&session, reqwest::Method::GET, "/api/auth/status", None).await {
+        Ok(v) => {
+            let signed_in = v.get("signed_in").and_then(|b| b.as_bool()).unwrap_or(false)
+                && v.get("via").and_then(|s| s.as_str()) == Some("session");
+            if !signed_in {
+                settings::clear_web_session();
+            }
+            Ok(WebStatus {
+                signed_in,
+                username: v
+                    .get("user")
+                    .and_then(|u| u.get("username"))
+                    .and_then(|u| u.as_str())
+                    .unwrap_or("")
+                    .to_string(),
+            })
+        }
+        Err(ApiError::Unpaired) => {
+            settings::clear_web_session();
+            Ok(WebStatus { signed_in: false, username: String::new() })
+        }
+        Err(e) => Err(String::from(e)),
+    }
+}
+
+fn web_session() -> Result<String, String> {
+    settings::load_web_session().ok_or_else(|| "Sign in under Settings to edit playlists".to_string())
+}
+
+fn web_err(e: ApiError) -> String {
+    match e {
+        ApiError::Unpaired => {
+            settings::clear_web_session();
+            "Your sign-in expired. Sign in again under Settings to edit playlists".into()
+        }
+        other => String::from(other),
+    }
+}
+
+/// Pull playlists and likes again and store them; the UI re-reads.
+async fn pull_playlists(state: &AppState, client: &Client) -> Result<Vec<db::PlaylistSummary>, String> {
+    let playlists = client.playlists().await.map_err(String::from)?;
+    let likes = client.likes().await.map_err(String::from)?;
+    let mut conn = state.db.lock().map_err(|e| e.to_string())?;
+    db::replace_playlists(&mut conn, &playlists)?;
+    db::replace_likes(&mut conn, &likes)?;
+    db::list_playlists(&conn)
+}
+
+#[tauri::command]
+pub async fn refresh_playlists(state: State<'_, AppState>) -> Result<Vec<db::PlaylistSummary>, String> {
+    let client = client_for(&state)?;
+    pull_playlists(&state, &client).await
+}
+
+#[tauri::command]
+pub async fn create_playlist(state: State<'_, AppState>, name: String) -> Result<Vec<db::PlaylistSummary>, String> {
+    let session = web_session()?;
+    let client = client_for(&state)?;
+    client
+        .web_json(
+            &session,
+            reqwest::Method::POST,
+            "/api/library/playlists",
+            Some(&serde_json::json!({ "name": name.trim() })),
+        )
+        .await
+        .map_err(web_err)?;
+    pull_playlists(&state, &client).await
+}
+
+#[derive(Serialize)]
+pub struct EditResult {
+    pub playlists: Vec<db::PlaylistSummary>,
+    pub added: i64,
+    pub removed: i64,
+    pub skipped: usize,
+}
+
+/// Add/remove tracks by id. The server wants file paths, so ids are
+/// translated here; ids without a server file (orphans) are skipped.
+#[tauri::command]
+pub async fn edit_playlist_tracks(
+    state: State<'_, AppState>,
+    name: String,
+    add: Vec<String>,
+    remove: Vec<String>,
+) -> Result<EditResult, String> {
+    let session = web_session()?;
+    let client = client_for(&state)?;
+    let (add_files, remove_files, skipped) = {
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        let mut skipped = 0;
+        let mut to_files = |ids: &[String]| -> Result<Vec<String>, String> {
+            let mut out = Vec::new();
+            for id in ids {
+                match db::get_track(&conn, id)? {
+                    Some(t) if !t.orphaned => {
+                        if let Some(f) = t.row.get("file").and_then(|v| v.as_str()) {
+                            out.push(f.to_string());
+                        }
+                    }
+                    _ => skipped += 1,
+                }
+            }
+            Ok(out)
+        };
+        let a = to_files(&add)?;
+        let r = to_files(&remove)?;
+        (a, r, skipped)
+    };
+    let v = client
+        .web_json(
+            &session,
+            reqwest::Method::POST,
+            "/api/library/playlists/tracks",
+            Some(&serde_json::json!({ "name": name, "add": add_files, "remove": remove_files })),
+        )
+        .await
+        .map_err(web_err)?;
+    let playlists = pull_playlists(&state, &client).await?;
+    Ok(EditResult {
+        playlists,
+        added: v.get("added").and_then(|x| x.as_i64()).unwrap_or(0),
+        removed: v.get("removed").and_then(|x| x.as_i64()).unwrap_or(0),
+        skipped,
+    })
+}
+
+#[tauri::command]
+pub async fn rename_playlist(state: State<'_, AppState>, name: String, new_name: String) -> Result<Vec<db::PlaylistSummary>, String> {
+    let session = web_session()?;
+    let client = client_for(&state)?;
+    client
+        .web_json(
+            &session,
+            reqwest::Method::POST,
+            "/api/library/playlists/rename",
+            Some(&serde_json::json!({ "name": name, "new_name": new_name.trim() })),
+        )
+        .await
+        .map_err(web_err)?;
+    {
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        let kept = db::keep_synced(&conn)?;
+        if kept.iter().any(|k| k == &name) {
+            db::set_keep_synced(&conn, &name, false)?;
+            db::set_keep_synced(&conn, new_name.trim(), true)?;
+        }
+    }
+    pull_playlists(&state, &client).await
+}
+
+/// Deletes the playlist on the server. The server also deletes the
+/// playlist's songs from its library unless another user owns them;
+/// the UI warns before calling this.
+#[tauri::command]
+pub async fn delete_playlist(state: State<'_, AppState>, name: String) -> Result<Vec<db::PlaylistSummary>, String> {
+    let session = web_session()?;
+    let client = client_for(&state)?;
+    let encoded: String = name
+        .bytes()
+        .map(|b| match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => (b as char).to_string(),
+            _ => format!("%{:02X}", b),
+        })
+        .collect();
+    client
+        .web_json(
+            &session,
+            reqwest::Method::DELETE,
+            &format!("/api/library/playlist?playlist_name={encoded}"),
+            None,
+        )
+        .await
+        .map_err(web_err)?;
+    {
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        db::set_keep_synced(&conn, &name, false)?;
+    }
+    pull_playlists(&state, &client).await
+}

@@ -98,6 +98,14 @@ pub fn run() {
             commands::set_keep_synced,
             commands::sync_keep_synced,
             commands::set_keep_played,
+            commands::web_sign_in,
+            commands::web_sign_out,
+            commands::web_status,
+            commands::create_playlist,
+            commands::edit_playlist_tracks,
+            commands::rename_playlist,
+            commands::delete_playlist,
+            commands::refresh_playlists,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Downtify");
