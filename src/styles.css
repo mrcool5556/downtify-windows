@@ -738,3 +738,129 @@ button.pb-title.linkish {
 button.pb-title.linkish:hover {
   text-decoration: underline;
 }
+
+/* ── Sidebar v2: Home + playlists ─────────────────────────────────── */
+.sidebar {
+  width: 230px;
+}
+.sidebar > button.nav {
+  justify-content: flex-start;
+  gap: 8px;
+  font-weight: 600;
+  padding: 8px 10px;
+}
+.nav-icon {
+  font-size: 16px;
+  color: var(--fg-2);
+}
+.sidebar > button.nav.active .nav-icon {
+  color: var(--accent);
+}
+.sidebar-title {
+  color: var(--fg-2);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 14px 10px 6px;
+}
+.sidebar-playlists {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.sidebar-playlists .pl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  background: transparent;
+  border-color: transparent;
+  padding: 4px 8px;
+  min-width: 0;
+}
+.sidebar-playlists .pl.active {
+  background: var(--bg-3);
+}
+.sidebar-playlists .pl:hover {
+  background: var(--bg-3);
+  border-color: transparent;
+}
+.pl-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pl-art {
+  flex-shrink: 0;
+  border-radius: 4px;
+  object-fit: cover;
+  background: var(--bg);
+  display: grid;
+  place-items: center;
+  color: var(--fg-2);
+}
+.pl-art.liked,
+.tile-art.liked {
+  background: linear-gradient(135deg, #450af5, #c4efd9);
+  color: #fff;
+}
+.sidebar-empty {
+  color: var(--fg-2);
+  padding: 8px 10px;
+  font-size: 13px;
+}
+.sidebar-foot {
+  margin-top: 6px;
+}
+
+/* ── Home ─────────────────────────────────────────────────────────── */
+.home h3 {
+  margin: 22px 0 10px;
+  font-size: 15px;
+}
+.home-entries {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.home-entries button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 14px;
+  background: var(--bg-2);
+}
+.home-entries button b {
+  font-size: 15px;
+}
+.home-entries button small {
+  color: var(--fg-2);
+}
+.strip .grid {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
+table.tracks.compact td {
+  padding: 4px 8px;
+}
+
+/* ── Queue v2 ─────────────────────────────────────────────────────── */
+.q-row {
+  gap: 8px;
+  align-items: center;
+}
+.q-row .heart {
+  opacity: 0.35;
+  font-size: 14px;
+}
+.q-row:hover .heart,
+.q-row .heart.on {
+  opacity: 1;
+}
+.queue-head .small {
+  white-space: nowrap;
+}

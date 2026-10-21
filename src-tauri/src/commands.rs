@@ -523,3 +523,23 @@ fn chrono_like_now() -> String {
         rem % 60
     )
 }
+
+// ── Home ────────────────────────────────────────────────────────────────
+
+#[tauri::command]
+pub fn record_play(state: State<AppState>, track_id: String) -> Result<(), String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    db::record_play(&conn, &track_id, now())
+}
+
+#[tauri::command]
+pub fn recent_plays(state: State<AppState>, limit: Option<i64>) -> Result<Vec<db::Track>, String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    db::recent_plays(&conn, limit.unwrap_or(20))
+}
+
+#[tauri::command]
+pub fn recent_albums(state: State<AppState>, limit: Option<i64>) -> Result<Vec<db::Album>, String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    db::recent_albums(&conn, limit.unwrap_or(12))
+}

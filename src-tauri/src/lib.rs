@@ -83,6 +83,9 @@ pub fn run() {
             commands::get_player_state,
             commands::set_player_state,
             commands::now_playing,
+            commands::record_play,
+            commands::recent_plays,
+            commands::recent_albums,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Downtify");

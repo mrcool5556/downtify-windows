@@ -56,6 +56,12 @@ pub fn open(path: &Path) -> Result<Connection, String> {
             size INTEGER NOT NULL DEFAULT 0,
             downloaded_at INTEGER NOT NULL DEFAULT 0
         );
+        CREATE TABLE IF NOT EXISTS history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            track_id TEXT NOT NULL,
+            played_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS history_when ON history(played_at);
         CREATE TABLE IF NOT EXISTS pending_listens (
             play_id TEXT PRIMARY KEY,
             track_id TEXT NOT NULL,
@@ -275,10 +281,64 @@ pub fn get_track(conn: &Connection, track_id: &str) -> Result<Option<Track>, Str
         .map_err(|e| e.to_string())
 }
 
+pub fn record_play(conn: &Connection, track_id: &str, now: i64) -> Result<(), String> {
+    conn.execute(
+        "INSERT INTO history(track_id, played_at) VALUES(?1, ?2)",
+        params![track_id, now],
+    )
+    .map_err(|e| e.to_string())?;
+    // Keep the table small: the last 2000 plays are plenty for Home.
+    conn.execute(
+        "DELETE FROM history WHERE id NOT IN (SELECT id FROM history ORDER BY id DESC LIMIT 2000)",
+        [],
+    )
+    .map(|_| ())
+    .map_err(|e| e.to_string())
+}
+
+/// Distinct recently played tracks, newest first.
+pub fn recent_plays(conn: &Connection, limit: i64) -> Result<Vec<Track>, String> {
+    let mut stmt = conn
+        .prepare(&format!(
+            "{TRACK_SELECT} JOIN (SELECT track_id, MAX(played_at) AS last FROM history GROUP BY track_id) h
+             ON h.track_id = t.id ORDER BY h.last DESC LIMIT ?1"
+        ))
+        .map_err(|e| e.to_string())?;
+    let rows = stmt.query_map([limit], row_to_track).map_err(|e| e.to_string())?;
+    rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+}
+
+/// Albums by when their newest track was added, newest first.
+pub fn recent_albums(conn: &Connection, limit: i64) -> Result<Vec<Album>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT t.album_id, t.album, t.album_artist, t.artist_id, COUNT(*),
+                    SUM(l.path IS NOT NULL), MIN(t.id), MAX(t.added) AS newest
+             FROM tracks t LEFT JOIN local_files l ON l.track_id = t.id
+             WHERE t.album_id <> ''
+             GROUP BY t.album_id ORDER BY newest DESC LIMIT ?1",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([limit], |r| {
+            Ok(Album {
+                album_id: r.get(0)?,
+                album: r.get(1)?,
+                album_artist: r.get(2)?,
+                artist_id: r.get(3)?,
+                count: r.get(4)?,
+                local_count: r.get::<_, Option<i64>>(5)?.unwrap_or(0),
+                cover_track_id: r.get(6)?,
+            })
+        })
+        .map_err(|e| e.to_string())?;
+    rows.collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())
+}
+
 pub fn clear_all(conn: &Connection) -> Result<(), String> {
     conn.execute_batch(
         "DELETE FROM tracks; DELETE FROM playlists; DELETE FROM likes;
-         DELETE FROM local_files; DELETE FROM meta; DELETE FROM pending_listens;",
+         DELETE FROM local_files; DELETE FROM meta; DELETE FROM pending_listens; DELETE FROM history;",
     )
     .map_err(|e| e.to_string())
 }

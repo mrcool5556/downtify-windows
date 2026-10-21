@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Album, Artist, PlaylistSummary, Summary, Track, api, coverUrl, fmtDuration, playerApi } from "../api";
+import { Album, Artist, PlaylistSummary, Summary, Track, api, coverUrl, fmtDuration, homeApi, playerApi, playlistCoverUrl } from "../api";
 import { usePlayer } from "../player/usePlayer";
 import { likeBus } from "../likeBus";
 
-type Section = "tracks" | "albums" | "artists" | "playlists";
+type Section = "home" | "tracks" | "albums" | "artists" | "playlists";
 
 interface Scope {
   album?: Album;
@@ -11,8 +11,16 @@ interface Scope {
   playlist?: PlaylistSummary;
 }
 
+const SECTION_TITLE: Record<Section, string> = {
+  home: "Home",
+  tracks: "Songs",
+  albums: "Albums",
+  artists: "Artists",
+  playlists: "Playlists",
+};
+
 export function Library({ online, summary }: { online: boolean; summary: Summary | null }) {
-  const [section, setSection] = useState<Section>("tracks");
+  const [section, setSection] = useState<Section>("home");
   const [scope, setScope] = useState<Scope>({});
   const [search, setSearch] = useState("");
   const [localOnly, setLocalOnly] = useState(false);
@@ -35,7 +43,7 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
     if (!context) return;
     setSection(context.section as Section);
     setScope((context.scope as Scope) ?? {});
-    setSearch(context.search ?? "");
+    setSearch(context.section === "home" ? "" : (context.search ?? ""));
     setLocalOnly(!!context.localOnly);
     setRevealPending(true);
   }, [revealNonce, context]);
@@ -50,6 +58,11 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
   }, [revealPending, tracks, current]);
 
   const showingTracks = section === "tracks" || !!scope.album || !!scope.playlist;
+
+  // The sidebar's playlist list is always wanted.
+  useEffect(() => {
+    api.listPlaylists().then(setPlaylists).catch(() => {});
+  }, [summary?.playlists, summary?.local_tracks]);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,8 +84,6 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
           if (!cancelled) setAlbums(list);
         } else if (section === "artists") {
           if (!cancelled) setArtists(await api.listArtists());
-        } else if (section === "playlists") {
-          if (!cancelled) setPlaylists(await api.listPlaylists());
         }
       } catch (e) {
         if (!cancelled) setError(String(e));
@@ -95,23 +106,42 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
     setSearch("");
   }
 
+  function openPlaylist(p: PlaylistSummary) {
+    setSection("playlists");
+    setScope({ playlist: p });
+    setSearch("");
+  }
+
   const empty = summary && summary.tracks === 0;
+  const title = scope.album
+    ? `${scope.album.album} — ${scope.album.album_artist}`
+    : scope.playlist
+      ? scope.playlist.name
+      : scope.artist
+        ? scope.artist.name
+        : SECTION_TITLE[section];
 
   return (
     <div className="library">
       <aside className="sidebar">
-        <button className={section === "tracks" ? "active" : ""} onClick={() => go("tracks")}>
-          Songs {summary ? <small>{summary.tracks}</small> : null}
+        <button className={`nav ${section === "home" ? "active" : ""}`} onClick={() => go("home")}>
+          <span className="nav-icon">⌂</span> Home
         </button>
-        <button className={section === "albums" ? "active" : ""} onClick={() => go("albums")}>
-          Albums {summary ? <small>{summary.albums}</small> : null}
-        </button>
-        <button className={section === "artists" ? "active" : ""} onClick={() => go("artists")}>
-          Artists {summary ? <small>{summary.artists}</small> : null}
-        </button>
-        <button className={section === "playlists" ? "active" : ""} onClick={() => go("playlists")}>
-          Playlists {summary ? <small>{summary.playlists}</small> : null}
-        </button>
+        <div className="sidebar-title">Your playlists</div>
+        <div className="sidebar-playlists">
+          {playlists.map((p) => (
+            <button
+              key={p.name}
+              className={`pl ${scope.playlist?.name === p.name ? "active" : ""}`}
+              onClick={() => openPlaylist(p)}
+              title={`${p.name} · ${p.local_count}/${p.count} on this PC`}
+            >
+              <PlaylistArt p={p} size={28} />
+              <span className="pl-name">{p.name}</span>
+            </button>
+          ))}
+          {playlists.length === 0 && <div className="sidebar-empty">No playlists yet</div>}
+        </div>
         <div className="sidebar-foot">
           <label className="check">
             <input type="checkbox" checked={localOnly} onChange={(e) => setLocalOnly(e.target.checked)} />
@@ -131,17 +161,14 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
             <button className="link" onClick={() => setScope({})}>
               ← Back
             </button>
+          ) : section !== "home" ? (
+            <button className="link" onClick={() => go("home")}>
+              ← Home
+            </button>
           ) : null}
           {scope.album && scope.album.cover_track_id ? <img className="head-art" src={coverUrl(scope.album.cover_track_id, 150)} alt="" /> : null}
-          <h2>
-            {scope.album
-              ? `${scope.album.album} — ${scope.album.album_artist}`
-              : scope.playlist
-                ? scope.playlist.name
-                : scope.artist
-                  ? scope.artist.name
-                  : section[0].toUpperCase() + section.slice(1)}
-          </h2>
+          {scope.playlist ? <PlaylistArt p={scope.playlist} size={48} /> : null}
+          <h2>{title}</h2>
           {showingTracks && tracks.length > 0 && (
             <button className="small" onClick={() => player.playList(tracks, 0, playContext)} title="Play all from the top">
               ▶ Play all
@@ -164,25 +191,20 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
           <div className="empty">
             {online ? "Library is empty. Download something on the server, then press Sync." : "No library yet. Connect to the server once to sync it."}
           </div>
+        ) : section === "home" ? (
+          <Home
+            summary={summary}
+            online={online}
+            go={go}
+            openAlbum={(a) => {
+              setSection("albums");
+              setScope({ album: a });
+            }}
+          />
         ) : showingTracks ? (
           <TrackTable tracks={tracks} online={online} showAlbum={!scope.album} onPlay={(i) => player.playList(tracks, i, playContext)} />
         ) : section === "albums" ? (
-          <div className="grid">
-            {albums.map((a) => (
-              <button key={a.album_id} className="tile" onClick={() => setScope({ ...scope, album: a })}>
-                <AlbumArt trackId={a.cover_track_id} />
-                <div className="tile-title" title={a.album}>
-                  {a.album}
-                </div>
-                <div className="tile-sub" title={a.album_artist}>
-                  {a.album_artist}
-                </div>
-                <div className="tile-meta">
-                  {a.local_count}/{a.count} on this PC
-                </div>
-              </button>
-            ))}
-          </div>
+          <AlbumGrid albums={albums} onOpen={(a) => setScope({ ...scope, album: a })} />
         ) : section === "artists" ? (
           <ul className="list">
             {artists.map((a) => (
@@ -203,25 +225,45 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
             ))}
           </ul>
         ) : (
-          <ul className="list">
+          <div className="grid">
             {playlists.map((p) => (
-              <li key={p.name}>
-                <button className="rowbtn" onClick={() => setScope({ playlist: p })}>
-                  <span>
-                    {p.liked ? "♥ " : ""}
-                    {p.name}
-                  </span>
-                  <small>
-                    {p.local_count}/{p.count} on this PC
-                  </small>
-                </button>
-              </li>
+              <button key={p.name} className="tile" onClick={() => openPlaylist(p)}>
+                <PlaylistArt p={p} size={0} />
+                <div className="tile-title" title={p.name}>
+                  {p.name}
+                </div>
+                <div className="tile-meta">
+                  {p.local_count}/{p.count} on this PC
+                </div>
+              </button>
             ))}
-          </ul>
+          </div>
         )}
       </section>
     </div>
   );
+}
+
+/** A playlist's mosaic, or a heart for Liked Songs. size 0 = fill tile. */
+function PlaylistArt({ p, size }: { p: PlaylistSummary; size: number }) {
+  const [failed, setFailed] = useState(false);
+  const style = size ? { width: size, height: size, fontSize: Math.round(size * 0.55) } : undefined;
+  const cls = size ? "pl-art" : "tile-art";
+  if (p.liked) {
+    return (
+      <div className={`${cls} liked`} style={style}>
+        ♥
+      </div>
+    );
+  }
+  if (!p.cover || failed) {
+    return (
+      <div className={cls} style={style}>
+        ♫
+      </div>
+    );
+  }
+  return <img className={cls} style={style} src={playlistCoverUrl(p.cover)} alt="" loading="lazy" onError={() => setFailed(true)} />;
 }
 
 function AlbumArt({ trackId }: { trackId: string }) {
@@ -230,7 +272,113 @@ function AlbumArt({ trackId }: { trackId: string }) {
   return <img className="tile-art" src={coverUrl(trackId, 300)} alt="" loading="lazy" onError={() => setFailed(true)} />;
 }
 
-function TrackTable({ tracks, online, showAlbum, onPlay }: { tracks: Track[]; online: boolean; showAlbum: boolean; onPlay: (index: number) => void }) {
+function AlbumGrid({ albums, onOpen }: { albums: Album[]; onOpen: (a: Album) => void }) {
+  return (
+    <div className="grid">
+      {albums.map((a) => (
+        <button key={a.album_id} className="tile" onClick={() => onOpen(a)}>
+          <AlbumArt trackId={a.cover_track_id} />
+          <div className="tile-title" title={a.album}>
+            {a.album}
+          </div>
+          <div className="tile-sub" title={a.album_artist}>
+            {a.album_artist}
+          </div>
+          <div className="tile-meta">
+            {a.local_count}/{a.count} on this PC
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function Home({
+  summary,
+  online,
+  go,
+  openAlbum,
+}: {
+  summary: Summary | null;
+  online: boolean;
+  go: (s: Section) => void;
+  openAlbum: (a: Album) => void;
+}) {
+  const [recentAlbums, setRecentAlbums] = useState<Album[]>([]);
+  const [recentSongs, setRecentSongs] = useState<Track[]>([]);
+  const [recentPlays, setRecentPlays] = useState<Track[]>([]);
+  const { player, current } = usePlayer();
+
+  useEffect(() => {
+    homeApi.recentAlbums(12).then(setRecentAlbums).catch(() => {});
+    api.listTracks({ limit: 15 }).then(setRecentSongs).catch(() => {});
+    homeApi.recentPlays(15).then(setRecentPlays).catch(() => {});
+  }, [summary?.tracks, current?.id]);
+
+  useEffect(
+    () =>
+      likeBus.on((id, liked) => {
+        const fix = (ts: Track[]) => ts.map((t) => (t.id === id ? { ...t, liked } : t));
+        setRecentSongs(fix);
+        setRecentPlays(fix);
+      }),
+    [],
+  );
+
+  const ctx = (name: string) => ({ section: "home", scope: {}, search: name, localOnly: false });
+
+  return (
+    <div className="home">
+      <div className="home-entries">
+        <button onClick={() => go("tracks")}>
+          <b>Songs</b>
+          <small>{summary?.tracks ?? 0}</small>
+        </button>
+        <button onClick={() => go("albums")}>
+          <b>Albums</b>
+          <small>{summary?.albums ?? 0}</small>
+        </button>
+        <button onClick={() => go("artists")}>
+          <b>Artists</b>
+          <small>{summary?.artists ?? 0}</small>
+        </button>
+        <button onClick={() => go("playlists")}>
+          <b>Playlists</b>
+          <small>{summary?.playlists ?? 0}</small>
+        </button>
+      </div>
+
+      <h3>Recently added</h3>
+      <div className="strip">
+        <AlbumGrid albums={recentAlbums} onOpen={openAlbum} />
+      </div>
+
+      <h3>Recently added songs</h3>
+      <TrackTable tracks={recentSongs} online={online} showAlbum onPlay={(i) => player.playList(recentSongs, i, ctx("recent-songs"))} compact />
+
+      {recentPlays.length > 0 && (
+        <>
+          <h3>Recently played</h3>
+          <TrackTable tracks={recentPlays} online={online} showAlbum onPlay={(i) => player.playList(recentPlays, i, ctx("recent-plays"))} compact />
+        </>
+      )}
+    </div>
+  );
+}
+
+function TrackTable({
+  tracks,
+  online,
+  showAlbum,
+  onPlay,
+  compact,
+}: {
+  tracks: Track[];
+  online: boolean;
+  showAlbum: boolean;
+  onPlay: (index: number) => void;
+  compact?: boolean;
+}) {
   const { player, current, playing } = usePlayer();
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -246,18 +394,20 @@ function TrackTable({ tracks, online, showAlbum, onPlay }: { tracks: Track[]; on
 
   if (tracks.length === 0) return <div className="empty">Nothing here.</div>;
   return (
-    <table className="tracks">
-      <thead>
-        <tr>
-          <th className="c-play"></th>
-          <th className="c-local" title="Downloaded to this PC"></th>
-          <th>Title</th>
-          <th>Artist</th>
-          {showAlbum && <th>Album</th>}
-          <th className="c-like"></th>
-          <th className="c-dur">Time</th>
-        </tr>
-      </thead>
+    <table className={`tracks ${compact ? "compact" : ""}`}>
+      {!compact && (
+        <thead>
+          <tr>
+            <th className="c-play"></th>
+            <th className="c-local" title="Downloaded to this PC"></th>
+            <th>Title</th>
+            <th>Artist</th>
+            {showAlbum && <th>Album</th>}
+            <th className="c-like"></th>
+            <th className="c-dur">Time</th>
+          </tr>
+        </thead>
+      )}
       <tbody>
         {tracks.map((t, i) => {
           const isCurrent = current?.id === t.id;
@@ -266,8 +416,8 @@ function TrackTable({ tracks, online, showAlbum, onPlay }: { tracks: Track[]; on
             <tr
               key={t.id}
               className={`${t.local_path ? "local" : "remote"} ${isCurrent ? "current" : ""} ${selected === t.id ? "selected" : ""} ${playable ? "" : "unplayable"}`}
-              onClick={() => setSelected(t.id)}
               data-track-id={t.id}
+              onClick={() => setSelected(t.id)}
               onDoubleClick={() => playable && onPlay(i)}
               title={playable ? "Double-click to play" : "Not downloaded and the server is offline"}
             >

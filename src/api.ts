@@ -162,3 +162,11 @@ const MEDIA_ORIGIN = "http://media.localhost";
 
 export const localTrackUrl = (id: string) => `${MEDIA_ORIGIN}/track/${id}`;
 export const coverUrl = (id: string, size: 150 | 300 | 600 = 300) => `${MEDIA_ORIGIN}/cover/${id}?size=${size}`;
+
+export const homeApi = {
+  recordPlay: (trackId: string) => invoke<void>("record_play", { trackId }),
+  recentPlays: (limit = 20) => invoke<Track[]>("recent_plays", { limit }),
+  recentAlbums: (limit = 12) => invoke<Album[]>("recent_albums", { limit }),
+};
+
+export const playlistCoverUrl = (cover: string) => `${MEDIA_ORIGIN}/playlist-cover?file=${encodeURIComponent(cover)}`;

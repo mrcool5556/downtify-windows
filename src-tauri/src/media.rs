@@ -35,6 +35,8 @@ pub fn handle(ctx: UriSchemeContext<'_, tauri::Wry>, req: Request<Vec<u8>>, resp
             serve_track(&app, id, range.as_deref())
         } else if let Some(id) = path.strip_prefix("/cover/") {
             serve_cover(&app, id, &query).await
+        } else if path == "/playlist-cover" {
+            serve_playlist_cover(&app, &query).await
         } else {
             Err(StatusCode::NOT_FOUND)
         };
@@ -169,6 +171,63 @@ async fn serve_cover(app: &AppHandle, id: &str, query: &str) -> Result<Response<
         .status(StatusCode::OK)
         .header(header::CONTENT_TYPE, "image/jpeg")
         .header(header::CACHE_CONTROL, "max-age=604800")
+        .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+        .body(bytes)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+fn query_param(query: &str, key: &str) -> Option<String> {
+    query
+        .split('&')
+        .find_map(|kv| kv.strip_prefix(&format!("{key}=")))
+        .map(|v| v.to_string())
+}
+
+fn fnv(s: &str) -> String {
+    let mut h: u64 = 0xcbf29ce484222325;
+    for b in s.bytes() {
+        h ^= b as u64;
+        h = h.wrapping_mul(0x100000001b3);
+    }
+    format!("{h:016x}")
+}
+
+/// `/playlist-cover?file=<path as the server gave it>`: the server's
+/// playlist mosaic, cached on disk under a hash of the path.
+async fn serve_playlist_cover(app: &AppHandle, query: &str) -> Result<Response<Vec<u8>>, StatusCode> {
+    let file = query_param(query, "file").ok_or(StatusCode::NOT_FOUND)?;
+    if file.is_empty() {
+        return Err(StatusCode::NOT_FOUND);
+    }
+    let dir = app
+        .path()
+        .app_cache_dir()
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .join("playlist-covers");
+    let cache = dir.join(format!("{}.jpg", fnv(&file)));
+    let bytes = match std::fs::read(&cache) {
+        Ok(b) if !b.is_empty() => b,
+        _ => {
+            let state = app.state::<AppState>();
+            let client = client_for(&state).map_err(|_| StatusCode::NOT_FOUND)?;
+            let resp = client
+                .get(&format!("/playlist-cover?file={file}"))
+                .send()
+                .await
+                .map_err(|_| StatusCode::BAD_GATEWAY)?;
+            if !resp.status().is_success() {
+                return Err(StatusCode::NOT_FOUND);
+            }
+            let b = resp.bytes().await.map_err(|_| StatusCode::BAD_GATEWAY)?.to_vec();
+            let _ = std::fs::create_dir_all(&dir);
+            let _ = std::fs::write(&cache, &b);
+            b
+        }
+    };
+    Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, "image/jpeg")
+        .header(header::CACHE_CONTROL, "max-age=86400")
         .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
         .body(bytes)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)

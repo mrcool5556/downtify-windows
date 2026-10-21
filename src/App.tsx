@@ -209,7 +209,7 @@ export default function App() {
             }}
           />
         )}
-        {queueOpen && <QueuePanel />}
+        {queueOpen && <QueuePanel online={online} />}
       </main>
 
       <PlayerBar

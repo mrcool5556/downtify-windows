@@ -1,13 +1,19 @@
-import { useEffect, useRef } from "react";
-import { fmtDuration } from "../api";
+import { forwardRef, useCallback, useEffect, useRef } from "react";
+import { fmtDuration, playerApi } from "../api";
 import { usePlayer } from "../player/usePlayer";
+import { likeBus } from "../likeBus";
 
-export function QueuePanel() {
+export function QueuePanel({ online }: { online: boolean }) {
   const { queue, order, cursor, current, player } = usePlayer();
   const currentRef = useRef<HTMLLIElement>(null);
 
+  const jumpToCurrent = useCallback(() => {
+    currentRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, []);
+
+  // Follow the song: when it changes, bring it near the top.
   useEffect(() => {
-    currentRef.current?.scrollIntoView({ block: "center" });
+    currentRef.current?.scrollIntoView({ block: "start" });
   }, [current?.id]);
 
   const upcoming = order.slice(Math.max(cursor, 0));
@@ -20,6 +26,9 @@ export function QueuePanel() {
         <small>
           {queue.length} {queue.length === 1 ? "song" : "songs"}
         </small>
+        <button className="small" onClick={jumpToCurrent} title="Scroll to the playing song" disabled={!current}>
+          Jump to current
+        </button>
         <button className="icon" onClick={() => player.setQueueOpen(false)} title="Close">
           ✕
         </button>
@@ -39,19 +48,46 @@ export function QueuePanel() {
     </aside>
   );
 
-  function Row({ index, isCurrent, dim, ref }: { index: number; isCurrent?: boolean; dim?: boolean; ref?: React.Ref<HTMLLIElement> }) {
-    const t = queue[index];
-    if (!t) return null;
-    return (
-      <li ref={ref} className={`${isCurrent ? "current" : ""} ${dim ? "dim" : ""}`}>
-        <button className="rowbtn" onDoubleClick={() => player.playQueueIndex(index)} title="Double-click to play">
-          <span className="q-main">
-            <span className="q-title">{t.title || t.file}</span>
-            <span className="q-sub">{t.artist}</span>
-          </span>
-          <small>{fmtDuration(t.duration)}</small>
-        </button>
-      </li>
-    );
+  function Row(props: { index: number; isCurrent?: boolean; dim?: boolean; ref?: React.Ref<HTMLLIElement> }) {
+    return <QueueRow {...props} online={online} />;
   }
 }
+
+interface RowProps {
+  index: number;
+  isCurrent?: boolean;
+  dim?: boolean;
+  online: boolean;
+}
+
+const QueueRow = forwardRef<HTMLLIElement, RowProps>(function QueueRow({ index, isCurrent, dim, online }, ref) {
+  const { queue, player } = usePlayer();
+  const t = queue[index];
+  if (!t) return null;
+
+  async function toggleLike(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!online) return;
+    try {
+      const liked = await playerApi.setLike(t.id, !t.liked);
+      likeBus.emit(t.id, liked);
+    } catch {
+      /* keep as is */
+    }
+  }
+
+  return (
+    <li ref={ref} className={`${isCurrent ? "current" : ""} ${dim ? "dim" : ""}`}>
+      <div className="rowbtn q-row" onDoubleClick={() => player.playQueueIndex(index)} title="Double-click to play">
+        <span className="q-main">
+          <span className="q-title">{t.title || t.file}</span>
+          <span className="q-sub">{t.artist}</span>
+        </span>
+        <button className={`icon heart ${t.liked ? "on" : ""}`} disabled={!online} onClick={toggleLike} title={t.liked ? "Unlike" : "Like"}>
+          {t.liked ? "♥" : "♡"}
+        </button>
+        <small>{fmtDuration(t.duration)}</small>
+      </div>
+    </li>
+  );
+});
