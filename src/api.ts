@@ -79,6 +79,13 @@ export interface PlaylistSummary {
   local_count: number;
   cover: string;
   keep_synced: boolean;
+  owner: string;
+  visibility: "private" | "shared" | "public";
+  mine: boolean;
+  followed: boolean;
+  shared_with_me: boolean;
+  is_new: boolean;
+  shared_with: string[];
 }
 
 export interface Summary {
@@ -207,5 +214,17 @@ export const playlistsApi = {
   delete: (name: string) => invoke<PlaylistSummary[]>("delete_playlist", { name }),
 };
 
-/** Playlists you made in the Library can be edited; imported ones and Liked Songs cannot. */
-export const isEditable = (p: PlaylistSummary) => p.manual && !p.liked;
+/** Playlists you made in the Library can be edited; imported ones, Liked Songs and other people's cannot. */
+export const isEditable = (p: PlaylistSummary) => p.manual && p.mine && !p.liked;
+/** Yours to share, rename, detach or delete. */
+export const isMine = (p: PlaylistSummary) => p.mine && !p.liked;
+
+export const sharingApi = {
+  follow: (name: string, on: boolean) => invoke<PlaylistSummary[]>("follow_playlist", { name, on }),
+  seen: (name: string) => invoke<void>("playlist_seen", { name }),
+  usernames: () => invoke<{ enabled: boolean; usernames: string[] }>("usernames"),
+  setVisibility: (name: string, visibility: string, sharedWith: string[]) =>
+    invoke<PlaylistSummary[]>("set_playlist_visibility", { name, visibility, sharedWith }),
+  copy: (name: string, newName?: string) => invoke<PlaylistSummary[]>("copy_playlist", { name, newName: newName ?? null }),
+  detach: (name: string) => invoke<PlaylistSummary[]>("detach_playlist", { name }),
+};

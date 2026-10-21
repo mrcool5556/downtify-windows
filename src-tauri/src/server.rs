@@ -83,6 +83,28 @@ pub struct Playlist {
     pub cover: String,
     #[serde(default)]
     pub track_ids: Vec<String>,
+    // Sharing (Downtify 3.7+); older servers leave these at defaults.
+    #[serde(default)]
+    pub owner: String,
+    #[serde(default = "default_visibility")]
+    pub visibility: String,
+    #[serde(default = "default_true")]
+    pub mine: bool,
+    #[serde(default)]
+    pub followed: bool,
+    #[serde(default)]
+    pub shared_with_me: bool,
+    #[serde(default, rename = "new")]
+    pub is_new: bool,
+    #[serde(default)]
+    pub shared_with: Vec<String>,
+}
+
+fn default_visibility() -> String {
+    "private".into()
+}
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Deserialize)]

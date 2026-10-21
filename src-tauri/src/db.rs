@@ -48,7 +48,14 @@ pub fn open(path: &Path) -> Result<Connection, String> {
             manual INTEGER NOT NULL DEFAULT 0,
             count INTEGER NOT NULL DEFAULT 0,
             cover TEXT NOT NULL DEFAULT '',
-            track_ids TEXT NOT NULL
+            track_ids TEXT NOT NULL,
+            owner TEXT NOT NULL DEFAULT '',
+            visibility TEXT NOT NULL DEFAULT 'private',
+            mine INTEGER NOT NULL DEFAULT 1,
+            followed INTEGER NOT NULL DEFAULT 0,
+            shared_with_me INTEGER NOT NULL DEFAULT 0,
+            is_new INTEGER NOT NULL DEFAULT 0,
+            shared_with TEXT NOT NULL DEFAULT '[]'
         );
         CREATE TABLE IF NOT EXISTS likes (
             track_id TEXT PRIMARY KEY,
@@ -76,6 +83,17 @@ pub fn open(path: &Path) -> Result<Connection, String> {
     .map_err(|e| e.to_string())?;
     // Older databases: add columns introduced later.
     let _ = conn.execute("ALTER TABLE tracks ADD COLUMN orphaned INTEGER NOT NULL DEFAULT 0", []);
+    for col in [
+        "owner TEXT NOT NULL DEFAULT ''",
+        "visibility TEXT NOT NULL DEFAULT 'private'",
+        "mine INTEGER NOT NULL DEFAULT 1",
+        "followed INTEGER NOT NULL DEFAULT 0",
+        "shared_with_me INTEGER NOT NULL DEFAULT 0",
+        "is_new INTEGER NOT NULL DEFAULT 0",
+        "shared_with TEXT NOT NULL DEFAULT '[]'",
+    ] {
+        let _ = conn.execute(&format!("ALTER TABLE playlists ADD COLUMN {col}"), []);
+    }
     Ok(conn)
 }
 
@@ -195,8 +213,9 @@ pub fn replace_playlists(conn: &mut Connection, lists: &[Playlist]) -> Result<()
     {
         let mut ins = tx
             .prepare(
-                "INSERT INTO playlists(name, liked, manual, count, cover, track_ids)
-                 VALUES(?1, ?2, ?3, ?4, ?5, ?6)",
+                "INSERT INTO playlists(name, liked, manual, count, cover, track_ids,
+                                       owner, visibility, mine, followed, shared_with_me, is_new, shared_with)
+                 VALUES(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
             )
             .map_err(|e| e.to_string())?;
         for p in lists {
@@ -207,6 +226,13 @@ pub fn replace_playlists(conn: &mut Connection, lists: &[Playlist]) -> Result<()
                 p.count,
                 p.cover,
                 serde_json::to_string(&p.track_ids).unwrap_or_else(|_| "[]".into()),
+                p.owner,
+                p.visibility,
+                p.mine as i64,
+                p.followed as i64,
+                p.shared_with_me as i64,
+                p.is_new as i64,
+                serde_json::to_string(&p.shared_with).unwrap_or_else(|_| "[]".into()),
             ])
             .map_err(|e| e.to_string())?;
         }
@@ -611,11 +637,22 @@ pub struct PlaylistSummary {
     pub local_count: i64,
     pub cover: String,
     pub keep_synced: bool,
+    pub owner: String,
+    pub visibility: String,
+    pub mine: bool,
+    pub followed: bool,
+    pub shared_with_me: bool,
+    pub is_new: bool,
+    pub shared_with: Vec<String>,
 }
 
 pub fn list_playlists(conn: &Connection) -> Result<Vec<PlaylistSummary>, String> {
     let mut stmt = conn
-        .prepare("SELECT name, liked, manual, count, cover, track_ids FROM playlists ORDER BY liked DESC, name COLLATE NOCASE")
+        .prepare(
+            "SELECT name, liked, manual, count, cover, track_ids,
+                    owner, visibility, mine, followed, shared_with_me, is_new, shared_with
+             FROM playlists ORDER BY mine DESC, liked DESC, name COLLATE NOCASE",
+        )
         .map_err(|e| e.to_string())?;
     let mut local = conn
         .prepare("SELECT 1 FROM local_files WHERE track_id = ?1")
@@ -630,12 +667,23 @@ pub fn list_playlists(conn: &Connection) -> Result<Vec<PlaylistSummary>, String>
                 r.get::<_, i64>(3)?,
                 r.get::<_, String>(4)?,
                 r.get::<_, String>(5)?,
+                (
+                    r.get::<_, String>(6)?,
+                    r.get::<_, String>(7)?,
+                    r.get::<_, bool>(8)?,
+                    r.get::<_, bool>(9)?,
+                    r.get::<_, bool>(10)?,
+                    r.get::<_, bool>(11)?,
+                    r.get::<_, String>(12)?,
+                ),
             ))
         })
         .map_err(|e| e.to_string())?;
     let mut out = Vec::new();
     for row in rows {
-        let (name, liked, manual, count, cover, ids_txt) = row.map_err(|e| e.to_string())?;
+        let (name, liked, manual, count, cover, ids_txt, (owner, visibility, mine, followed, shared_with_me, is_new, shared_txt)) =
+            row.map_err(|e| e.to_string())?;
+        let shared_with: Vec<String> = serde_json::from_str(&shared_txt).unwrap_or_default();
         let ids: Vec<String> = serde_json::from_str(&ids_txt).unwrap_or_default();
         let mut local_count = 0;
         for id in &ids {
@@ -644,7 +692,22 @@ pub fn list_playlists(conn: &Connection) -> Result<Vec<PlaylistSummary>, String>
             }
         }
         let keep_synced = kept.iter().any(|k| k == &name);
-        out.push(PlaylistSummary { name, liked, manual, count, cover, local_count, keep_synced });
+        out.push(PlaylistSummary {
+            name,
+            liked,
+            manual,
+            count,
+            cover,
+            local_count,
+            keep_synced,
+            owner,
+            visibility,
+            mine,
+            followed,
+            shared_with_me,
+            is_new,
+            shared_with,
+        });
     }
     Ok(out)
 }

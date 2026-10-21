@@ -1459,3 +1459,71 @@ h2.has-menu {
 .ctx-icon {
   margin-left: 8px;
 }
+
+
+/* ── Sharing ──────────────────────────────────────────────────────── */
+.pl-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.pl-section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: transparent;
+  border-color: transparent;
+  color: var(--fg-2);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 10px 8px 4px;
+  cursor: default;
+}
+.pl-section-title.foldable {
+  cursor: pointer;
+}
+.pl-section-title:disabled {
+  opacity: 1;
+}
+.pl-owner {
+  color: var(--fg-2);
+  font-size: 11px;
+}
+.new-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+.head-owner {
+  color: var(--fg-2);
+  white-space: nowrap;
+}
+.playlist-sections h3 {
+  font-size: 14px;
+  margin: 18px 0 10px;
+}
+.playlist-sections h3 small {
+  color: var(--fg-2);
+  font-weight: 400;
+}
+.confirm-box.share {
+  background: var(--bg-2);
+  border-color: var(--border);
+}
+.share-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0;
+}
+.share-people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  padding: 6px 0 2px 24px;
+}

@@ -860,3 +860,127 @@ pub async fn delete_playlist(state: State<'_, AppState>, name: String) -> Result
     }
     pull_playlists(&state, &client).await
 }
+
+// ── Playlist sharing (Downtify 3.7+) ────────────────────────────────────
+
+fn url_encode(s: &str) -> String {
+    s.bytes()
+        .map(|b| match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => (b as char).to_string(),
+            _ => format!("%{:02X}", b),
+        })
+        .collect()
+}
+
+/// Follow or unfollow a public playlist. Works with the device token.
+#[tauri::command]
+pub async fn follow_playlist(state: State<'_, AppState>, name: String, on: bool) -> Result<Vec<db::PlaylistSummary>, String> {
+    let client = client_for(&state)?;
+    if on {
+        client
+            .send_json(reqwest::Method::POST, "/api/v1/playlists/follow", &serde_json::json!({ "name": name }))
+            .await
+    } else {
+        client
+            .send_json(
+                reqwest::Method::DELETE,
+                &format!("/api/v1/playlists/follow?name={}", url_encode(&name)),
+                &serde_json::json!({ "name": name }),
+            )
+            .await
+    }
+    .map_err(String::from)?;
+    pull_playlists(&state, &client).await
+}
+
+/// Clear the "new" marker on a playlist shared with this user.
+#[tauri::command]
+pub async fn playlist_seen(state: State<'_, AppState>, name: String) -> Result<(), String> {
+    let client = client_for(&state)?;
+    let _ = client
+        .send_json(reqwest::Method::POST, "/api/v1/playlists/seen", &serde_json::json!({ "name": name }))
+        .await;
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    conn.execute("UPDATE playlists SET is_new = 0 WHERE name = ?1", [name])
+        .map(|_| ())
+        .map_err(|e| e.to_string())
+}
+
+#[derive(Serialize)]
+pub struct Usernames {
+    pub enabled: bool,
+    pub usernames: Vec<String>,
+}
+
+/// Who a playlist can be shared with (names only), and whether sharing is on.
+#[tauri::command]
+pub async fn usernames(state: State<'_, AppState>) -> Result<Usernames, String> {
+    let client = client_for(&state)?;
+    let resp = client
+        .get("/api/v1/usernames")
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    if !resp.status().is_success() {
+        return Err(format!("Server answered {}", resp.status().as_u16()));
+    }
+    let v: Value = resp.json().await.map_err(|e| e.to_string())?;
+    Ok(Usernames {
+        enabled: v.get("enabled").and_then(|b| b.as_bool()).unwrap_or(false),
+        usernames: v
+            .get("usernames")
+            .and_then(|a| a.as_array())
+            .map(|a| a.iter().filter_map(|x| x.as_str().map(|s| s.to_string())).collect())
+            .unwrap_or_default(),
+    })
+}
+
+/// Share a playlist you own: private | shared (with `shared_with`) | public.
+#[tauri::command]
+pub async fn set_playlist_visibility(
+    state: State<'_, AppState>,
+    name: String,
+    visibility: String,
+    shared_with: Vec<String>,
+) -> Result<Vec<db::PlaylistSummary>, String> {
+    let session = web_session()?;
+    let client = client_for(&state)?;
+    client
+        .web_json(
+            &session,
+            reqwest::Method::PUT,
+            "/api/library/playlists/visibility",
+            Some(&serde_json::json!({ "name": name, "visibility": visibility, "shared_with": shared_with })),
+        )
+        .await
+        .map_err(web_err)?;
+    pull_playlists(&state, &client).await
+}
+
+/// Save a private, editable copy of any playlist you can open.
+#[tauri::command]
+pub async fn copy_playlist(state: State<'_, AppState>, name: String, new_name: Option<String>) -> Result<Vec<db::PlaylistSummary>, String> {
+    let session = web_session()?;
+    let client = client_for(&state)?;
+    let mut body = serde_json::json!({ "name": name });
+    if let Some(n) = new_name.filter(|n| !n.trim().is_empty()) {
+        body["new_name"] = Value::String(n.trim().to_string());
+    }
+    client
+        .web_json(&session, reqwest::Method::POST, "/api/library/playlists/copy", Some(&body))
+        .await
+        .map_err(web_err)?;
+    pull_playlists(&state, &client).await
+}
+
+/// Turn an imported playlist into an editable Library one.
+#[tauri::command]
+pub async fn detach_playlist(state: State<'_, AppState>, name: String) -> Result<Vec<db::PlaylistSummary>, String> {
+    let session = web_session()?;
+    let client = client_for(&state)?;
+    client
+        .web_json(&session, reqwest::Method::POST, "/api/library/playlists/detach", Some(&serde_json::json!({ "name": name })))
+        .await
+        .map_err(web_err)?;
+    pull_playlists(&state, &client).await
+}

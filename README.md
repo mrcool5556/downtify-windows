@@ -12,6 +12,7 @@ Built with Tauri 2, React and Rust. Early and under active development; expect r
 - **Downloads** songs or whole playlists to your music folder (default `Music\Downtify`, changeable), mirroring the server's folder layout as ordinary tagged files other players can use. Three at a time, resumable. "Sync to this PC" on a playlist downloads it and pulls new additions after every sync.
 - **Works offline**: with the server unreachable the app shows your local library and plays downloaded songs. Songs deleted on the server stay on your PC, marked, until you remove them.
 - **Edits playlists** after an optional one-time sign-in: create, rename, add and remove songs, drag and drop between playlists, right-click menus everywhere, multi-select.
+- **Shares playlists** (Downtify 3.7+): make a playlist private, shared with named people, or public; see "Shared with me" and "Public playlists" in the sidebar; follow public ones, save a copy of any you can open, and detach an imported playlist to make it editable.
 - **Home** page with recently added albums and songs, recently played, and your playlists front and centre.
 
 Plays are reported to the server the way the web player does (queued while offline), and the server's Activity page sees what is playing.
@@ -52,10 +53,11 @@ Settings live in `%APPDATA%\dev.george.downtify\settings.json`, the library inde
 | Player, media keys, queue | done |
 | Downloads, keep-synced playlists, offline | done |
 | Playlist editing, context menus, drag and drop | done |
+| Playlist sharing, follow, save a copy, detach (server 3.7+) | done |
 | Tray icon, close to tray, start with Windows | planned |
 | Lyrics, gapless, equaliser | not planned yet |
 
-Server-side limits worth knowing: imported playlists (from a Spotify or YouTube Music link) can't be edited on Downtify, and playlists can't be shared with other users. See [IDEAS.md](IDEAS.md).
+Sharing and detaching need Downtify 3.7.0 or newer on the server (added in response to [henriquesebastiao/downtify#465](https://github.com/henriquesebastiao/downtify/issues/465)). Older servers still work for everything else.
 
 ## Licence
 

@@ -106,6 +106,12 @@ pub fn run() {
             commands::rename_playlist,
             commands::delete_playlist,
             commands::refresh_playlists,
+            commands::follow_playlist,
+            commands::playlist_seen,
+            commands::usernames,
+            commands::set_playlist_visibility,
+            commands::copy_playlist,
+            commands::detach_playlist,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Downtify");

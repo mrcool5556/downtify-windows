@@ -10,9 +10,11 @@ import {
   fmtDuration,
   homeApi,
   isEditable,
+  isMine,
   playerApi,
   playlistCoverUrl,
   playlistsApi,
+  sharingApi,
 } from "../api";
 import { usePlayer } from "../player/usePlayer";
 import { player as playerSingleton } from "../player/store";
@@ -72,6 +74,9 @@ export function Library({ online, summary, version }: { online: boolean; summary
   const [newPlaylist, setNewPlaylist] = useState<{ open: boolean; name: string; thenAdd?: string[] } | null>(null);
   const [renaming, setRenaming] = useState<{ name: string; value: string } | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [detaching, setDetaching] = useState<string | null>(null);
+  const [sharing, setSharing] = useState<PlaylistSummary | null>(null);
+  const [publicOpen, setPublicOpen] = useState(false);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const { player, revealNonce, context, current } = usePlayer();
   const [revealPending, setRevealPending] = useState(false);
@@ -208,6 +213,17 @@ export function Library({ online, summary, version }: { online: boolean; summary
     setSection("playlists");
     setScope({ playlist: p });
     setSearch("");
+    if (p.is_new) sharingApi.seen(p.name).then(() => reloadPlaylists()).catch(() => {});
+  }
+
+  async function runPlaylistOp(label: string, op: () => Promise<PlaylistSummary[]>) {
+    try {
+      const list = await op();
+      reloadPlaylists(list);
+      setNotice(label);
+    } catch (e) {
+      setNotice(String(e));
+    }
   }
 
   // ── Playlist editing ────────────────────────────────────────────────
@@ -329,8 +345,21 @@ export function Library({ online, summary, version }: { online: boolean; summary
 
   function playlistMenu(p: PlaylistSummary): MenuItem[] {
     const editable = isEditable(p);
+    const mine = isMine(p);
     const pctx = { section: "playlists", scope: { playlist: p }, search: "", localOnly: false };
     const load = () => api.listTracks({ playlist: p.name, limit: 10000 });
+    const shareLabel = p.visibility === "public" ? "Share… (public)" : p.visibility === "shared" ? `Share… (${p.shared_with.length})` : "Share…";
+    const ownerBits: MenuItem[] = mine
+      ? [
+          { label: shareLabel, disabled: !online, onClick: () => setSharing(p) },
+          ...(!p.manual ? [{ label: "Detach from source…", disabled: !online, hint: "makes it editable", onClick: () => setDetaching(p.name) } as MenuItem] : []),
+        ]
+      : [
+          ...(p.visibility === "public" && !p.shared_with_me
+            ? [{ label: p.followed ? "Unfollow" : "Follow", disabled: !online, onClick: () => runPlaylistOp(p.followed ? `Unfollowed "${p.name}"` : `Following "${p.name}"`, () => sharingApi.follow(p.name, !p.followed)) } as MenuItem]
+            : []),
+          { label: "Save a copy", disabled: !online, hint: "editable, yours", onClick: () => runPlaylistOp(`Saved a copy of "${p.name}"`, () => sharingApi.copy(p.name)) },
+        ];
     return [
       { label: "Play", onClick: () => load().then((ts) => player.playList(ts, 0, pctx)) },
       { label: "Shuffle", onClick: () => load().then((ts) => player.shufflePlay(ts, pctx)) },
@@ -354,8 +383,14 @@ export function Library({ online, summary, version }: { online: boolean; summary
         },
       },
       { separator: true },
-      { label: "Rename…", disabled: !editable || !online, hint: editable ? undefined : "imported", onClick: () => setRenaming({ name: p.name, value: p.name }) },
-      { label: "Delete playlist…", danger: true, disabled: !editable || !online, hint: editable ? undefined : "imported", onClick: () => setDeleting(p.name) },
+      ...ownerBits,
+      ...(mine
+        ? [
+            { separator: true } as MenuItem,
+            { label: "Rename…", disabled: !editable || !online, hint: editable ? undefined : "imported", onClick: () => setRenaming({ name: p.name, value: p.name }) } as MenuItem,
+            { label: "Delete playlist…", danger: true, disabled: !editable || !online, hint: editable ? undefined : "imported", onClick: () => setDeleting(p.name) } as MenuItem,
+          ]
+        : []),
     ];
   }
 
@@ -430,7 +465,17 @@ export function Library({ online, summary, version }: { online: boolean; summary
           </form>
         )}
         <div className="sidebar-playlists">
-          {playlists.map((p) => (
+          {sidebarSections(playlists, publicOpen).map((sec) => (
+            <div key={sec.key} className="pl-section">
+              {sec.title && (
+                <button className={`pl-section-title ${sec.foldable ? "foldable" : ""}`} onClick={() => sec.foldable && setPublicOpen((o) => !o)} disabled={!sec.foldable}>
+                  <span>{sec.title}</span>
+                  <small>
+                    {sec.foldable ? (publicOpen ? "▾" : "▸") : ""} {sec.count}
+                  </small>
+                </button>
+              )}
+              {sec.items.map((p) => (
             <button
               key={p.name}
               className={`pl ${scope.playlist?.name === p.name ? "active" : ""} ${dropTarget === p.name ? "drop" : ""} ${isEditable(p) ? "" : "locked"}`}
@@ -448,6 +493,7 @@ export function Library({ online, summary, version }: { online: boolean; summary
               title={`${playlistLabel(p)} · ${p.local_count}/${p.count} on this PC${isEditable(p) ? "" : " · imported, not editable"}`}
             >
               <PlaylistArt p={p} size={28} />
+              {p.is_new && <span className="new-dot" title="New" />}
               {renaming?.name === p.name ? (
                 <input
                   className="rename"
@@ -462,9 +508,14 @@ export function Library({ online, summary, version }: { online: boolean; summary
                   }}
                 />
               ) : (
-                <span className="pl-name">{playlistLabel(p)}</span>
+                <span className="pl-name">
+                  {playlistLabel(p)}
+                  {!p.mine && <small className="pl-owner"> · {p.owner}</small>}
+                </span>
               )}
             </button>
+              ))}
+            </div>
           ))}
           {playlists.length === 0 && <div className="sidebar-empty">No playlists yet</div>}
         </div>
@@ -504,6 +555,16 @@ export function Library({ online, summary, version }: { online: boolean; summary
           >
             {title}
           </h2>
+          {headerPlaylist && !headerPlaylist.mine && (
+            <small className="head-owner" title={headerPlaylist.shared_with_me ? "Shared with you" : "Public playlist"}>
+              by {headerPlaylist.owner} · view only
+            </small>
+          )}
+          {headerPlaylist && headerPlaylist.mine && headerPlaylist.visibility !== "private" && (
+            <small className="head-owner" title={headerPlaylist.visibility === "public" ? "Everyone on the server can see this" : `Shared with ${headerPlaylist.shared_with.join(", ")}`}>
+              {headerPlaylist.visibility === "public" ? "public" : `shared with ${headerPlaylist.shared_with.length}`}
+            </small>
+          )}
           {headerPlaylist && (
             <small className="head-count" title={headerPlaylist.keep_synced ? "Synced to this PC: every song, and new ones as they are added (right-click to change)" : "Right-click for Sync to this PC, Remove from this PC, Rename…"}>
               {headerPlaylist.local_count} of {headerPlaylist.count} on this PC <DownloadGlyph on={headerPlaylist.keep_synced} />
@@ -531,6 +592,33 @@ export function Library({ online, summary, version }: { online: boolean; summary
               </button>
             </div>
           </div>
+        )}
+
+        {detaching && (
+          <div className="confirm-box">
+            <b>Detach "{detaching}" from its source?</b>
+            <p>It becomes an ordinary playlist you can edit. The link to the Spotify / YouTube Music playlist and its monitor entry are dropped, so the server stops updating it from there. Songs stay.</p>
+            <div className="row">
+              <button className="primary" onClick={() => runPlaylistOp(`Detached "${detaching}"`, () => sharingApi.detach(detaching)).then(() => setDetaching(null))}>
+                Detach
+              </button>
+              <button className="ghost" onClick={() => setDetaching(null)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+        {sharing && (
+          <SharePanel
+            p={playlists.find((x) => x.name === sharing.name) ?? sharing}
+            onClose={() => setSharing(null)}
+            onSaved={(list, label) => {
+              reloadPlaylists(list);
+              setNotice(label);
+              setSharing(null);
+            }}
+            onError={setNotice}
+          />
         )}
 
         {empty ? (
@@ -606,17 +694,30 @@ export function Library({ online, summary, version }: { online: boolean; summary
             ))}
           </ul>
         ) : (
-          <div className="grid">
-            {playlists.map((p) => (
-              <button key={p.name} className="tile" onClick={() => openPlaylist(p)} onContextMenu={(e) => ctx.open(e, playlistMenu(p))}>
-                <PlaylistArt p={p} size={0} />
-                <div className="tile-title" title={playlistLabel(p)}>
-                  {playlistLabel(p)}
+          <div className="playlist-sections">
+            {sidebarSections(playlists, true).map((sec) => (
+              <div key={sec.key}>
+                {sec.title && (
+                  <h3>
+                    {sec.title} <small>{sec.count}</small>
+                  </h3>
+                )}
+                <div className="grid">
+                  {sec.items.map((p) => (
+                    <button key={p.name} className="tile" onClick={() => openPlaylist(p)} onContextMenu={(e) => ctx.open(e, playlistMenu(p))}>
+                      <PlaylistArt p={p} size={0} />
+                      <div className="tile-title" title={playlistLabel(p)}>
+                        {p.is_new && <span className="new-dot" />}
+                        {playlistLabel(p)}
+                      </div>
+                      <div className="tile-sub">{p.mine ? (p.visibility === "private" ? "" : p.visibility) : `by ${p.owner}${p.followed ? " · following" : ""}`}</div>
+                      <div className="tile-meta">
+                        {p.local_count}/{p.count} on this PC
+                      </div>
+                    </button>
+                  ))}
                 </div>
-                <div className="tile-meta">
-                  {p.local_count}/{p.count} on this PC
-                </div>
-              </button>
+              </div>
             ))}
           </div>
         )}
@@ -709,6 +810,111 @@ function DownloadGlyph({ on }: { on: boolean }) {
       <path d="M8 4v6M5.5 7.8 8 10.3l2.5-2.5" fill="none" stroke={on ? "#06230f" : "currentColor"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M5 12h6" stroke={on ? "#06230f" : "currentColor"} strokeWidth="1.3" strokeLinecap="round" />
     </svg>
+  );
+}
+
+interface PlSection {
+  key: string;
+  title: string;
+  items: PlaylistSummary[];
+  count: number;
+  foldable: boolean;
+}
+
+/** Your own, shared with you (plus followed), and the rest of the public ones. */
+function sidebarSections(all: PlaylistSummary[], publicOpen: boolean): PlSection[] {
+  const mine = all.filter((p) => p.mine);
+  const shared = all.filter((p) => !p.mine && (p.shared_with_me || p.followed));
+  const pub = all.filter((p) => !p.mine && !p.shared_with_me && !p.followed && p.visibility === "public");
+  const out: PlSection[] = [{ key: "mine", title: "", items: mine, count: mine.length, foldable: false }];
+  if (shared.length) out.push({ key: "shared", title: "Shared with me", items: shared, count: shared.length, foldable: false });
+  if (pub.length) out.push({ key: "public", title: "Public playlists", items: publicOpen ? pub : [], count: pub.length, foldable: true });
+  return out;
+}
+
+function SharePanel({
+  p,
+  onClose,
+  onSaved,
+  onError,
+}: {
+  p: PlaylistSummary;
+  onClose: () => void;
+  onSaved: (list: PlaylistSummary[], label: string) => void;
+  onError: (s: string) => void;
+}) {
+  const [visibility, setVisibility] = useState<"private" | "shared" | "public">(p.visibility);
+  const [chosen, setChosen] = useState<Set<string>>(new Set(p.shared_with));
+  const [names, setNames] = useState<string[]>([]);
+  const [enabled, setEnabled] = useState(true);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    sharingApi
+      .usernames()
+      .then((u) => {
+        setNames(u.usernames);
+        setEnabled(u.enabled);
+      })
+      .catch((e) => onError(String(e)));
+  }, [onError]);
+  async function save() {
+    setBusy(true);
+    try {
+      const list = await sharingApi.setVisibility(p.name, visibility, visibility === "shared" ? [...chosen] : []);
+      onSaved(list, visibility === "private" ? `"${p.name}" is private again` : visibility === "public" ? `"${p.name}" is now public` : `"${p.name}" shared with ${chosen.size}`);
+    } catch (e) {
+      onError(String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="confirm-box share">
+      <b>Share "{p.name}"</b>
+      {!enabled && <p>Sharing is turned off by the server admin.</p>}
+      <div className="share-options">
+        <label className="check">
+          <input type="radio" name="vis" checked={visibility === "private"} onChange={() => setVisibility("private")} /> Private, only me
+        </label>
+        <label className="check">
+          <input type="radio" name="vis" checked={visibility === "shared"} disabled={!enabled} onChange={() => setVisibility("shared")} /> Specific people
+        </label>
+        {visibility === "shared" && (
+          <div className="share-people">
+            {names.length === 0 && <small>No other accounts on this server.</small>}
+            {names.map((n) => (
+              <label key={n} className="check">
+                <input
+                  type="checkbox"
+                  checked={chosen.has(n)}
+                  onChange={(e) =>
+                    setChosen((s) => {
+                      const c = new Set(s);
+                      if (e.target.checked) c.add(n);
+                      else c.delete(n);
+                      return c;
+                    })
+                  }
+                />
+                {n}
+              </label>
+            ))}
+          </div>
+        )}
+        <label className="check">
+          <input type="radio" name="vis" checked={visibility === "public"} disabled={!enabled} onChange={() => setVisibility("public")} /> Public, everyone on the server
+        </label>
+      </div>
+      <p>Others can play, follow and save a copy. Nobody but you can edit it.</p>
+      <div className="row">
+        <button className="primary" onClick={save} disabled={busy || (visibility === "shared" && chosen.size === 0)}>
+          Save
+        </button>
+        <button className="ghost" onClick={onClose}>
+          Cancel
+        </button>
+      </div>
+    </div>
   );
 }
 
