@@ -60,3 +60,16 @@ export const OpacityBackgroundIcon = () => (
     <path d="M5 8h6" strokeWidth={2.2} />
   </svg>
 );
+
+export const PlayOutlineIcon = () => (
+  <svg {...base} width={18} height={18} aria-hidden>
+    <path d="M5.5 3.5v9l7.5-4.5z" strokeWidth={1.4} />
+  </svg>
+);
+
+export const PauseOutlineIcon = () => (
+  <svg {...base} width={18} height={18} aria-hidden>
+    <rect x="4" y="3.5" width="3" height="9" rx="0.8" strokeWidth={1.4} />
+    <rect x="9" y="3.5" width="3" height="9" rx="0.8" strokeWidth={1.4} />
+  </svg>
+);

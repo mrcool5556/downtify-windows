@@ -2367,3 +2367,47 @@ button.icon svg {
 .mini.faded .mini-opacity-ctl {
   filter: drop-shadow(0 0 2px #000);
 }
+
+/* Mini: line-drawn play button; thinner halos */
+.mini-play.big {
+  background: transparent;
+  color: var(--fg);
+  border: 1.5px solid var(--fg);
+  box-shadow: none;
+}
+.mini-play.big:hover:not(:disabled) {
+  background: rgba(127, 127, 127, 0.15);
+  color: var(--fg);
+}
+.mini-play.big svg {
+  stroke-width: 1.4;
+}
+.mini.faded .mini-play.big {
+  background: transparent;
+  color: #fff;
+  border-color: #fff;
+  box-shadow: none;
+  filter: drop-shadow(0 0 1.5px #000) drop-shadow(0 0 2px rgba(0, 0, 0, 0.8));
+}
+.mini.faded .mini-play.big:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.35);
+}
+.mini.faded .mini-title,
+.mini.faded .mini-sub,
+.mini.faded .q-title,
+.mini.faded .q-sub,
+.mini.faded .mini-next-item small,
+.mini.faded .mini-drawer-head,
+.mini.faded .mini-queue-empty {
+  text-shadow:
+    0 0 1.5px #000,
+    0 0 3px rgba(0, 0, 0, 0.85);
+}
+.mini.faded button.icon,
+.mini.faded .winbtn {
+  filter: drop-shadow(0 0 1.5px #000) drop-shadow(0 0 2px rgba(0, 0, 0, 0.7));
+}
+.mini.faded .mini-volume,
+.mini.faded .mini-opacity-ctl {
+  filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, 0.8));
+}

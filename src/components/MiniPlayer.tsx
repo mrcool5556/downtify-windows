@@ -7,7 +7,7 @@ import { DownloadButton } from "./DownloadButton";
 import { WindowControls } from "./WindowControls";
 import { useContextMenu } from "./ContextMenu";
 import { trackMenu } from "../views/Library";
-import { OpacityBackgroundIcon, OpacityWindowIcon, PinIcon, RepeatIcon, RepeatOneIcon, ShuffleIcon, VolumeIcon } from "./Icons";
+import { OpacityBackgroundIcon, OpacityWindowIcon, PauseOutlineIcon, PinIcon, PlayOutlineIcon, RepeatIcon, RepeatOneIcon, ShuffleIcon, VolumeIcon } from "./Icons";
 
 interface Props {
   settings: Settings;
@@ -84,7 +84,7 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
               ⏮
             </button>
             <button className="icon big mini-play" onClick={() => player.toggle()} disabled={!current && p.queue.length === 0} title="Play / pause">
-              {p.playing ? "⏸" : "▶"}
+              {p.playing ? <PauseOutlineIcon /> : <PlayOutlineIcon />}
             </button>
             <button className="icon" onClick={() => player.next()} disabled={!current} title="Next">
               ⏭
