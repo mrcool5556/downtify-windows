@@ -1030,3 +1030,29 @@ button.icon.back {
 .tile.unplayable {
   opacity: 0.45;
 }
+
+/* ── Sticky pane header with the table header beneath it ───────────── */
+.pane {
+  --head-h: 50px;
+}
+.pane-head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--bg);
+  height: var(--head-h);
+  box-sizing: border-box;
+  padding: 8px 0;
+  margin-bottom: 4px;
+}
+.pane-head h2 {
+  font-size: 17px;
+}
+.head-art {
+  width: 30px;
+  height: 30px;
+}
+table.tracks th {
+  top: var(--head-h);
+  z-index: 2;
+}

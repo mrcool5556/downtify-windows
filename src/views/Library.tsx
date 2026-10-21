@@ -169,7 +169,7 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
             </button>
           ) : null}
           {scope.album && scope.album.cover_track_id ? <img className="head-art" src={coverUrl(scope.album.cover_track_id, 150)} alt="" /> : null}
-          {scope.playlist ? <PlaylistArt p={scope.playlist} size={48} /> : null}
+          {scope.playlist ? <PlaylistArt p={scope.playlist} size={30} /> : null}
           <h2>{title}</h2>
           {showingTracks && <DensityPicker small />}
           {showingTracks && (
