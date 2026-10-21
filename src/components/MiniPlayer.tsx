@@ -58,7 +58,7 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
   const env = { online, playlists: [], setNotice: () => {}, reloadPlaylists: () => {}, promptNewPlaylist: () => {}, currentPlaylist: undefined };
 
   return (
-    <div className="mini" onMouseEnter={onEnter} onMouseLeave={onLeave} data-tauri-drag-region style={{ "--mini-alpha": bgAlpha } as React.CSSProperties}>
+    <div className={`mini ${bgAlpha < 1 ? "faded" : ""}`} onMouseEnter={onEnter} onMouseLeave={onLeave} data-tauri-drag-region style={{ "--mini-alpha": bgAlpha } as React.CSSProperties}>
       {ctx.menu}
 
       <div className="mini-main" data-tauri-drag-region>

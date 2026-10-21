@@ -2297,3 +2297,49 @@ button.icon svg {
 .mini-seek {
   flex-shrink: 0;
 }
+
+/* Mini: text halo so titles survive on any background when faded */
+.mini.faded .mini-title,
+.mini.faded .mini-sub,
+.mini.faded .q-title,
+.mini.faded .q-sub,
+.mini.faded .mini-next-item small,
+.mini.faded .mini-drawer-head,
+.mini.faded .mini-queue-empty {
+  text-shadow:
+    0 0 2px #000,
+    0 0 3px #000,
+    0 0 6px rgba(0, 0, 0, 0.9),
+    0 1px 8px rgba(0, 0, 0, 0.8);
+}
+.mini.faded .mini-title,
+.mini.faded .q-title {
+  color: #fff;
+}
+.mini.faded .mini-sub,
+.mini.faded .q-sub,
+.mini.faded .mini-drawer-head {
+  color: #d8dce2;
+}
+.mini.faded button.icon {
+  color: #e8eaed;
+  filter: drop-shadow(0 0 2px #000) drop-shadow(0 0 3px #000);
+}
+.mini.faded button.icon.on,
+.mini.faded button.icon.heart.on {
+  color: var(--accent);
+}
+:root[data-theme="light"] .mini.faded .mini-title,
+:root[data-theme="light"] .mini.faded .q-title {
+  color: #fff;
+}
+.mini-handle-bar {
+  background: var(--accent);
+  width: 44px;
+}
+.mini-handle-arrow {
+  color: var(--accent);
+}
+.mini-handle:hover .mini-handle-bar {
+  background: var(--fg);
+}
