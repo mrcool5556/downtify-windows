@@ -864,3 +864,41 @@ table.tracks.compact td {
 .queue-head .small {
   white-space: nowrap;
 }
+
+/* ── Polish: sticky header gap, row art, last-synced ───────────────── */
+.pane {
+  padding-top: 0;
+}
+.pane-head {
+  padding-top: 12px;
+}
+table.tracks th {
+  top: 0;
+}
+table.tracks .c-art {
+  width: 40px;
+  padding: 3px 4px;
+}
+.row-art {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  object-fit: cover;
+  background: var(--bg-2);
+  display: grid;
+  place-items: center;
+  color: var(--fg-2);
+  font-size: 14px;
+}
+.sync-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0;
+}
+.last-sync {
+  font-size: 11px;
+  color: var(--fg-2);
+  line-height: 1;
+  margin-top: 2px;
+}

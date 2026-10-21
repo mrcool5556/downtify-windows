@@ -116,7 +116,7 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
   const title = scope.album
     ? `${scope.album.album} — ${scope.album.album_artist}`
     : scope.playlist
-      ? scope.playlist.name
+      ? playlistLabel(scope.playlist)
       : scope.artist
         ? scope.artist.name
         : SECTION_TITLE[section];
@@ -137,7 +137,7 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
               title={`${p.name} · ${p.local_count}/${p.count} on this PC`}
             >
               <PlaylistArt p={p} size={28} />
-              <span className="pl-name">{p.name}</span>
+              <span className="pl-name">{playlistLabel(p)}</span>
             </button>
           ))}
           {playlists.length === 0 && <div className="sidebar-empty">No playlists yet</div>}
@@ -229,8 +229,8 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
             {playlists.map((p) => (
               <button key={p.name} className="tile" onClick={() => openPlaylist(p)}>
                 <PlaylistArt p={p} size={0} />
-                <div className="tile-title" title={p.name}>
-                  {p.name}
+                <div className="tile-title" title={playlistLabel(p)}>
+                  {playlistLabel(p)}
                 </div>
                 <div className="tile-meta">
                   {p.local_count}/{p.count} on this PC
@@ -242,6 +242,11 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
       </section>
     </div>
   );
+}
+
+/** The server names the liked list after itself; we just say Liked Songs. */
+function playlistLabel(p: PlaylistSummary): string {
+  return p.liked ? "Liked Songs" : p.name;
 }
 
 /** A playlist's mosaic, or a heart for Liked Songs. size 0 = fill tile. */
@@ -264,6 +269,12 @@ function PlaylistArt({ p, size }: { p: PlaylistSummary; size: number }) {
     );
   }
   return <img className={cls} style={style} src={playlistCoverUrl(p.cover)} alt="" loading="lazy" onError={() => setFailed(true)} />;
+}
+
+function RowArt({ track }: { track: Track }) {
+  const [failed, setFailed] = useState(false);
+  if (!track.has_cover || failed) return <div className="row-art">♫</div>;
+  return <img className="row-art" src={coverUrl(track.id, 150)} alt="" loading="lazy" onError={() => setFailed(true)} />;
 }
 
 function AlbumArt({ trackId }: { trackId: string }) {
@@ -399,6 +410,7 @@ function TrackTable({
         <thead>
           <tr>
             <th className="c-play"></th>
+            <th className="c-art"></th>
             <th className="c-local" title="Downloaded to this PC"></th>
             <th>Title</th>
             <th>Artist</th>
@@ -434,6 +446,9 @@ function TrackTable({
                 >
                   {isCurrent && playing ? "⏸" : "▶"}
                 </button>
+              </td>
+              <td className="c-art">
+                <RowArt track={t} />
               </td>
               <td className="c-local">{t.local_path ? "●" : ""}</td>
               <td className="c-title">{t.title || t.file}</td>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, playerApi, Settings, ServerStatus, Summary } from "./api";
+import { api, fmtAgo, fmtWhen, playerApi, Settings, ServerStatus, Summary } from "./api";
 import { Setup } from "./views/Setup";
 import { Library } from "./views/Library";
 import { SettingsView } from "./views/SettingsView";
@@ -45,13 +45,8 @@ export default function App() {
         const r = await api.syncLibrary(refresh);
         setSummary(r.summary);
         setLibraryVersion((v) => v + 1);
-        setNotice(
-          r.full
-            ? `Full sync: ${r.summary.tracks} tracks, ${r.playlists} playlists`
-            : r.upserted + r.deleted === 0
-              ? "Library is up to date"
-              : `Synced: ${r.upserted} updated, ${r.deleted} removed`,
-        );
+        if (r.full) setNotice(`Full sync: ${r.summary.tracks} tracks, ${r.playlists} playlists`);
+        else if (r.upserted + r.deleted > 0) setNotice(`Synced: ${r.upserted} updated, ${r.deleted} removed`);
         setStatus((s) => (s ? { ...s, online: true } : s));
       } catch (e) {
         setNotice(`Sync failed: ${e}`);
@@ -85,6 +80,13 @@ export default function App() {
     // only when we first learn the server is online
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings?.paired, status?.online]);
+
+  // Notices are transient.
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(""), 6000);
+    return () => clearTimeout(t);
+  }, [notice]);
 
   // Re-probe the server every 30 s so the badge recovers after an outage.
   useEffect(() => {
@@ -159,7 +161,9 @@ export default function App() {
             ♫
           </span>
           <span>Downtify</span>
-          <span className="server-name">{settings.server_name || settings.server_url}</span>
+          {settings.server_name && settings.server_name.toLowerCase() !== "downtify" && (
+            <span className="server-name">{settings.server_name}</span>
+          )}
         </div>
         <nav className="tabs">
           <button className={page === "library" ? "active" : ""} onClick={() => setPage("library")}>
@@ -172,9 +176,14 @@ export default function App() {
         <div className="status">
           <span className={`dot ${online ? "on" : "off"}`} />
           <span>{online ? "Online" : "Offline"}</span>
-          <button className="ghost" disabled={!online || syncing} onClick={() => sync(false)} title="Sync library">
-            {syncing ? "Syncing…" : "Sync"}
-          </button>
+          <div className="sync-box">
+            <button className="ghost" disabled={!online || syncing} onClick={() => sync(false)} title="Sync library">
+              {syncing ? "Syncing…" : "Sync"}
+            </button>
+            <small className="last-sync" title={summary?.last_sync ? fmtWhen(summary.last_sync) : "never"}>
+              {summary?.last_sync ? `synced ${fmtAgo(summary.last_sync)}` : "never synced"}
+            </small>
+          </div>
         </div>
       </header>
 
