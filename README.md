@@ -9,7 +9,7 @@ Built with Tauri 2, React and Rust. Early and under active development; expect r
 - **Pairs** with your Downtify server using the same pairing code flow as the Android app. The device token lives in Windows Credential Manager.
 - **Syncs** your songs, albums, artists, playlists and likes into a local SQLite index using the server's delta-sync API, so re-syncs are cheap.
 - **Plays** your music: local file first, otherwise streamed from the server (original quality, or Opus 160 kbps when away from home). Player bar with seek, volume, shuffle, repeat, queue, likes, and Windows media keys.
-- **Downloads** songs or whole playlists to your music folder (default `Music\Downtify`, changeable), mirroring the server's folder layout as ordinary tagged files other players can use. Three at a time, resumable. "Available offline" on a playlist downloads it and pulls new additions after every sync.
+- **Downloads** songs or whole playlists to your music folder (default `Music\Downtify`, changeable), mirroring the server's folder layout as ordinary tagged files other players can use. Three at a time, resumable. "Sync to this PC" on a playlist downloads it and pulls new additions after every sync.
 - **Works offline**: with the server unreachable the app shows your local library and plays downloaded songs. Songs deleted on the server stay on your PC, marked, until you remove them.
 - **Edits playlists** after an optional one-time sign-in: create, rename, add and remove songs, drag and drop between playlists, right-click menus everywhere, multi-select.
 - **Home** page with recently added albums and songs, recently played, and your playlists front and centre.

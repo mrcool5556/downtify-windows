@@ -94,7 +94,7 @@ export function Downloads({ renderTable }: { renderTable: (tracks: Track[]) => J
         )}
       </h3>
       {local.length === 0 && missing.length === 0 ? (
-        <div className="empty">Nothing downloaded yet. Use the download icon on a song, or right-click a playlist and choose "Available offline".</div>
+        <div className="empty">Nothing downloaded yet. Use the download icon on a song, or right-click a playlist and choose "Sync to this PC".</div>
       ) : (
         renderTable(local)
       )}

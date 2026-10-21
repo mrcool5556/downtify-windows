@@ -337,7 +337,7 @@ export function Library({ online, summary, version }: { online: boolean; summary
       { label: "Add to queue", onClick: () => load().then((ts) => player.addToQueue(ts)) },
       { separator: true },
       {
-        label: "Available offline",
+        label: "Sync to this PC",
         icon: <DownloadGlyph on={p.keep_synced} />,
         checked: p.keep_synced,
         disabled: !online && !p.keep_synced,
@@ -505,7 +505,7 @@ export function Library({ online, summary, version }: { online: boolean; summary
             {title}
           </h2>
           {headerPlaylist && (
-            <small className="head-count" title={headerPlaylist.keep_synced ? "Available offline: every song, and new ones as they are added (right-click to change)" : "Right-click for Available offline, Remove from this PC, Rename…"}>
+            <small className="head-count" title={headerPlaylist.keep_synced ? "Synced to this PC: every song, and new ones as they are added (right-click to change)" : "Right-click for Sync to this PC, Remove from this PC, Rename…"}>
               <DownloadGlyph on={headerPlaylist.keep_synced} /> {headerPlaylist.local_count} of {headerPlaylist.count} on this PC
             </small>
           )}
@@ -701,7 +701,7 @@ export function trackMenu(
   return items;
 }
 
-/** The small download arrow used next to "Available offline". Green when on. */
+/** The small download arrow used next to "Sync to this PC". Green when on. */
 function DownloadGlyph({ on }: { on: boolean }) {
   return (
     <svg className={`dl-glyph ${on ? "on" : ""}`} width="14" height="14" viewBox="0 0 16 16" aria-hidden>
