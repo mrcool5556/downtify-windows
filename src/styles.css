@@ -1787,3 +1787,57 @@ table.shortcuts kbd {
   padding: 2px 8px;
   white-space: nowrap;
 }
+
+
+/* ── Polish round: columns, dots, collapsed buttons, confirm icons ── */
+table.tracks th.c-local,
+table.tracks td.c-local {
+  display: none;
+}
+table.tracks th.c-title {
+  width: var(--w-title, 36%);
+}
+table.tracks th.c-artist {
+  width: var(--w-artist, 22%);
+}
+table.tracks th.c-album {
+  width: var(--w-album, 22%);
+}
+table.tracks thead th {
+  user-select: none;
+  overflow: visible;
+}
+.col-resizer {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: col-resize;
+}
+.col-resizer:hover {
+  box-shadow: inset -2px 0 0 var(--accent);
+}
+.head-spacer {
+  margin-left: auto;
+}
+.dl-confirm.icons {
+  gap: 2px;
+}
+.dl-confirm.icons .icon {
+  padding: 2px 3px;
+  opacity: 1;
+}
+.sidebar-collapsed .sidebar > button.nav,
+.sidebar-collapsed .sidebar-foot .nav {
+  width: 40px;
+  height: 36px;
+  margin: 2px auto;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+.sidebar-collapsed .nav-icon {
+  font-size: 18px;
+}

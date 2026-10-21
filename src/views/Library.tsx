@@ -596,7 +596,11 @@ export function Library({
               </button>
             </small>
           )}
-          {showingTracks && <DensityPicker small />}
+          {showingTracks && (
+            <span className="head-spacer">
+              <DensityPicker small />
+            </span>
+          )}
         </div>
 
         {error && <div className="error">{error}</div>}
@@ -1090,6 +1094,72 @@ function Home({
   );
 }
 
+/** Draggable column edge. Widths live in localStorage. */
+const COL_KEY = "downtify.cols";
+type ColWidths = { title: number; artist: number; album: number };
+const COL_DEFAULTS: ColWidths = { title: 36, artist: 22, album: 22 };
+function loadCols(): ColWidths {
+  try {
+    return { ...COL_DEFAULTS, ...(JSON.parse(localStorage.getItem(COL_KEY) || "{}") as Partial<ColWidths>) };
+  } catch {
+    return COL_DEFAULTS;
+  }
+}
+let cols = loadCols();
+const colListeners = new Set<() => void>();
+function setCols(c: ColWidths) {
+  cols = c;
+  try {
+    localStorage.setItem(COL_KEY, JSON.stringify(c));
+  } catch {
+    /* fine */
+  }
+  for (const l of colListeners) l();
+}
+function useCols() {
+  const [, force] = useState(0);
+  useEffect(() => {
+    const l = () => force((n) => n + 1);
+    colListeners.add(l);
+    return () => {
+      colListeners.delete(l);
+    };
+  }, []);
+  return cols;
+}
+function ColResizer({ col }: { col: keyof ColWidths }) {
+  return (
+    <span
+      className="col-resizer"
+      title="Drag to resize, double-click to reset"
+      onMouseDown={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const th = (e.currentTarget as HTMLElement).closest("th") as HTMLElement | null;
+        const table = th?.closest("table") as HTMLElement | null;
+        if (!th || !table) return;
+        const startX = e.clientX;
+        const startW = th.getBoundingClientRect().width;
+        const tableW = table.getBoundingClientRect().width;
+        const onMove = (ev: MouseEvent) => {
+          const pct = Math.max(8, Math.min(70, ((startW + ev.clientX - startX) / tableW) * 100));
+          setCols({ ...cols, [col]: pct });
+        };
+        const onUp = () => {
+          window.removeEventListener("mousemove", onMove);
+          window.removeEventListener("mouseup", onUp);
+        };
+        window.addEventListener("mousemove", onMove);
+        window.addEventListener("mouseup", onUp);
+      }}
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        setCols({ ...cols, [col]: COL_DEFAULTS[col] });
+      }}
+    />
+  );
+}
+
 /** Click / Ctrl / Shift selection over a list of tracks. */
 function useSelection(tracks: Track[]) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -1211,6 +1281,7 @@ function TrackGrid({ tracks, online, onPlay, env, openMenu, addToPlaylist, remov
 function TrackTable({ tracks, online, showAlbum, onPlay, compact, env, openMenu, addToPlaylist, removeFromPlaylist }: ListProps & { showAlbum: boolean; compact?: boolean }) {
   const { player, current, playing } = usePlayer();
   const sel = useSelection(tracks);
+  const widths = useCols();
 
   async function toggleLike(t: Track) {
     if (!online) return;
@@ -1224,16 +1295,29 @@ function TrackTable({ tracks, online, showAlbum, onPlay, compact, env, openMenu,
 
   if (tracks.length === 0) return <div className="empty">Nothing here.</div>;
   return (
-    <table className={`tracks ${compact ? "compact" : ""}`}>
+    <table
+      className={`tracks ${compact ? "compact" : ""}`}
+      style={{ "--w-title": `${widths.title}%`, "--w-artist": `${widths.artist}%`, "--w-album": `${showAlbum ? widths.album : 0}%` } as React.CSSProperties}
+    >
       {!compact && (
         <thead>
           <tr>
             <th className="c-play"></th>
             <th className="c-art"></th>
-            <th className="c-local" title="Downloaded to this PC"></th>
-            <th className="c-title">Title</th>
-            <th>Artist</th>
-            {showAlbum && <th>Album</th>}
+            <th className="c-title">
+              Title
+              <ColResizer col="title" />
+            </th>
+            <th className="c-artist">
+              Artist
+              <ColResizer col="artist" />
+            </th>
+            {showAlbum && (
+              <th className="c-album">
+                Album
+                <ColResizer col="album" />
+              </th>
+            )}
             <th className="c-like"></th>
             <th className="c-dl"></th>
             <th className="c-dur">Time</th>
@@ -1273,7 +1357,6 @@ function TrackTable({ tracks, online, showAlbum, onPlay, compact, env, openMenu,
               <td className="c-art">
                 <RowArt track={t} />
               </td>
-              <td className="c-local">{t.local_path ? "●" : ""}</td>
               <td className="c-title">
                 {t.title || t.file}
                 {t.orphaned && (
@@ -1283,7 +1366,7 @@ function TrackTable({ tracks, online, showAlbum, onPlay, compact, env, openMenu,
                   </span>
                 )}
               </td>
-              <td>
+              <td className="c-artist">
                 {t.artist_id ? (
                   <button
                     className="cell-link"
@@ -1300,7 +1383,7 @@ function TrackTable({ tracks, online, showAlbum, onPlay, compact, env, openMenu,
                 )}
               </td>
               {showAlbum && (
-                <td>
+                <td className="c-album">
                   {t.album_id ? (
                     <button
                       className="cell-link"

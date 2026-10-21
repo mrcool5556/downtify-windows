@@ -79,10 +79,7 @@ export function PlayerBar({ online, onReveal }: { online: boolean; onReveal: () 
                   <button
                     className="cell-link"
                     title="Go to artist"
-                    onClick={() => {
-                      onReveal();
-                      navBus.go({ artist_id: current.artist_id, artist: current.album_artist || current.artist });
-                    }}
+                    onClick={() => navBus.go({ artist_id: current.artist_id, artist: current.album_artist || current.artist })}
                   >
                     {current.artist}
                   </button>
@@ -96,10 +93,7 @@ export function PlayerBar({ online, onReveal }: { online: boolean; onReveal: () 
                       <button
                         className="cell-link"
                         title="Go to album"
-                        onClick={() => {
-                          onReveal();
-                          navBus.go({ album_id: current.album_id, album: current.album, album_artist: current.album_artist, artist_id: current.artist_id, cover_track_id: current.id });
-                        }}
+                        onClick={() => navBus.go({ album_id: current.album_id, album: current.album, album_artist: current.album_artist, artist_id: current.artist_id, cover_track_id: current.id })}
                       >
                         {current.album}
                       </button>

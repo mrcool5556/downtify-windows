@@ -14,19 +14,25 @@ export function DownloadButton({ track, online, size = 16 }: { track: Track; onl
 
   if (confirm) {
     return (
-      <span className="dl-confirm" onClick={(e) => e.stopPropagation()}>
-        Remove from this PC?
+      <span className="dl-confirm icons" onClick={(e) => e.stopPropagation()} title="Remove this file from this PC?">
         <button
-          className="small danger"
+          className="icon confirm-yes"
+          title="Yes, remove from this PC"
           onClick={() => {
             downloadsApi.removeLocal([track.id]).catch(() => {});
             setConfirm(false);
           }}
         >
-          Remove
+          <svg width={size} height={size} viewBox="0 0 16 16" aria-hidden>
+            <circle cx="8" cy="8" r="7" fill="var(--danger)" />
+            <path d="M5 5h6M6.5 5V4h3v1M6 7v4.5M8 7v4.5M10 7v4.5M5.5 7l.4 5.5h4.2L10.5 7" fill="none" stroke="#fff" strokeWidth="1.1" strokeLinecap="round" />
+          </svg>
         </button>
-        <button className="small ghost" onClick={() => setConfirm(false)}>
-          Keep
+        <button className="icon confirm-no" title="Keep it" onClick={() => setConfirm(false)}>
+          <svg width={size} height={size} viewBox="0 0 16 16" aria-hidden>
+            <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" strokeWidth="1.3" />
+            <path d="M5.5 5.5l5 5M10.5 5.5l-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
         </button>
       </span>
     );

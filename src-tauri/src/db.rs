@@ -514,6 +514,13 @@ pub fn list_tracks(conn: &Connection, q: &TrackQuery) -> Result<Vec<Track>, Stri
                 if q.local_only && t.local_path.is_none() {
                     continue;
                 }
+                if !q.search.trim().is_empty() {
+                    let needle = q.search.trim().to_lowercase();
+                    let hay = |k: &str| t.row.get(k).and_then(|v| v.as_str()).unwrap_or("").to_lowercase();
+                    if !(hay("title").contains(&needle) || hay("artist").contains(&needle) || hay("album").contains(&needle)) {
+                        continue;
+                    }
+                }
                 out.push(t);
             }
         }
