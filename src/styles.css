@@ -1401,3 +1401,18 @@ input.rename {
 .q-row:hover .q-remove {
   opacity: 0.7;
 }
+
+/* Downloads: missing rows greyed */
+.dl-list.missing li {
+  opacity: 0.6;
+}
+.dl-list.missing li.downloading {
+  opacity: 0.85;
+}
+.downloads h3 small {
+  color: var(--fg-2);
+  font-weight: 400;
+}
+.downloads > h3:first-child {
+  margin-top: 4px;
+}

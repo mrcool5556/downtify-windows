@@ -529,7 +529,19 @@ export function Library({ online, summary, version }: { online: boolean; summary
         {empty ? (
           <div className="empty">{online ? "Library is empty. Download something on the server, then press Sync." : "No library yet. Connect to the server once to sync it."}</div>
         ) : section === "downloads" ? (
-          <Downloads />
+          <Downloads
+            renderTable={(local) => (
+              <TrackTable
+                tracks={local}
+                online={online}
+                showAlbum
+                onPlay={(i) => player.playList(local, i, { section: "downloads", scope: {}, search: "", localOnly: true })}
+                env={{ ...env, currentPlaylist: undefined }}
+                openMenu={ctx.open}
+                addToPlaylist={addToPlaylist}
+              />
+            )}
+          />
         ) : section === "home" ? (
           <Home
             summary={summary}
