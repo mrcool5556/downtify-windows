@@ -412,7 +412,7 @@ function TrackTable({
             <th className="c-play"></th>
             <th className="c-art"></th>
             <th className="c-local" title="Downloaded to this PC"></th>
-            <th>Title</th>
+            <th className="c-title">Title</th>
             <th>Artist</th>
             {showAlbum && <th>Album</th>}
             <th className="c-like"></th>

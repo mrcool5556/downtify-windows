@@ -714,9 +714,12 @@ table.tracks th,
 table.tracks td {
   max-width: none;
 }
-table.tracks .c-title,
-table.tracks th:nth-child(3) {
+table.tracks th.c-title {
   width: 36%;
+}
+table.tracks th.c-local,
+table.tracks td.c-local {
+  width: 20px;
 }
 .pane-head .search {
   width: 240px;
