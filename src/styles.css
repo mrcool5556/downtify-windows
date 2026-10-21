@@ -973,3 +973,60 @@ table.tracks td.c-local {
   padding: 3px 8px;
   font-size: 12px;
 }
+
+/* ── Header tweaks + song tiles ────────────────────────────────────── */
+button.icon.back {
+  font-size: 18px;
+  padding: 2px 8px;
+}
+.seg-small button {
+  padding: 4px 7px;
+  display: grid;
+  place-items: center;
+}
+.seg button svg {
+  display: block;
+}
+.grid.songs {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+.tile-art-wrap {
+  position: relative;
+}
+.tile-art-wrap .tile-art {
+  width: 100%;
+  aspect-ratio: 1;
+}
+.tile-play {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #06230f;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.tile:hover .tile-play,
+.tile.current .tile-play {
+  opacity: 1;
+}
+.tile-dot {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  color: var(--accent);
+  font-size: 10px;
+  text-shadow: 0 0 3px #000;
+}
+.tile.current {
+  outline: 2px solid var(--accent);
+}
+.tile.unplayable {
+  opacity: 0.45;
+}

@@ -160,22 +160,17 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
       <section className="pane">
         <div className="pane-head">
           {scope.album || scope.artist || scope.playlist ? (
-            <button className="link" onClick={() => setScope({})}>
-              ← Back
+            <button className="icon back" onClick={() => setScope({})} title="Back">
+              ←
             </button>
           ) : section !== "home" ? (
-            <button className="link" onClick={() => go("home")}>
-              ← Home
+            <button className="icon back" onClick={() => go("home")} title="Home">
+              ←
             </button>
           ) : null}
           {scope.album && scope.album.cover_track_id ? <img className="head-art" src={coverUrl(scope.album.cover_track_id, 150)} alt="" /> : null}
           {scope.playlist ? <PlaylistArt p={scope.playlist} size={48} /> : null}
           <h2>{title}</h2>
-          {showingTracks && tracks.length > 0 && (
-            <button className="small" onClick={() => player.playList(tracks, 0, playContext)} title="Play all from the top">
-              ▶ Play all
-            </button>
-          )}
           {showingTracks && <DensityPicker small />}
           {showingTracks && (
             <input
@@ -204,6 +199,8 @@ export function Library({ online, summary }: { online: boolean; summary: Summary
               setScope({ album: a });
             }}
           />
+        ) : showingTracks && layout.density === "grid" ? (
+          <TrackGrid tracks={tracks} online={online} onPlay={(i) => player.playList(tracks, i, playContext)} />
         ) : showingTracks ? (
           <TrackTable tracks={tracks} online={online} showAlbum={!scope.album} onPlay={(i) => player.playList(tracks, i, playContext)} />
         ) : section === "albums" ? (
@@ -272,6 +269,41 @@ function PlaylistArt({ p, size }: { p: PlaylistSummary; size: number }) {
     );
   }
   return <img className={cls} style={style} src={playlistCoverUrl(p.cover)} alt="" loading="lazy" onError={() => setFailed(true)} />;
+}
+
+function TrackGrid({ tracks, online, onPlay }: { tracks: Track[]; online: boolean; onPlay: (index: number) => void }) {
+  const { current, playing, player } = usePlayer();
+  if (tracks.length === 0) return <div className="empty">Nothing here.</div>;
+  return (
+    <div className="grid songs">
+      {tracks.map((t, i) => {
+        const isCurrent = current?.id === t.id;
+        const playable = !!t.local_path || online;
+        return (
+          <button
+            key={t.id}
+            className={`tile ${isCurrent ? "current" : ""} ${playable ? "" : "unplayable"}`}
+            disabled={!playable}
+            onClick={() => (isCurrent ? player.toggle() : onPlay(i))}
+            title={isCurrent && playing ? "Pause" : "Play"}
+          >
+            <div className="tile-art-wrap">
+              {t.has_cover ? <img className="tile-art" src={coverUrl(t.id, 300)} alt="" loading="lazy" /> : <div className="tile-art">♫</div>}
+              <span className="tile-play">{isCurrent && playing ? "⏸" : "▶"}</span>
+              {t.local_path ? <span className="tile-dot" title="On this PC">●</span> : null}
+            </div>
+            <div className="tile-title" title={t.title}>
+              {t.liked ? <span className="heart on">♥ </span> : null}
+              {t.title || t.file}
+            </div>
+            <div className="tile-sub" title={t.artist}>
+              {t.artist}
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 function RowArt({ track }: { track: Track }) {

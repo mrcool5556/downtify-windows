@@ -1,7 +1,7 @@
 // Per-PC look-and-feel choices, remembered in localStorage.
 import { useSyncExternalStore } from "react";
 
-export type Density = "compact" | "comfortable";
+export type Density = "compact" | "comfortable" | "grid";
 
 export interface LayoutPrefs {
   density: Density;
@@ -45,16 +45,48 @@ export function useLayout(): LayoutPrefs {
   );
 }
 
+const ICONS: Record<Density, { title: string; svg: JSX.Element }> = {
+  compact: {
+    title: "Compact rows",
+    svg: (
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+        <rect x="2" y="3" width="12" height="1.6" rx="0.8" fill="currentColor" />
+        <rect x="2" y="7.2" width="12" height="1.6" rx="0.8" fill="currentColor" />
+        <rect x="2" y="11.4" width="12" height="1.6" rx="0.8" fill="currentColor" />
+      </svg>
+    ),
+  },
+  comfortable: {
+    title: "Roomier rows",
+    svg: (
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+        <rect x="2" y="2.5" width="12" height="4.5" rx="1.2" fill="currentColor" />
+        <rect x="2" y="9" width="12" height="4.5" rx="1.2" fill="currentColor" />
+      </svg>
+    ),
+  },
+  grid: {
+    title: "Tiles",
+    svg: (
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden>
+        <rect x="2" y="2" width="5" height="5" rx="1" fill="currentColor" />
+        <rect x="9" y="2" width="5" height="5" rx="1" fill="currentColor" />
+        <rect x="2" y="9" width="5" height="5" rx="1" fill="currentColor" />
+        <rect x="9" y="9" width="5" height="5" rx="1" fill="currentColor" />
+      </svg>
+    ),
+  },
+};
+
 export function DensityPicker({ small }: { small?: boolean }) {
   const { density } = useLayout();
   return (
-    <div className={`seg ${small ? "seg-small" : ""}`} role="radiogroup" aria-label="Row density">
-      <button className={density === "compact" ? "on" : ""} onClick={() => setLayout({ density: "compact" })} title="Compact rows">
-        Compact
-      </button>
-      <button className={density === "comfortable" ? "on" : ""} onClick={() => setLayout({ density: "comfortable" })} title="Roomier rows">
-        Comfortable
-      </button>
+    <div className={`seg ${small ? "seg-small" : ""}`} role="radiogroup" aria-label="List layout">
+      {(Object.keys(ICONS) as Density[]).map((d) => (
+        <button key={d} className={density === d ? "on" : ""} onClick={() => setLayout({ density: d })} title={ICONS[d].title}>
+          {ICONS[d].svg}
+        </button>
+      ))}
     </div>
   );
 }
