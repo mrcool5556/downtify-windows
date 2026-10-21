@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { api, ServerInfo, Settings } from "../api";
+import { WindowControls } from "../components/WindowControls";
 
 export function Setup({ onPaired }: { onPaired: (s: Settings) => void }) {
   const [url, setUrl] = useState("");
@@ -34,7 +35,10 @@ export function Setup({ onPaired }: { onPaired: (s: Settings) => void }) {
   }
 
   return (
-    <div className="setup">
+    <div className="setup" data-tauri-drag-region>
+      <div className="setup-chrome">
+        <WindowControls />
+      </div>
       <div className="card">
         <h1>
           <span className="logo" aria-hidden>

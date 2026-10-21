@@ -13,6 +13,8 @@ import { likeBus } from "./likeBus";
 import { localBus } from "./downloads";
 import { nav, useNav } from "./nav";
 import { ThemeToggle } from "./layout";
+import { WindowControls } from "./components/WindowControls";
+import { MiniPlayer } from "./components/MiniPlayer";
 
 const LIST_SECTIONS = new Set(["tracks", "albums", "playlists"]);
 
@@ -139,6 +141,10 @@ export default function App() {
 
   const online = !!status?.online;
 
+  const setMini = useCallback((on: boolean) => {
+    invoke<Settings>("set_mini", { on }).then(setSettings).catch(() => {});
+  }, []);
+
   // Keyboard shortcuts.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -148,6 +154,11 @@ export default function App() {
         e.preventDefault();
         searchRef.current?.focus();
         searchRef.current?.select();
+        return;
+      }
+      if (e.ctrlKey && e.key.toLowerCase() === "m") {
+        e.preventDefault();
+        setMini(!(settings?.mini ?? false));
         return;
       }
       if (e.altKey && e.key === "ArrowLeft") {
@@ -208,7 +219,7 @@ export default function App() {
       window.removeEventListener("mouseup", onMouse, true);
       window.removeEventListener("auxclick", onMouse, true);
     };
-  }, [online]);
+  }, [online, settings?.mini, setMini]);
 
   // Safety net: if the webview ever navigates its own history, stay put.
   useEffect(() => {
@@ -241,10 +252,18 @@ export default function App() {
   const unpairedRemotely = status && status.online && !status.paired;
   const isLink = looksLikeLink(query);
 
+  if (settings.mini) {
+    return <MiniPlayer settings={settings} online={online} onSettings={setSettings} onRestoreFull={() => setMini(false)} />;
+  }
+
   return (
     <div className="shell">
-      <header className="topbar">
-        <div className="brand">
+      <header className="topbar" data-tauri-drag-region onDoubleClick={(e) => {
+        const el = e.target as HTMLElement;
+        if (el.closest("button, input, .searchbox")) return;
+        import("@tauri-apps/api/window").then((m) => m.getCurrentWindow().toggleMaximize());
+      }}>
+        <div className="brand" data-tauri-drag-region>
           <span className="logo" aria-hidden>
             ♫
           </span>
@@ -299,6 +318,7 @@ export default function App() {
               </small>
             </div>
           </div>
+          <WindowControls />
         </div>
       </header>
 
@@ -337,7 +357,7 @@ export default function App() {
         {queueOpen && <QueuePanel online={online} />}
       </main>
 
-      <PlayerBar online={online} onReveal={() => player.reveal()} />
+      <PlayerBar online={online} onReveal={() => player.reveal()} onMini={() => setMini(true)} />
       {shortcuts && <ShortcutsOverlay onClose={() => setShortcuts(false)} />}
     </div>
   );

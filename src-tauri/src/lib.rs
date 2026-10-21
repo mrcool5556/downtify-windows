@@ -7,6 +7,7 @@ mod settings;
 #[cfg(windows)]
 mod smtc;
 mod tray;
+pub mod window_mode;
 
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -32,6 +33,13 @@ pub fn run() {
         .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, None))
         .register_asynchronous_uri_scheme_protocol("media", media::handle)
         .on_window_event(|window, event| {
+            match event {
+                tauri::WindowEvent::Moved(_) | tauri::WindowEvent::Resized(_) => {
+                    // Debounce-free but cheap: remember where each shape lives.
+                    window_mode::remember_bounds(window.app_handle());
+                }
+                _ => {}
+            }
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 let close_to_tray = window
                     .app_handle()
@@ -80,6 +88,11 @@ pub fn run() {
                 smtc: Mutex::new(smtc),
             });
             commands::verify_local_files(app.handle());
+            {
+                let state = app.state::<AppState>();
+                let s = state.settings.lock().map(|s| s.clone()).unwrap_or_default();
+                window_mode::apply(app.handle(), &s);
+            }
             if let Err(e) = tray::build(app.handle()) {
                 eprintln!("tray unavailable: {e}");
             }
@@ -138,6 +151,10 @@ pub fn run() {
             commands::request_download,
             commands::check_app_update,
             commands::set_tray_tooltip,
+            commands::set_mini,
+            commands::set_mini_pinned,
+            commands::set_mini_opacity,
+            commands::window_opacity_now,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Downtify");

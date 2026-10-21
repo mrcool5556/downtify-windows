@@ -28,6 +28,21 @@ pub struct Settings {
     /// Mirror of the autostart registration, for the UI.
     #[serde(default)]
     pub start_with_windows: bool,
+    /// Mini player shape instead of the full window.
+    #[serde(default)]
+    pub mini: bool,
+    #[serde(default = "default_true")]
+    pub mini_pinned: bool,
+    #[serde(default = "default_opacity")]
+    pub mini_opacity: u8,
+    #[serde(default)]
+    pub mini_bounds: Option<crate::window_mode::Bounds>,
+    #[serde(default)]
+    pub full_bounds: Option<crate::window_mode::Bounds>,
+}
+
+fn default_opacity() -> u8 {
+    100
 }
 
 fn default_true() -> bool {

@@ -12,6 +12,9 @@ export interface Settings {
   keep_played: boolean;
   close_to_tray: boolean;
   start_with_windows: boolean;
+  mini: boolean;
+  mini_pinned: boolean;
+  mini_opacity: number;
   paired: boolean;
   default_music_dir: string;
 }

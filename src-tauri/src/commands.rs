@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tauri::State;
+use tauri::{Manager, State};
 
 use crate::db;
 use crate::downloads;
@@ -555,7 +555,6 @@ pub fn recent_albums(state: State<AppState>, limit: Option<i64>) -> Result<Vec<d
 
 /// On start: forget local files that vanished from disk.
 pub fn verify_local_files(app: &tauri::AppHandle) {
-    use tauri::Manager;
     let state = app.state::<AppState>();
     let conn = match state.db.lock() {
         Ok(c) => c,
@@ -1071,4 +1070,56 @@ pub async fn check_app_update() -> Result<UpdateInfo, String> {
     let parse = |s: &str| -> Vec<u64> { s.split('.').filter_map(|p| p.parse().ok()).collect() };
     let newer = !tag.is_empty() && parse(&tag) > parse(&current);
     Ok(UpdateInfo { current, latest: tag, newer, url })
+}
+
+// ── Mini player ─────────────────────────────────────────────────────────
+
+/// Switch between the full window and the mini player.
+#[tauri::command]
+pub fn set_mini(app: tauri::AppHandle, state: State<AppState>, on: bool) -> Result<SettingsView, String> {
+    crate::window_mode::remember_bounds(&app);
+    let snapshot = {
+        let mut s = state.settings.lock().map_err(|e| e.to_string())?;
+        s.mini = on;
+        settings::save(&state.settings_path, &s)?;
+        s.clone()
+    };
+    crate::window_mode::apply(&app, &snapshot);
+    Ok(view(&snapshot))
+}
+
+#[tauri::command]
+pub fn set_mini_pinned(app: tauri::AppHandle, state: State<AppState>, on: bool) -> Result<SettingsView, String> {
+    let snapshot = {
+        let mut s = state.settings.lock().map_err(|e| e.to_string())?;
+        s.mini_pinned = on;
+        settings::save(&state.settings_path, &s)?;
+        s.clone()
+    };
+    if snapshot.mini {
+        if let Some(w) = app.get_webview_window("main") {
+            let _ = w.set_always_on_top(on);
+        }
+    }
+    Ok(view(&snapshot))
+}
+
+#[tauri::command]
+pub fn set_mini_opacity(app: tauri::AppHandle, state: State<AppState>, percent: u8) -> Result<SettingsView, String> {
+    let snapshot = {
+        let mut s = state.settings.lock().map_err(|e| e.to_string())?;
+        s.mini_opacity = percent.clamp(10, 100);
+        settings::save(&state.settings_path, &s)?;
+        s.clone()
+    };
+    if snapshot.mini {
+        crate::window_mode::opacity_now(&app, snapshot.mini_opacity);
+    }
+    Ok(view(&snapshot))
+}
+
+/// Temporary opacity (hover): does not touch the saved value.
+#[tauri::command]
+pub fn window_opacity_now(app: tauri::AppHandle, percent: u8) {
+    crate::window_mode::opacity_now(&app, percent);
 }

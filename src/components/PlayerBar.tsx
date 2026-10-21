@@ -9,7 +9,7 @@ import { trackMenu } from "../views/Library";
 import { useEffect, useState as useState2 } from "react";
 import { api, PlaylistSummary, playlistsApi } from "../api";
 
-export function PlayerBar({ online, onReveal }: { online: boolean; onReveal: () => void }) {
+export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onReveal: () => void; onMini: () => void }) {
   const p = usePlayer();
   const { player, current } = p;
   const [likeBusy, setLikeBusy] = useState(false);
@@ -179,6 +179,9 @@ export function PlayerBar({ online, onReveal }: { online: boolean; onReveal: () 
         />
         <button className={`icon ${p.queueOpen ? "on" : ""}`} onClick={() => player.setQueueOpen(!p.queueOpen)} title="Queue">
           ☰
+        </button>
+        <button className="icon" onClick={onMini} title="Mini player (Ctrl+M)">
+          ⌄
         </button>
       </div>
     </footer>
