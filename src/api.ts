@@ -15,6 +15,7 @@ export interface Settings {
   mini: boolean;
   mini_pinned: boolean;
   mini_opacity: number;
+  mini_opacity_mode: "window" | "background";
   paired: boolean;
   default_music_dir: string;
 }

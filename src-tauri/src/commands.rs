@@ -1113,7 +1113,21 @@ pub fn set_mini_opacity(app: tauri::AppHandle, state: State<AppState>, percent: 
         s.clone()
     };
     if snapshot.mini {
-        crate::window_mode::opacity_now(&app, snapshot.mini_opacity);
+        crate::window_mode::opacity_now(&app, if snapshot.mini_opacity_mode == "window" { snapshot.mini_opacity } else { 100 });
+    }
+    Ok(view(&snapshot))
+}
+
+#[tauri::command]
+pub fn set_mini_opacity_mode(app: tauri::AppHandle, state: State<AppState>, mode: String) -> Result<SettingsView, String> {
+    let snapshot = {
+        let mut s = state.settings.lock().map_err(|e| e.to_string())?;
+        s.mini_opacity_mode = if mode == "window" { "window".into() } else { "background".into() };
+        settings::save(&state.settings_path, &s)?;
+        s.clone()
+    };
+    if snapshot.mini {
+        crate::window_mode::opacity_now(&app, if snapshot.mini_opacity_mode == "window" { snapshot.mini_opacity } else { 100 });
     }
     Ok(view(&snapshot))
 }

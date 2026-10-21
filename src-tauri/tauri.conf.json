@@ -19,7 +19,8 @@
         "minHeight": 520,
         "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,HardwareMediaKeyHandling,MediaSessionService",
         "decorations": false,
-        "shadow": true
+        "shadow": true,
+        "transparent": true
       }
     ],
     "security": {

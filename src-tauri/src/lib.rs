@@ -154,6 +154,7 @@ pub fn run() {
             commands::set_mini,
             commands::set_mini_pinned,
             commands::set_mini_opacity,
+            commands::set_mini_opacity_mode,
             commands::window_opacity_now,
         ])
         .run(tauri::generate_context!())

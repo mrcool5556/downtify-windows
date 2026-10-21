@@ -7,6 +7,7 @@ import { DownloadButton } from "./DownloadButton";
 import { WindowControls } from "./WindowControls";
 import { useContextMenu } from "./ContextMenu";
 import { trackMenu } from "../views/Library";
+import { MiniIcon, OpacityBackgroundIcon, OpacityWindowIcon, PinIcon, RepeatIcon, RepeatOneIcon, ShuffleIcon, VolumeIcon } from "./Icons";
 
 interface Props {
   settings: Settings;
@@ -24,17 +25,22 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
   const ctx = useContextMenu();
 
   // Solid while hovered, back to the chosen opacity a second after leaving.
+  const [hovered, setHovered] = useState(false);
+  const windowMode = settings.mini_opacity_mode === "window";
   function onEnter() {
     window.clearTimeout(fadeTimer.current);
-    invoke("window_opacity_now", { percent: 100 }).catch(() => {});
+    setHovered(true);
+    if (windowMode) invoke("window_opacity_now", { percent: 100 }).catch(() => {});
   }
   function onLeave() {
     window.clearTimeout(fadeTimer.current);
     fadeTimer.current = window.setTimeout(() => {
-      invoke("window_opacity_now", { percent: settings.mini_opacity }).catch(() => {});
+      setHovered(false);
+      if (windowMode) invoke("window_opacity_now", { percent: settings.mini_opacity }).catch(() => {});
     }, 1000);
   }
   useEffect(() => () => window.clearTimeout(fadeTimer.current), []);
+  const bgAlpha = windowMode || hovered ? 1 : settings.mini_opacity / 100;
 
   const upcoming = p.order.slice(p.cursor + 1, p.cursor + 6).map((qi) => ({ qi, t: p.queue[qi] }));
   const next = upcoming[0]?.t;
@@ -60,7 +66,7 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
   };
 
   return (
-    <div className="mini" onMouseEnter={onEnter} onMouseLeave={onLeave} data-tauri-drag-region>
+    <div className="mini" onMouseEnter={onEnter} onMouseLeave={onLeave} data-tauri-drag-region style={{ "--mini-alpha": bgAlpha } as React.CSSProperties}>
       {ctx.menu}
       <div className="mini-top" data-tauri-drag-region>
         <div className="mini-top-right">
@@ -69,7 +75,7 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
             onClick={() => invoke<Settings>("set_mini_pinned", { on: !settings.mini_pinned }).then(onSettings).catch(() => {})}
             title={settings.mini_pinned ? "Pinned above other windows (click to unpin)" : "Pin above other windows"}
           >
-            📌
+            <PinIcon />
           </button>
           <WindowControls onRestoreFull={onRestoreFull} />
         </div>
@@ -116,10 +122,10 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
 
       <div className="mini-row2" data-tauri-drag-region>
         <button className={`icon ${p.shuffle ? "on" : ""}`} onClick={() => player.toggleShuffle()} title="Shuffle">
-          ⇄
+          <ShuffleIcon />
         </button>
         <button className={`icon ${p.repeat !== "off" ? "on" : ""}`} onClick={() => player.cycleRepeat()} title={`Repeat: ${p.repeat}`}>
-          {p.repeat === "one" ? "🔂" : "🔁"}
+          {p.repeat === "one" ? <RepeatOneIcon /> : <RepeatIcon />}
         </button>
 
         <div className="mini-next">
@@ -152,8 +158,14 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
           )}
         </div>
 
+        <button
+          className="icon"
+          onClick={() => invoke<Settings>("set_mini_opacity_mode", { mode: windowMode ? "background" : "window" }).then(onSettings).catch(() => {})}
+          title={windowMode ? "Fading the whole window. Click to fade only the background" : "Fading only the background; song stays solid. Click to fade the whole window"}
+        >
+          {windowMode ? <OpacityWindowIcon /> : <OpacityBackgroundIcon />}
+        </button>
         <label className="mini-opacity" title={`Opacity ${settings.mini_opacity}%`}>
-          <span className="mini-opacity-icon">◐</span>
           <input
             type="range"
             min={10}
@@ -164,7 +176,9 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
           />
         </label>
         <label className="mini-volume" title="Volume (scroll to change by 2)">
-          <span>{p.muted || p.volume === 0 ? "🔇" : "🔊"}</span>
+          <span>
+            <VolumeIcon muted={p.muted || p.volume === 0} />
+          </span>
           <input
             type="range"
             min={0}

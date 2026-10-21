@@ -3,6 +3,7 @@ import { coverUrl, fmtDuration, playerApi } from "../api";
 import { usePlayer } from "../player/usePlayer";
 import { likeBus } from "../likeBus";
 import { DownloadButton } from "./DownloadButton";
+import { MiniIcon, RepeatIcon, RepeatOneIcon, ShuffleIcon, VolumeIcon } from "./Icons";
 import { useContextMenu } from "./ContextMenu";
 import { navBus } from "../navBus";
 import { trackMenu } from "../views/Library";
@@ -123,7 +124,7 @@ export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onRev
       <div className="pb-center">
         <div className="pb-controls">
           <button className={`icon ${p.shuffle ? "on" : ""}`} onClick={() => player.toggleShuffle()} title="Shuffle">
-            ⇄
+            <ShuffleIcon />
           </button>
           <button className="icon" onClick={() => player.previous()} title="Previous (Ctrl+Left)" disabled={!current}>
             ⏮
@@ -135,7 +136,7 @@ export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onRev
             ⏭
           </button>
           <button className={`icon ${p.repeat !== "off" ? "on" : ""}`} onClick={() => player.cycleRepeat()} title={`Repeat: ${p.repeat}`}>
-            {p.repeat === "one" ? "🔂" : "🔁"}
+            {p.repeat === "one" ? <RepeatOneIcon /> : <RepeatIcon />}
           </button>
         </div>
         <div className="pb-seek">
@@ -159,7 +160,7 @@ export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onRev
 
       <div className="pb-right">
         <button className="icon" onClick={() => player.toggleMute()} title={p.muted ? "Unmute" : "Mute"}>
-          {p.muted || p.volume === 0 ? "🔇" : p.volume < 0.5 ? "🔉" : "🔊"}
+          <VolumeIcon muted={p.muted || p.volume === 0} />
         </button>
         <input
           className="pb-volume"
@@ -181,7 +182,7 @@ export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onRev
           ☰
         </button>
         <button className="icon" onClick={onMini} title="Mini player (Ctrl+M)">
-          ⌄
+          <MiniIcon />
         </button>
       </div>
     </footer>

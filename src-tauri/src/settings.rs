@@ -35,6 +35,9 @@ pub struct Settings {
     pub mini_pinned: bool,
     #[serde(default = "default_opacity")]
     pub mini_opacity: u8,
+    /// `window` fades everything; `background` keeps text and art solid.
+    #[serde(default = "default_opacity_mode")]
+    pub mini_opacity_mode: String,
     #[serde(default)]
     pub mini_bounds: Option<crate::window_mode::Bounds>,
     #[serde(default)]
@@ -43,6 +46,9 @@ pub struct Settings {
 
 fn default_opacity() -> u8 {
     100
+}
+fn default_opacity_mode() -> String {
+    "background".into()
 }
 
 fn default_true() -> bool {
