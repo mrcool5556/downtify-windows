@@ -25,8 +25,8 @@ import { Downloads } from "./Downloads";
 import { downloadsApi, localBus, useDownloads } from "../downloads";
 import { MenuItem, useContextMenu } from "../components/ContextMenu";
 import { navBus } from "../navBus";
-
-type Section = "home" | "tracks" | "albums" | "artists" | "playlists" | "downloads";
+import { Section, nav, useNav } from "../nav";
+import { setLayout } from "../layout";
 
 interface Scope {
   album?: Album;
@@ -41,6 +41,7 @@ const SECTION_TITLE: Record<Section, string> = {
   artists: "Artists",
   playlists: "Playlists",
   downloads: "Downloads",
+  settings: "Settings",
 };
 
 const DRAG_MIME = "application/x-downtify-tracks";
@@ -60,10 +61,24 @@ export interface MenuEnv {
   currentPlaylist?: PlaylistSummary;
 }
 
-export function Library({ online, summary, version }: { online: boolean; summary: Summary | null; version: number }) {
-  const [section, setSection] = useState<Section>("home");
-  const [scope, setScope] = useState<Scope>({});
-  const [search, setSearch] = useState("");
+export function Library({
+  online,
+  summary,
+  version,
+  renderSettings,
+}: {
+  online: boolean;
+  summary: Summary | null;
+  version: number;
+  renderSettings: (tab: string, setTab: (t: string) => void) => JSX.Element;
+}) {
+  const { view } = useNav();
+  const section = view.section;
+  const scope = view.scope as Scope;
+  const search = view.search;
+  const setSection = (s: Section) => nav.push({ ...view, section: s });
+  const setScope = (sc: Scope) => nav.push({ ...view, scope: sc as Record<string, unknown> });
+  const setSearch = (q: string) => nav.replace({ ...view, search: q });
   const [localOnly, setLocalOnly] = useState(false);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [albums, setAlbums] = useState<Album[]>([]);
@@ -92,9 +107,11 @@ export function Library({ online, summary, version }: { online: boolean; summary
     if (revealNonce === lastReveal.current) return;
     lastReveal.current = revealNonce;
     if (!context) return;
-    setSection(context.section as Section);
-    setScope((context.scope as Scope) ?? {});
-    setSearch(context.section === "home" ? "" : (context.search ?? ""));
+    nav.push({
+      section: context.section as Section,
+      scope: ((context.scope as Scope) ?? {}) as Record<string, unknown>,
+      search: context.section === "home" ? "" : (context.search ?? ""),
+    });
     setLocalOnly(!!context.localOnly);
     setRevealPending(true);
   }, [revealNonce, context]);
@@ -111,17 +128,15 @@ export function Library({ online, summary, version }: { online: boolean; summary
   useEffect(
     () =>
       navBus.on((t) => {
-        setSearch("");
         if (t.playlist) {
           const p = playlists.find((x) => x.name === t.playlist);
-          if (p) {
-            setSection("playlists");
-            setScope({ playlist: p });
-          }
+          if (p) nav.push({ section: "playlists", scope: { playlist: p }, search: "" });
         } else if (t.album_id) {
-          setSection("albums");
-          setScope({
-            album: {
+          nav.push({
+            section: "albums",
+            search: "",
+            scope: {
+              album: {
               album_id: t.album_id,
               album: t.album ?? "",
               album_artist: t.album_artist ?? "",
@@ -129,11 +144,11 @@ export function Library({ online, summary, version }: { online: boolean; summary
               count: 0,
               local_count: 0,
               cover_track_id: t.cover_track_id ?? "",
+              },
             },
           });
         } else if (t.artist_id) {
-          setSection("albums");
-          setScope({ artist: { artist_id: t.artist_id, name: t.artist ?? "", count: 0, local_count: 0 } });
+          nav.push({ section: "albums", search: "", scope: { artist: { artist_id: t.artist_id, name: t.artist ?? "", count: 0, local_count: 0 } } });
         }
       }),
     [playlists],
@@ -204,15 +219,11 @@ export function Library({ online, summary, version }: { online: boolean; summary
   // ── Navigation helpers ──────────────────────────────────────────────
 
   function go(s: Section) {
-    setSection(s);
-    setScope({});
-    setSearch("");
+    nav.push({ section: s, scope: {}, search: "" });
   }
 
   function openPlaylist(p: PlaylistSummary) {
-    setSection("playlists");
-    setScope({ playlist: p });
-    setSearch("");
+    nav.push({ section: "playlists", scope: { playlist: p } as Record<string, unknown>, search: "" });
     if (p.is_new) sharingApi.seen(p.name).then(() => reloadPlaylists()).catch(() => {});
   }
 
@@ -427,19 +438,20 @@ export function Library({ online, summary, version }: { online: boolean; summary
         : SECTION_TITLE[section];
   const headerPlaylist = scope.playlist ? (playlists.find((x) => x.name === scope.playlist!.name) ?? scope.playlist) : undefined;
 
+  const collapsed = layout.sidebarCollapsed;
   return (
-    <div className={`library density-${layout.density} ${layout.rowArt ? "" : "no-row-art"}`}>
+    <div className={`library density-${layout.density} ${layout.rowArt ? "" : "no-row-art"} ${collapsed ? "sidebar-collapsed" : ""}`}>
       {ctx.menu}
       <aside className="sidebar">
-        <button className={`nav ${section === "home" ? "active" : ""}`} onClick={() => go("home")}>
-          <span className="nav-icon">⌂</span> Home
+        <button className={`nav ${section === "home" ? "active" : ""}`} onClick={() => go("home")} title="Home">
+          <span className="nav-icon">⌂</span> <span className="lbl">Home</span>
         </button>
-        <button className={`nav ${section === "downloads" ? "active" : ""}`} onClick={() => go("downloads")}>
-          <span className="nav-icon">⤓</span> Downloads
+        <button className={`nav ${section === "downloads" ? "active" : ""}`} onClick={() => go("downloads")} title="Downloads">
+          <span className="nav-icon">⤓</span> <span className="lbl">Downloads</span>
           {activeDownloads > 0 && <small className="badge">{activeDownloads}</small>}
         </button>
         <div className="sidebar-title">
-          Your playlists
+          <span className="lbl">Your playlists</span>
           <button className="icon plus" title={online ? "New playlist" : "Needs the server"} disabled={!online} onClick={() => setNewPlaylist({ open: true, name: "" })}>
             +
           </button>
@@ -520,15 +532,21 @@ export function Library({ online, summary, version }: { online: boolean; summary
           {playlists.length === 0 && <div className="sidebar-empty">No playlists yet</div>}
         </div>
         <div className="sidebar-foot">
-          <label className="check">
+          <label className="check" title="Show only songs that are on this PC">
             <input type="checkbox" checked={localOnly} onChange={(e) => setLocalOnly(e.target.checked)} />
-            On this PC only
+            <span className="lbl">On this PC only</span>
           </label>
           {summary && (
-            <small>
+            <small className="lbl">
               {summary.local_tracks} of {summary.tracks} downloaded
             </small>
           )}
+          <button className={`nav ${section === "settings" ? "active" : ""}`} onClick={() => nav.push({ section: "settings", scope: {}, search: "", tab: view.tab ?? "general" })} title="Settings">
+            <span className="nav-icon">⚙</span> <span className="lbl">Settings</span>
+          </button>
+          <button className="nav collapse" onClick={() => setLayout({ sidebarCollapsed: !collapsed })} title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
+            <span className="nav-icon">{collapsed ? "»" : "«"}</span> <span className="lbl">Collapse sidebar</span>
+          </button>
         </div>
       </aside>
 
@@ -570,8 +588,15 @@ export function Library({ online, summary, version }: { online: boolean; summary
               {headerPlaylist.local_count} of {headerPlaylist.count} on this PC <DownloadGlyph on={headerPlaylist.keep_synced} />
             </small>
           )}
+          {showingTracks && search && (
+            <small className="head-owner">
+              matching “{search}”{" "}
+              <button className="link" onClick={() => setSearch("")}>
+                clear
+              </button>
+            </small>
+          )}
           {showingTracks && <DensityPicker small />}
-          {showingTracks && <input id="library-search" className="search" placeholder="Search title, artist, album" value={search} onChange={(e) => setSearch(e.target.value)} />}
         </div>
 
         {error && <div className="error">{error}</div>}
@@ -621,7 +646,9 @@ export function Library({ online, summary, version }: { online: boolean; summary
           />
         )}
 
-        {empty ? (
+        {section === "settings" ? (
+          renderSettings(view.tab ?? "general", (t) => nav.replace({ ...view, tab: t }))
+        ) : empty ? (
           <div className="empty">{online ? "Library is empty. Download something on the server, then press Sync." : "No library yet. Connect to the server once to sync it."}</div>
         ) : section === "downloads" ? (
           <Downloads
@@ -645,10 +672,7 @@ export function Library({ online, summary, version }: { online: boolean; summary
             openMenu={ctx.open}
             addToPlaylist={addToPlaylist}
             go={go}
-            openAlbum={(a) => {
-              setSection("albums");
-              setScope({ album: a });
-            }}
+            openAlbum={(a) => nav.push({ section: "albums", scope: { album: a } as Record<string, unknown>, search: "" })}
             albumMenu={albumMenu}
           />
         ) : showingTracks && layout.density === "grid" ? (
@@ -680,10 +704,7 @@ export function Library({ online, summary, version }: { online: boolean; summary
               <li key={a.artist_id}>
                 <button
                   className="rowbtn"
-                  onClick={() => {
-                    setScope({ artist: a });
-                    setSection("albums");
-                  }}
+                  onClick={() => nav.push({ section: "albums", scope: { artist: a } as Record<string, unknown>, search: "" })}
                 >
                   <span>{a.name}</span>
                   <small>

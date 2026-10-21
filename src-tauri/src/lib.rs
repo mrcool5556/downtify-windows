@@ -6,6 +6,7 @@ mod server;
 mod settings;
 #[cfg(windows)]
 mod smtc;
+mod tray;
 
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -28,7 +29,23 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, None))
         .register_asynchronous_uri_scheme_protocol("media", media::handle)
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let close_to_tray = window
+                    .app_handle()
+                    .state::<AppState>()
+                    .settings
+                    .lock()
+                    .map(|s| s.close_to_tray)
+                    .unwrap_or(true);
+                if close_to_tray {
+                    api.prevent_close();
+                    let _ = window.hide();
+                }
+            }
+        })
         .setup(|app| {
             let config_dir = app.path().app_config_dir()?;
             let data_dir = app.path().app_data_dir()?;
@@ -63,6 +80,9 @@ pub fn run() {
                 smtc: Mutex::new(smtc),
             });
             commands::verify_local_files(app.handle());
+            if let Err(e) = tray::build(app.handle()) {
+                eprintln!("tray unavailable: {e}");
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -112,6 +132,12 @@ pub fn run() {
             commands::set_playlist_visibility,
             commands::copy_playlist,
             commands::detach_playlist,
+            commands::set_close_to_tray,
+            commands::set_start_with_windows,
+            commands::quit_app,
+            commands::request_download,
+            commands::check_app_update,
+            commands::set_tray_tooltip,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Downtify");

@@ -984,3 +984,91 @@ pub async fn detach_playlist(state: State<'_, AppState>, name: String) -> Result
         .map_err(web_err)?;
     pull_playlists(&state, &client).await
 }
+
+// ── Shell: tray, startup, link downloads, updates ───────────────────────
+
+#[tauri::command]
+pub fn set_close_to_tray(state: State<AppState>, on: bool) -> Result<SettingsView, String> {
+    let mut s = state.settings.lock().map_err(|e| e.to_string())?;
+    s.close_to_tray = on;
+    settings::save(&state.settings_path, &s)?;
+    Ok(view(&s))
+}
+
+#[tauri::command]
+pub fn set_start_with_windows(app: tauri::AppHandle, state: State<AppState>, on: bool) -> Result<SettingsView, String> {
+    use tauri_plugin_autostart::ManagerExt;
+    let launcher = app.autolaunch();
+    if on {
+        launcher.enable().map_err(|e| e.to_string())?;
+    } else {
+        launcher.disable().map_err(|e| e.to_string())?;
+    }
+    let mut s = state.settings.lock().map_err(|e| e.to_string())?;
+    s.start_with_windows = launcher.is_enabled().unwrap_or(on);
+    settings::save(&state.settings_path, &s)?;
+    Ok(view(&s))
+}
+
+#[tauri::command]
+pub fn quit_app(app: tauri::AppHandle) {
+    app.exit(0);
+}
+
+#[tauri::command]
+pub fn set_tray_tooltip(app: tauri::AppHandle, text: String) {
+    crate::tray::set_tooltip(&app, &text);
+}
+
+/// Ask the server to download a Spotify / YouTube Music link.
+#[tauri::command]
+pub async fn request_download(state: State<'_, AppState>, url: String) -> Result<Value, String> {
+    let client = client_for(&state)?;
+    let u = url.trim();
+    if !(u.starts_with("http://") || u.starts_with("https://")) {
+        return Err("Paste a full link".into());
+    }
+    let encoded: String = u
+        .bytes()
+        .map(|b| match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => (b as char).to_string(),
+            _ => format!("%{:02X}", b),
+        })
+        .collect();
+    client
+        .send_json(reqwest::Method::POST, &format!("/api/download/url?url={encoded}"), &serde_json::json!({}))
+        .await
+        .map_err(String::from)
+}
+
+#[derive(Serialize)]
+pub struct UpdateInfo {
+    pub current: String,
+    pub latest: String,
+    pub newer: bool,
+    pub url: String,
+}
+
+/// Compare the running version with the newest GitHub release.
+#[tauri::command]
+pub async fn check_app_update() -> Result<UpdateInfo, String> {
+    let current = env!("CARGO_PKG_VERSION").to_string();
+    let client = reqwest::Client::builder()
+        .user_agent(concat!("DowntifyDesktop/", env!("CARGO_PKG_VERSION")))
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .map_err(|e| e.to_string())?;
+    let v: Value = client
+        .get("https://api.github.com/repos/mrcool5556/downtify-windows/releases/latest")
+        .send()
+        .await
+        .map_err(|e| e.to_string())?
+        .json()
+        .await
+        .map_err(|e| e.to_string())?;
+    let tag = v.get("tag_name").and_then(|t| t.as_str()).unwrap_or("").trim_start_matches('v').to_string();
+    let url = v.get("html_url").and_then(|t| t.as_str()).unwrap_or("https://github.com/mrcool5556/downtify-windows/releases").to_string();
+    let parse = |s: &str| -> Vec<u64> { s.split('.').filter_map(|p| p.parse().ok()).collect() };
+    let newer = !tag.is_empty() && parse(&tag) > parse(&current);
+    Ok(UpdateInfo { current, latest: tag, newer, url })
+}

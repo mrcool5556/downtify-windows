@@ -123,6 +123,9 @@ class PlayerStore {
         case "play":
           this.play();
           break;
+        case "toggle":
+          this.toggle();
+          break;
         case "pause":
           this.pause();
           break;

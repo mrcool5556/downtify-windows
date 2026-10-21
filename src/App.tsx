@@ -1,26 +1,37 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { api, fmtAgo, fmtWhen, playerApi, Settings, ServerStatus, Summary } from "./api";
 import { Setup } from "./views/Setup";
 import { Library } from "./views/Library";
 import { SettingsView } from "./views/SettingsView";
 import { PlayerBar } from "./components/PlayerBar";
 import { QueuePanel } from "./components/QueuePanel";
+import { ShortcutsOverlay } from "./components/ShortcutsOverlay";
 import { player } from "./player/store";
 import { usePlayer } from "./player/usePlayer";
 import { likeBus } from "./likeBus";
 import { localBus } from "./downloads";
+import { nav, useNav } from "./nav";
+import { ThemeToggle } from "./layout";
 
-type Page = "library" | "settings";
+const LIST_SECTIONS = new Set(["tracks", "albums", "playlists"]);
+
+function looksLikeLink(s: string) {
+  return /^https?:\/\/\S+$/i.test(s.trim());
+}
 
 export default function App() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [status, setStatus] = useState<ServerStatus | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
-  const [page, setPage] = useState<Page>("library");
   const [syncing, setSyncing] = useState(false);
   const [notice, setNotice] = useState<string>("");
   const [libraryVersion, setLibraryVersion] = useState(0);
+  const [shortcuts, setShortcuts] = useState(false);
   const { queueOpen, current } = usePlayer();
+  const { view, canBack, canForward } = useNav();
+  const searchRef = useRef<HTMLInputElement>(null);
+  const [query, setQuery] = useState("");
 
   const refreshSummary = useCallback(async () => {
     try {
@@ -82,37 +93,80 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings?.paired, status?.online]);
 
-  // Downloaded count follows files landing or being removed.
   useEffect(() => localBus.on(() => refreshSummary()), [refreshSummary]);
 
-  // Notices are transient.
   useEffect(() => {
     if (!notice) return;
     const t = setTimeout(() => setNotice(""), 6000);
     return () => clearTimeout(t);
   }, [notice]);
 
-  // Re-probe the server every 30 s so the badge recovers after an outage.
   useEffect(() => {
     if (!settings?.paired) return;
     const t = setInterval(checkStatus, 30_000);
     return () => clearInterval(t);
   }, [settings?.paired, checkStatus]);
 
-  // Keyboard shortcuts.
+  // The search box mirrors the current list view's filter.
+  useEffect(() => {
+    if (LIST_SECTIONS.has(view.section)) setQuery(view.search);
+    else if (!looksLikeLink(query)) setQuery("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view]);
+
+  function onQuery(q: string) {
+    setQuery(q);
+    if (looksLikeLink(q)) return;
+    const onSongs = view.section === "tracks";
+    const onScopedList = LIST_SECTIONS.has(view.section) && ("album" in view.scope || "playlist" in view.scope);
+    if (onSongs || onScopedList) {
+      nav.replace({ ...view, search: q });
+    } else if (q.trim()) {
+      nav.push({ section: "tracks", scope: {}, search: q });
+    }
+  }
+
+  async function onSearchEnter() {
+    if (!looksLikeLink(query)) return;
+    try {
+      await invoke("request_download", { url: query.trim() });
+      setNotice("Sent to the server. It will show up after the next sync.");
+      setQuery("");
+    } catch (e) {
+      setNotice(`Server refused the link: ${e}`);
+    }
+  }
+
   const online = !!status?.online;
+
+  // Keyboard shortcuts.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       const el = e.target as HTMLElement | null;
       const typing = !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
-      if (e.ctrlKey && e.key.toLowerCase() === "f") {
+      if (e.ctrlKey && (e.key.toLowerCase() === "f" || e.key.toLowerCase() === "k")) {
         e.preventDefault();
-        setPage("library");
-        setTimeout(() => document.getElementById("library-search")?.focus(), 0);
+        searchRef.current?.focus();
+        searchRef.current?.select();
         return;
       }
-      if (typing && !(el instanceof HTMLInputElement && el.type === "range")) return;
-      if (e.key === " ") {
+      if (e.altKey && e.key === "ArrowLeft") {
+        e.preventDefault();
+        nav.back();
+        return;
+      }
+      if (e.altKey && e.key === "ArrowRight") {
+        e.preventDefault();
+        nav.forward();
+        return;
+      }
+      if (typing && !(el instanceof HTMLInputElement && el.type === "range")) {
+        if (e.key === "Escape" && el === searchRef.current) searchRef.current?.blur();
+        return;
+      }
+      if (e.key === "?") {
+        setShortcuts((s) => !s);
+      } else if (e.key === " ") {
         e.preventDefault();
         player.toggle();
       } else if (e.key === "ArrowLeft" && e.ctrlKey) {
@@ -137,9 +191,11 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, [online]);
 
-  // Window title follows the song.
+  // Window title and tray tooltip follow the song.
   useEffect(() => {
-    document.title = current ? `${current.title} — ${current.artist} · Downtify` : "Downtify";
+    const text = current ? `${current.title} — ${current.artist}` : "";
+    document.title = current ? `${text} · Downtify` : "Downtify";
+    invoke("set_tray_tooltip", { text }).catch(() => {});
   }, [current?.id, current?.title, current?.artist]);
 
   if (!settings) return <div className="boot">Loading…</div>;
@@ -156,6 +212,7 @@ export default function App() {
   }
 
   const unpairedRemotely = status && status.online && !status.paired;
+  const isLink = looksLikeLink(query);
 
   return (
     <div className="shell">
@@ -165,28 +222,55 @@ export default function App() {
             ♫
           </span>
           <span>Downtify</span>
-          {settings.server_name && settings.server_name.toLowerCase() !== "downtify" && (
-            <span className="server-name">{settings.server_name}</span>
+          {settings.server_name && settings.server_name.toLowerCase() !== "downtify" && <span className="server-name">{settings.server_name}</span>}
+        </div>
+        <div className="histnav">
+          <button className="icon" disabled={!canBack} onClick={() => nav.back()} title="Back (Alt+←)">
+            ‹
+          </button>
+          <button className="icon" disabled={!canForward} onClick={() => nav.forward()} title="Forward (Alt+→)">
+            ›
+          </button>
+        </div>
+        <div className={`searchbox ${isLink ? "link" : ""}`}>
+          <span className="searchbox-icon" aria-hidden>
+            ⌕
+          </span>
+          <input
+            ref={searchRef}
+            placeholder={online ? "Search, or paste a Spotify or YouTube Music link" : "Search your library"}
+            value={query}
+            onChange={(e) => onQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && onSearchEnter()}
+          />
+          {isLink ? (
+            <button className="small primary" onClick={onSearchEnter} disabled={!online} title="Ask the server to download this">
+              Download
+            </button>
+          ) : query ? (
+            <button className="icon" onClick={() => onQuery("")} title="Clear">
+              ✕
+            </button>
+          ) : (
+            <kbd>Ctrl K</kbd>
           )}
         </div>
-        <nav className="tabs">
-          <button className={page === "library" ? "active" : ""} onClick={() => setPage("library")}>
-            Library
+        <div className="topbar-right">
+          <button className="icon" onClick={() => setShortcuts(true)} title="Keyboard shortcuts (?)">
+            ⌨
           </button>
-          <button className={page === "settings" ? "active" : ""} onClick={() => setPage("settings")}>
-            Settings
-          </button>
-        </nav>
-        <div className="status">
-          <span className={`dot ${online ? "on" : "off"}`} />
-          <span>{online ? "Online" : "Offline"}</span>
-          <div className="sync-box">
-            <button className="ghost" disabled={!online || syncing} onClick={() => sync(false)} title="Sync library">
-              {syncing ? "Syncing…" : "Sync"}
-            </button>
-            <small className="last-sync" title={summary?.last_sync ? fmtWhen(summary.last_sync) : "never"}>
-              {summary?.last_sync ? `synced ${fmtAgo(summary.last_sync)}` : "never synced"}
-            </small>
+          <ThemeToggle />
+          <div className="status">
+            <span className={`dot ${online ? "on" : "off"}`} />
+            <span>{online ? "Online" : "Offline"}</span>
+            <div className="sync-box">
+              <button className="ghost" disabled={!online || syncing} onClick={() => sync(false)} title="Sync library">
+                {syncing ? "Syncing…" : "Sync"}
+              </button>
+              <small className="last-sync" title={summary?.last_sync ? fmtWhen(summary.last_sync) : "never"}>
+                {summary?.last_sync ? `synced ${fmtAgo(summary.last_sync)}` : "never synced"}
+              </small>
+            </div>
           </div>
         </div>
       </header>
@@ -194,44 +278,40 @@ export default function App() {
       {unpairedRemotely && (
         <div className="banner warn">
           This PC was unpaired on the server. Your downloaded files still play.{" "}
-          <button className="link" onClick={() => setPage("settings")}>
+          <button className="link" onClick={() => nav.push({ section: "settings", scope: {}, search: "", tab: "server" })}>
             Pair again
           </button>
         </div>
       )}
-      {!online && status && (
-        <div className="banner muted">
-          Server unreachable ({status.detail || "offline"}). Showing your local library; downloaded tracks play as normal.
-        </div>
-      )}
+      {!online && status && <div className="banner muted">Server unreachable ({status.detail || "offline"}). Showing your local library; downloaded tracks play as normal.</div>}
       {notice && <div className="banner info">{notice}</div>}
 
       <main className="content">
-        {page === "library" ? (
-          <Library online={online} summary={summary} version={libraryVersion} />
-        ) : (
-          <SettingsView
-            settings={settings}
-            summary={summary}
-            onSettings={setSettings}
-            onResync={() => sync(true)}
-            onUnpaired={(s) => {
-              setSettings(s);
-              setSummary(null);
-              setStatus(null);
-            }}
-          />
-        )}
+        <Library
+          online={online}
+          summary={summary}
+          version={libraryVersion}
+          renderSettings={(tab, setTab) => (
+            <SettingsView
+              tab={tab}
+              setTab={setTab}
+              settings={settings}
+              summary={summary}
+              onSettings={setSettings}
+              onResync={() => sync(true)}
+              onUnpaired={(s) => {
+                setSettings(s);
+                setSummary(null);
+                setStatus(null);
+              }}
+            />
+          )}
+        />
         {queueOpen && <QueuePanel online={online} />}
       </main>
 
-      <PlayerBar
-        online={online}
-        onReveal={() => {
-          setPage("library");
-          player.reveal();
-        }}
-      />
+      <PlayerBar online={online} onReveal={() => player.reveal()} />
+      {shortcuts && <ShortcutsOverlay onClose={() => setShortcuts(false)} />}
     </div>
   );
 }

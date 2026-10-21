@@ -22,6 +22,16 @@ pub struct Settings {
     /// Download whatever gets played (off by default).
     #[serde(default)]
     pub keep_played: bool,
+    /// Closing the window hides to the tray and keeps playing.
+    #[serde(default = "default_true")]
+    pub close_to_tray: bool,
+    /// Mirror of the autostart registration, for the UI.
+    #[serde(default)]
+    pub start_with_windows: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 impl Settings {

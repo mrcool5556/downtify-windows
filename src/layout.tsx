@@ -2,14 +2,17 @@
 import { useSyncExternalStore } from "react";
 
 export type Density = "compact" | "comfortable" | "grid";
+export type Theme = "dark" | "light";
 
 export interface LayoutPrefs {
   density: Density;
   rowArt: boolean;
+  theme: Theme;
+  sidebarCollapsed: boolean;
 }
 
 const KEY = "downtify.layout";
-const DEFAULTS: LayoutPrefs = { density: "compact", rowArt: true };
+const DEFAULTS: LayoutPrefs = { density: "compact", rowArt: true, theme: "dark", sidebarCollapsed: false };
 
 let prefs: LayoutPrefs = load();
 const listeners = new Set<() => void>();
@@ -23,6 +26,11 @@ function load(): LayoutPrefs {
   }
 }
 
+function applyTheme() {
+  document.documentElement.dataset.theme = prefs.theme;
+}
+applyTheme();
+
 export function setLayout(patch: Partial<LayoutPrefs>) {
   prefs = { ...prefs, ...patch };
   try {
@@ -30,6 +38,7 @@ export function setLayout(patch: Partial<LayoutPrefs>) {
   } catch {
     /* fine */
   }
+  applyTheme();
   for (const l of listeners) l();
 }
 
@@ -88,5 +97,15 @@ export function DensityPicker({ small }: { small?: boolean }) {
         </button>
       ))}
     </div>
+  );
+}
+
+export function ThemeToggle() {
+  const { theme } = useLayout();
+  const next: Theme = theme === "dark" ? "light" : "dark";
+  return (
+    <button className="icon" onClick={() => setLayout({ theme: next })} title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}>
+      {theme === "dark" ? "☀" : "☾"}
+    </button>
   );
 }

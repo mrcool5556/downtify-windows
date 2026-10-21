@@ -10,6 +10,8 @@ export interface Settings {
   music_dir: string;
   stream_quality: string;
   keep_played: boolean;
+  close_to_tray: boolean;
+  start_with_windows: boolean;
   paired: boolean;
   default_music_dir: string;
 }
