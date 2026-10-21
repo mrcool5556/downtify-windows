@@ -1057,13 +1057,11 @@ function Home({
 }) {
   const [recentAlbums, setRecentAlbums] = useState<Album[]>([]);
   const [recentSongs, setRecentSongs] = useState<Track[]>([]);
-  const [recentPlays, setRecentPlays] = useState<Track[]>([]);
   const { player, current } = usePlayer();
 
   useEffect(() => {
     homeApi.recentAlbums(12).then(setRecentAlbums).catch(() => {});
     api.listTracks({ limit: 15 }).then(setRecentSongs).catch(() => {});
-    homeApi.recentPlays(15).then(setRecentPlays).catch(() => {});
   }, [summary?.tracks, current?.id]);
 
   useEffect(
@@ -1071,7 +1069,6 @@ function Home({
       likeBus.on((id, liked) => {
         const fix = (ts: Track[]) => ts.map((t) => (t.id === id ? { ...t, liked } : t));
         setRecentSongs(fix);
-        setRecentPlays(fix);
       }),
     [],
   );
@@ -1080,7 +1077,6 @@ function Home({
       localBus.on((id, local_path) => {
         const fix = (ts: Track[]) => ts.map((t) => (t.id === id ? { ...t, local_path } : t));
         setRecentSongs(fix);
-        setRecentPlays(fix);
       }),
     [],
   );
@@ -1117,12 +1113,7 @@ function Home({
       <h3>Recently added songs</h3>
       <TrackTable tracks={recentSongs} online={online} showAlbum onPlay={(i) => player.playList(recentSongs, i, hctx("recent-songs"))} compact env={homeEnv} openMenu={openMenu} addToPlaylist={addToPlaylist} />
 
-      {recentPlays.length > 0 && (
-        <>
-          <h3>Recently played</h3>
-          <TrackTable tracks={recentPlays} online={online} showAlbum onPlay={(i) => player.playList(recentPlays, i, hctx("recent-plays"))} compact env={homeEnv} openMenu={openMenu} addToPlaylist={addToPlaylist} />
-        </>
-      )}
+
     </div>
   );
 }
