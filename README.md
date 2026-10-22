@@ -27,7 +27,7 @@ Plays are reported to the server the way the web player does (queued while offli
 
 ## Install
 
-Download the latest installer from the Releases page and run it. Windows 11 ships WebView2; on Windows 10 the installer fetches it if needed.
+Download the latest installer from the [Releases page](https://github.com/mrcool5556/downtify-windows/releases) and run it. It is unsigned, so Windows SmartScreen warns on first run. Windows 11 ships WebView2; on Windows 10 the installer fetches it if needed.
 
 On first launch, type your server address, press Check, then open **Settings → Apps → Pair a phone** on the server's web page and enter the code.
 
