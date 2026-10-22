@@ -170,18 +170,14 @@ export function Library({
     let un: (() => void) | undefined;
     listen("playlists-refreshed", () => {
       api.listPlaylists().then(setPlaylists).catch(() => {});
-      setTracksVersion((v) => v + 1);
+      if (nav.current().section === "playlists") setTracksVersion((v) => v + 1);
     }).then((u) => (un = u));
     return () => un?.();
   }, []);
-  const reloadPlaylists = useCallback(
-    (list?: PlaylistSummary[]) => {
-      if (list) setPlaylists(list);
-      else api.listPlaylists().then(setPlaylists).catch(() => {});
-      refreshLists();
-    },
-    [refreshLists],
-  );
+  const reloadPlaylists = useCallback((list?: PlaylistSummary[]) => {
+    if (list) setPlaylists(list);
+    else api.listPlaylists().then(setPlaylists).catch(() => {});
+  }, []);
 
   useEffect(() => {
     reloadPlaylists();
@@ -199,7 +195,7 @@ export function Library({
             artist_id: scope.album ? undefined : scope.artist?.artist_id,
             playlist: scope.playlist?.name,
             local_only: localOnly,
-            limit: 2000,
+            limit: 20000,
           });
           if (!cancelled) setTracks(list);
         } else if (section === "albums") {
@@ -250,6 +246,7 @@ export function Library({
     try {
       const list = await op();
       reloadPlaylists(list);
+      refreshLists();
       setNotice(label);
     } catch (e) {
       setNotice(String(e));
@@ -324,6 +321,7 @@ export function Library({
     try {
       const r = await playlistsApi.editTracks(name, ids, []);
       reloadPlaylists(r.playlists);
+      if (scope.playlist?.name === name) refreshLists();
       setNotice(`Added ${r.added} to "${name}"${r.skipped ? ` (${r.skipped} skipped: not on the server)` : ""}${r.added === 0 && !r.skipped ? " (already there)" : ""}`);
     } catch (e) {
       setNotice(String(e));
@@ -334,6 +332,7 @@ export function Library({
     try {
       const r = await playlistsApi.editTracks(name, [], ids);
       reloadPlaylists(r.playlists);
+      if (scope.playlist?.name === name) refreshLists();
       setNotice(`Removed ${r.removed} from "${name}"`);
     } catch (e) {
       setNotice(String(e));

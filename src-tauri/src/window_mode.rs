@@ -42,7 +42,11 @@ pub fn current_bounds(win: &WebviewWindow) -> Option<Bounds> {
     Some(Bounds { x: pos.x, y: pos.y, w: size.width, h: size.height })
 }
 
-/// Remember where the window is for the shape it is currently in.
+static SAVE_GEN: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// Remember where the window is for the shape it is currently in. The
+/// value is kept in memory at once and written to disk about a second
+/// after the last move or resize, not on every event.
 pub fn remember_bounds(app: &AppHandle) {
     let Some(win) = main_window(app) else { return };
     if win.is_minimized().unwrap_or(false) || win.is_maximized().unwrap_or(false) {
@@ -50,15 +54,35 @@ pub fn remember_bounds(app: &AppHandle) {
     }
     let Some(b) = current_bounds(&win) else { return };
     let state = app.state::<AppState>();
-    let mut guard = match state.settings.lock() {
+    {
+        let mut guard = match state.settings.lock() {
+            Ok(g) => g,
+            Err(_) => return,
+        };
+        if guard.mini {
+            guard.mini_bounds = Some(b);
+        } else {
+            guard.full_bounds = Some(b);
+        }
+    }
+    let gen = SAVE_GEN.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
+    let app2 = app.clone();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_millis(900)).await;
+        if SAVE_GEN.load(std::sync::atomic::Ordering::SeqCst) != gen {
+            return;
+        }
+        save_now(&app2);
+    });
+}
+
+/// Write the current settings (used by the debounce and before hide/quit).
+pub fn save_now(app: &AppHandle) {
+    let state = app.state::<AppState>();
+    let guard = match state.settings.lock() {
         Ok(g) => g,
         Err(_) => return,
     };
-    if guard.mini {
-        guard.mini_bounds = Some(b);
-    } else {
-        guard.full_bounds = Some(b);
-    }
     let _ = settings::save(&state.settings_path, &guard);
     drop(guard);
 }

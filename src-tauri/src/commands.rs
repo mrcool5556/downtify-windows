@@ -490,7 +490,10 @@ pub fn now_playing(
 ) -> Result<(), String> {
     #[cfg(windows)]
     {
-        let thumb = crate::media::cover_cache_path(&app, &track_id, 300);
+        let thumb = [300u32, 150, 600]
+            .iter()
+            .filter_map(|s| crate::media::cover_cache_path(&app, &track_id, *s))
+            .find(|p| p.exists());
         let guard = state.smtc.lock().map_err(|e| e.to_string())?;
         if let Some(smtc) = guard.as_ref() {
             smtc.update(&title, &artist, &album, &status, thumb.as_deref())
@@ -560,9 +563,13 @@ pub fn verify_local_files(app: &tauri::AppHandle) {
         Ok(c) => c,
         Err(_) => return,
     };
+    // A missing drive is not a deleted song: only forget a file whose
+    // folder is there but the file is not.
     if let Ok(files) = db::local_files(&conn) {
         for (id, path) in files {
-            if !std::path::Path::new(&path).is_file() {
+            let p = std::path::Path::new(&path);
+            let parent_present = p.parent().map(|d| d.is_dir()).unwrap_or(false);
+            if parent_present && !p.is_file() {
                 let _ = db::clear_local_file(&conn, &id);
             }
         }
@@ -604,7 +611,7 @@ pub fn set_keep_synced(app: tauri::AppHandle, state: State<AppState>, name: Stri
         if on {
             db::playlist_track_ids(&conn, &name)?
                 .into_iter()
-                .filter(|id| db::local_path(&conn, id).is_none())
+                .filter(|id| db::local_path(&conn, id).is_none() && db::track_exists(&conn, id).unwrap_or(false))
                 .collect::<Vec<_>>()
         } else {
             Vec::new()

@@ -44,11 +44,18 @@ export const localBus = {
 
 let map = new Map<string, Progress>();
 const listeners = new Set<() => void>();
+const perTrack = new Map<string, Set<() => void>>();
 let snapshotCache: Progress[] = [];
 
-function publish() {
+function publish(changed?: string) {
   snapshotCache = Array.from(map.values());
   for (const l of listeners) l();
+  if (changed) {
+    const ls = perTrack.get(changed);
+    if (ls) for (const l of ls) l();
+  } else {
+    for (const ls of perTrack.values()) for (const l of ls) l();
+  }
 }
 
 downloadsApi
@@ -61,7 +68,7 @@ downloadsApi
 
 listen<Progress>("download-progress", (e) => {
   map.set(e.payload.track_id, e.payload);
-  publish();
+  publish(e.payload.track_id);
 });
 
 listen<{ track_id: string; local_path: string | null }>("download-done", (e) => {
@@ -81,9 +88,24 @@ export function useDownloads(): Progress[] {
   );
 }
 
+/** One track's progress; re-renders only when that track's entry changes. */
 export function useDownload(trackId: string | undefined): Progress | undefined {
-  const all = useDownloads();
-  return trackId ? all.find((p) => p.track_id === trackId) : undefined;
+  return useSyncExternalStore(
+    (l) => {
+      if (!trackId) return () => {};
+      let set = perTrack.get(trackId);
+      if (!set) {
+        set = new Set();
+        perTrack.set(trackId, set);
+      }
+      set.add(l);
+      return () => {
+        set!.delete(l);
+        if (set!.size === 0) perTrack.delete(trackId);
+      };
+    },
+    () => (trackId ? map.get(trackId) : undefined),
+  );
 }
 
 export function clearFinished() {

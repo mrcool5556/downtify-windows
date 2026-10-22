@@ -16,6 +16,12 @@ export interface PlayContext {
   localOnly: boolean;
 }
 
+export interface ProgressSnapshot {
+  position: number;
+  duration: number;
+  loading: boolean;
+}
+
 export interface PlayerSnapshot {
   queue: Track[];
   /** Play order as indices into `queue` (identity order unless shuffled). */
@@ -60,6 +66,8 @@ function shuffledOrder(n: number, first: number): number[] {
 class PlayerStore {
   private audio = new Audio();
   private listeners = new Set<Listener>();
+  private progressListeners = new Set<Listener>();
+  private progress: ProgressSnapshot = { position: 0, duration: 0, loading: false };
   private snap: PlayerSnapshot = {
     queue: [],
     order: [],
@@ -153,10 +161,32 @@ class PlayerStore {
     };
   };
   getSnapshot = () => this.snap;
+  subscribeProgress = (l: Listener): (() => void) => {
+    this.progressListeners.add(l);
+    return () => {
+      this.progressListeners.delete(l);
+    };
+  };
+  getProgress = () => this.progress;
 
+  /** Position, duration and loading tick several times a second; they go to
+   *  progress subscribers only, so lists keyed on the main snapshot stay still. */
   private set(patch: Partial<PlayerSnapshot>) {
-    this.snap = { ...this.snap, ...patch };
-    for (const l of this.listeners) l();
+    const { position, duration, loading, ...rest } = patch;
+    let progressChanged = false;
+    if (position !== undefined || duration !== undefined || loading !== undefined) {
+      this.progress = {
+        position: position ?? this.progress.position,
+        duration: duration ?? this.progress.duration,
+        loading: loading ?? this.progress.loading,
+      };
+      progressChanged = true;
+    }
+    if (Object.keys(rest).length) {
+      this.snap = { ...this.snap, ...rest };
+      for (const l of this.listeners) l();
+    }
+    if (progressChanged) for (const l of this.progressListeners) l();
   }
 
   // ── Restore / persist ───────────────────────────────────────────────
@@ -187,9 +217,13 @@ class PlayerStore {
         context: (s.context as PlayContext | null) ?? null,
       });
       if (cursor >= 0) {
-        // Load the track so the bar shows it, but do not start playing.
+        // Show the track without starting it. A local file is loaded so
+        // seeking works at once; a streamed one waits for play, so an
+        // offline launch never shows a network error unasked.
         this.pendingSeek = typeof s.position === "number" ? s.position : null;
-        await this.loadCurrent(false);
+        const cur = queue[order[cursor]];
+        this.set({ duration: cur?.duration ?? 0, position: this.pendingSeek ?? 0 });
+        if (cur?.local_path) await this.loadCurrent(false);
       }
     } catch {
       /* start fresh */

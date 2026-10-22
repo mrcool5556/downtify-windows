@@ -180,6 +180,8 @@ export default function App() {
         setShortcuts((s) => !s);
       } else if (e.key === " ") {
         e.preventDefault();
+        // A focused button would also fire on the key-up; drop focus first.
+        if (el && el.tagName === "BUTTON") el.blur();
         player.toggle();
       } else if (e.key === "ArrowLeft" && e.ctrlKey) {
         e.preventDefault();

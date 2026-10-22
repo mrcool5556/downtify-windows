@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { coverUrl, fmtDuration, playerApi } from "../api";
-import { usePlayer } from "../player/usePlayer";
+import { usePlayer, usePlayerProgress } from "../player/usePlayer";
 import { likeBus } from "../likeBus";
 import { DownloadButton } from "./DownloadButton";
 import { MiniIcon, RepeatIcon, RepeatOneIcon, ShuffleIcon, VolumeIcon } from "./Icons";
@@ -11,7 +11,7 @@ import { useEffect, useState as useState2 } from "react";
 import { api, PlaylistSummary, playlistsApi } from "../api";
 
 export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onReveal: () => void; onMini: () => void }) {
-  const p = usePlayer();
+  const p = { ...usePlayer(), ...usePlayerProgress() };
   const { player, current } = p;
   const [likeBusy, setLikeBusy] = useState(false);
   const [coverOk, setCoverOk] = useState(true);

@@ -48,6 +48,7 @@ pub fn run() {
                     .lock()
                     .map(|s| s.close_to_tray)
                     .unwrap_or(true);
+                window_mode::save_now(window.app_handle());
                 if close_to_tray {
                     api.prevent_close();
                     let _ = window.hide();

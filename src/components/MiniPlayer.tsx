@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Settings, coverUrl, fmtDuration, playerApi } from "../api";
-import { usePlayer } from "../player/usePlayer";
+import { usePlayer, usePlayerProgress } from "../player/usePlayer";
 import { likeBus } from "../likeBus";
 import { DownloadButton } from "./DownloadButton";
 import { WindowControls } from "./WindowControls";
@@ -17,7 +17,7 @@ interface Props {
 }
 
 export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Props) {
-  const p = usePlayer();
+  const p = { ...usePlayer(), ...usePlayerProgress() };
   const { player, current } = p;
   const [coverOk, setCoverOk] = useState(true);
   const fadeTimer = useRef<number | undefined>(undefined);
