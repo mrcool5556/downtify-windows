@@ -5,10 +5,14 @@ A Windows desktop client for a self-hosted [Downtify](https://github.com/henriqu
 Built with Tauri 2, React and Rust. Early and under active development; expect rough edges. Issues and ideas are welcome.
 
 <p align="center">
-  <img src="docs/screenshots/mini-solid.png" alt="Mini player" width="460">
-  <br>
-  <img src="docs/screenshots/mini-drawer-faded.png" alt="Mini player with the up-next drawer open, faded over the desktop" width="460">
+  <img src="docs/screenshots/full-window.png" alt="The full window: Home with recently added albums and songs, playlists in the sidebar, player bar at the bottom" width="860">
 </p>
+<p align="center">
+  <img src="docs/screenshots/mini-solid.png" alt="Mini player" width="420">
+  &nbsp;
+  <img src="docs/screenshots/mini-drawer-faded.png" alt="Mini player with the up-next drawer open, faded over the desktop" width="420">
+</p>
+<p align="center"><sub>The full window, and the mini player (Ctrl+M) solid and faded over the desktop.</sub></p>
 
 ## What it does
 
