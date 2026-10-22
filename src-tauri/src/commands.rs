@@ -1187,3 +1187,16 @@ pub fn set_mini_opacity_mode(app: tauri::AppHandle, state: State<AppState>, mode
 pub fn window_opacity_now(app: tauri::AppHandle, percent: u8) {
     crate::window_mode::opacity_now(&app, percent);
 }
+
+// ── In-app updates (GitHub releases + checksum) ─────────────────────────
+
+#[tauri::command]
+pub async fn check_updates() -> Result<crate::updater::UpdateCheck, String> {
+    crate::updater::check().await
+}
+
+#[tauri::command]
+pub async fn install_update(app: tauri::AppHandle, release: Value) -> Result<(), String> {
+    let r: crate::updater::Release = serde_json::from_value(release).map_err(|e| e.to_string())?;
+    crate::updater::install(app, r).await
+}

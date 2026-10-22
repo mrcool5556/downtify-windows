@@ -2730,3 +2730,62 @@ table.tracks td.c-dl {
 .conn {
   padding: 2px 0 0;
 }
+
+
+/* Updates */
+.upd-dot {
+  margin-left: auto;
+  margin-right: 0;
+}
+.upd-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 200px;
+}
+.upd-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+}
+.upd-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+  transition: width 0.2s;
+}
+.upd-progress small {
+  color: var(--fg-2);
+}
+.release {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.release:last-child {
+  border-bottom: none;
+}
+.release-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.release-head small {
+  color: var(--fg-2);
+}
+.notes p {
+  margin: 6px 0;
+}
+.notes ul {
+  margin: 4px 0 6px;
+  padding-left: 20px;
+}
+.notes h4 {
+  margin: 8px 0 2px;
+  font-size: 13px;
+}
+.notes code {
+  background: var(--bg);
+  padding: 1px 4px;
+  border-radius: 4px;
+}

@@ -7,6 +7,7 @@ mod settings;
 #[cfg(windows)]
 mod smtc;
 mod tray;
+mod updater;
 pub mod window_mode;
 
 use std::path::PathBuf;
@@ -151,6 +152,8 @@ pub fn run() {
             commands::quit_app,
             commands::request_download,
             commands::check_app_update,
+            commands::check_updates,
+            commands::install_update,
             commands::set_tray_tooltip,
             commands::set_mini,
             commands::set_mini_pinned,

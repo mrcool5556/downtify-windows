@@ -5,6 +5,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { Settings, Summary, WebStatus, api, fmtWhen, playerApi, playlistsApi } from "../api";
 import { DensityPicker, ThemeToggle, setLayout, useLayout } from "../layout";
 import { downloadsApi } from "../downloads";
+import { checkForUpdates, fmtMb, installUpdate, useUpdates } from "../updates";
 
 interface Props {
   tab: string;
@@ -284,22 +285,15 @@ function Music({ settings, onSettings, setError }: Sub) {
 }
 
 function About({ setError }: { setError: (s: string) => void }) {
-  const [info, setInfo] = useState<{ current: string; latest: string; newer: boolean; url: string } | null>(null);
-  const [checking, setChecking] = useState(false);
-  async function check() {
-    setChecking(true);
-    try {
-      setInfo(await invoke("check_app_update"));
-    } catch (e) {
-      setError(String(e));
-    } finally {
-      setChecking(false);
-    }
-  }
+  const u = useUpdates();
+  const latest = u.newer[0];
   useEffect(() => {
-    check();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (!u.checkedAt && !u.checking) checkForUpdates();
+  }, [u.checkedAt, u.checking]);
+  useEffect(() => {
+    if (u.error) setError(u.error);
+  }, [u.error, setError]);
+  const pct = u.progress && u.progress.total > 0 ? Math.round((u.progress.received / u.progress.total) * 100) : 0;
   return (
     <>
       <section className="card about">
@@ -309,22 +303,54 @@ function About({ setError }: { setError: (s: string) => void }) {
           </span>
           <div>
             <h2>Downtify for Windows</h2>
-            <div className="hint">Version {info?.current ?? "…"}</div>
+            <div className="hint">Version {u.current || "…"}</div>
           </div>
           <div className="about-update">
-            {info?.newer ? (
-              <button className="primary" onClick={() => openUrl(info.url)}>
-                Update to {info.latest}
+            {u.progress ? (
+              <div className="upd-progress" title={u.progress.message}>
+                <div className="upd-bar">
+                  <div className="upd-bar-fill" style={{ width: `${u.progress.stage === "downloading" ? pct : 100}%` }} />
+                </div>
+                <small>
+                  {u.progress.message}
+                  {u.progress.stage === "downloading" && u.progress.total ? ` ${fmtMb(u.progress.received)} / ${fmtMb(u.progress.total)}` : ""}
+                </small>
+              </div>
+            ) : latest ? (
+              <button className="primary" onClick={() => installUpdate(latest)} title={`Download ${latest.installer_name} (${fmtMb(latest.installer_size)}), check it against GitHub's checksum, install and restart`}>
+                Update to {latest.version}
               </button>
             ) : (
-              <span className="pill ok">{info ? "Up to date" : checking ? "Checking…" : "–"}</span>
+              <span className="pill ok">{u.checking ? "Checking…" : u.checkedAt ? "Up to date" : "–"}</span>
             )}
-            <button className="ghost small" onClick={check} disabled={checking}>
+            <button className="ghost small" onClick={checkForUpdates} disabled={u.checking || !!u.progress}>
               Check again
             </button>
           </div>
         </div>
+        {latest && !u.progress && (
+          <p className="hint" style={{ marginTop: 10 }}>
+            The update downloads from GitHub, is checked against the checksum GitHub publishes for it, installs silently and restarts Downtify. Your settings, library and downloads stay.
+          </p>
+        )}
       </section>
+
+      {u.newer.length > 0 && (
+        <section className="card">
+          <h2>What's new since {u.current}</h2>
+          {u.newer.map((r) => (
+            <div key={r.tag} className="release">
+              <div className="release-head">
+                <b>{r.version}</b>
+                {r.prerelease && <span className="pill">preview</span>}
+                <small>{r.published_at ? new Date(r.published_at).toLocaleDateString() : ""}</small>
+              </div>
+              <Notes text={r.notes} />
+            </div>
+          ))}
+        </section>
+      )}
+
       <section className="card">
         <div className="setting-row">
           <div>
@@ -343,4 +369,48 @@ function About({ setError }: { setError: (s: string) => void }) {
       </section>
     </>
   );
+}
+
+/** Release notes are Markdown; render the subset we write: paragraphs, bullets, bold. */
+function Notes({ text }: { text: string }) {
+  const lines = text.replace(/\r/g, "").split("\n");
+  const out: JSX.Element[] = [];
+  let bullets: string[] = [];
+  const flush = () => {
+    if (bullets.length) {
+      out.push(
+        <ul key={`ul-${out.length}`}>
+          {bullets.map((b, i) => (
+            <li key={i}>{inline(b)}</li>
+          ))}
+        </ul>,
+      );
+      bullets = [];
+    }
+  };
+  lines.forEach((raw, i) => {
+    const line = raw.trim();
+    if (!line) {
+      flush();
+      return;
+    }
+    if (/^[-*] /.test(line)) {
+      bullets.push(line.slice(2));
+      return;
+    }
+    flush();
+    if (/^#+ /.test(line)) out.push(<h4 key={i}>{inline(line.replace(/^#+ /, ""))}</h4>);
+    else out.push(<p key={i}>{inline(line)}</p>);
+  });
+  flush();
+  return <div className="notes">{out}</div>;
+}
+
+function inline(s: string): (string | JSX.Element)[] {
+  const parts = s.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
+  return parts.map((p, i) => {
+    if (p.startsWith("**") && p.endsWith("**")) return <b key={i}>{p.slice(2, -2)}</b>;
+    if (p.startsWith("`") && p.endsWith("`")) return <code key={i}>{p.slice(1, -1)}</code>;
+    return p;
+  });
 }

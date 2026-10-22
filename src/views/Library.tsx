@@ -26,6 +26,7 @@ import { downloadsApi, localBus, useDownloads } from "../downloads";
 import { MenuItem, useContextMenu } from "../components/ContextMenu";
 import { navBus } from "../navBus";
 import { listen } from "@tauri-apps/api/event";
+import { useUpdates } from "../updates";
 import { Section, nav, useNav } from "../nav";
 import { setLayout } from "../layout";
 
@@ -100,6 +101,7 @@ export function Library({
   const [revealPending, setRevealPending] = useState(false);
   const layout = useLayout();
   const ctx = useContextMenu();
+  const updates = useUpdates();
 
   const playContext = { section, scope, search, localOnly };
 
@@ -572,8 +574,13 @@ export function Library({
               <span className="pill-knob" />
             </span>
           </button>
-          <button className={`nav ${section === "settings" ? "active" : ""}`} onClick={() => nav.push({ section: "settings", scope: {}, search: "", tab: view.tab ?? "general" })} title="Settings">
+          <button
+            className={`nav ${section === "settings" ? "active" : ""}`}
+            onClick={() => nav.push({ section: "settings", scope: {}, search: "", tab: updates.newer.length > 0 ? "about" : (view.tab ?? "general") })}
+            title={updates.newer.length > 0 ? `Settings · update ${updates.newer[0].version} available` : "Settings"}
+          >
             <span className="nav-icon">⚙</span> <span className="lbl">Settings</span>
+            {updates.newer.length > 0 && <span className="new-dot upd-dot" title={`Update ${updates.newer[0].version} is available`} />}
           </button>
           <button className="nav collapse" onClick={() => setLayout({ sidebarCollapsed: !collapsed })} title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
             <span className="nav-icon">{collapsed ? "»" : "«"}</span> <span className="lbl">Collapse sidebar</span>
