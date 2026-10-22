@@ -27,7 +27,7 @@ Plays are reported to the server the way the web player does (queued while offli
 
 ## Install
 
-Download the latest installer from the [Releases page](https://github.com/mrcool5556/downtify-windows/releases) and run it. It is unsigned, so Windows SmartScreen warns on first run. Windows 11 ships WebView2; on Windows 10 the installer fetches it if needed.
+Download the latest installer from the [Releases page](https://github.com/mrcool5556/downtify-windows/releases) and run it. It is unsigned, so Windows SmartScreen warns on first run. After that, updates arrive inside the app: a dot on Settings, release notes under About, and a one-click Update that checks the download against GitHub's checksum before installing. Windows 11 ships WebView2; on Windows 10 the installer fetches it if needed.
 
 On first launch, type your server address, press Check, then open **Settings → Apps → Pair a phone** on the server's web page and enter the code.
 
@@ -64,6 +64,7 @@ Settings live in `%APPDATA%\dev.george.downtify\settings.json`, the library inde
 | Playlist sharing, follow, save a copy, detach (server 3.7+) | done |
 | Tray icon, close to tray, start with Windows | done |
 | Mini player, frameless window, themes | done |
+| In-app updates from GitHub releases | done |
 | Lyrics, gapless, equaliser | not planned yet |
 
 Sharing and detaching need Downtify 3.7.0 or newer on the server (added in response to [henriquesebastiao/downtify#465](https://github.com/henriquesebastiao/downtify/issues/465)). Older servers still work for everything else.
