@@ -929,3 +929,22 @@ table.tracks.online td.c-artist {
 .tabs2 button {
   padding: 4px 6px;
 }
+
+
+/* Heart on an online song while it is being saved: a soft pulse. */
+.heart-saving {
+  display: inline-block;
+  color: var(--accent);
+  animation: heartPulse 1.2s ease-in-out infinite;
+}
+@keyframes heartPulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .heart-saving {
+    animation: none;
+    opacity: 0.6;
+  }
+}

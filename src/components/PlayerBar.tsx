@@ -3,6 +3,7 @@ import { artFor, coverUrl, fmtDuration, playerApi } from "../api";
 import { usePlayer, usePlayerProgress } from "../player/usePlayer";
 import { likeBus } from "../likeBus";
 import { DownloadButton } from "./DownloadButton";
+import { saveAndLike, usePendingLike } from "../saveLike";
 import { MiniIcon, RepeatIcon, RepeatOneIcon, ShuffleIcon, VolumeIcon, DiscoverIcon, NextIcon, PauseFillIcon, PlayFillIcon, PrevIcon } from "./Icons";
 import { useContextMenu } from "./ContextMenu";
 import { navBus } from "../navBus";
@@ -45,8 +46,13 @@ export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onRev
     }
   }
 
+  const pendingLike = usePendingLike(current);
   async function toggleLike() {
     if (!current || likeBusy || !online) return;
+    if (current.online) {
+      await saveAndLike(current);
+      return;
+    }
     setLikeBusy(true);
     try {
       const liked = await playerApi.setLike(current.id, !current.liked);
@@ -107,12 +113,26 @@ export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onRev
               </div>
             </div>
             <button
-              className={`icon heart k-status k-heart ${current.liked ? "on" : ""}`}
+              className={`icon heart k-status k-heart ${current.liked || pendingLike?.state === "liked" ? "on" : ""}`}
               onClick={toggleLike}
-              disabled={!online || likeBusy || !!current.online}
-              title={online ? (current.liked ? "Unlike (Ctrl+L)" : "Like (Ctrl+L)") : "Likes need the server"}
+              disabled={!online || likeBusy || (!!current.online && !!pendingLike && pendingLike.state !== "failed")}
+              title={
+                !online
+                  ? "Likes need the server"
+                  : current.online
+                    ? pendingLike?.state === "liked"
+                      ? "Saved to your library and liked"
+                      : pendingLike?.state === "failed"
+                        ? `Couldn't save: ${pendingLike.error}. Click to try again`
+                        : pendingLike
+                          ? "Saving to your library; it will be liked when it arrives"
+                          : "Save to your library and like it"
+                    : current.liked
+                      ? "Unlike (Ctrl+L)"
+                      : "Like (Ctrl+L)"
+              }
             >
-              {current.liked ? "♥" : "♡"}
+              {current.online ? (pendingLike?.state === "liked" ? "♥" : pendingLike && pendingLike.state !== "failed" ? <span className="heart-saving">♥</span> : "♡") : current.liked ? "♥" : "♡"}
             </button>
             {!current.online && (
               <span className="k-status k-dl-wrap">

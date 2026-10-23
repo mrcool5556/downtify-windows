@@ -12,6 +12,8 @@ import { player } from "./player/store";
 import { usePlayer } from "./player/usePlayer";
 import { likeBus } from "./likeBus";
 import { localBus } from "./downloads";
+import { hasWaiting, resolvePendingLikes, saveAndLike } from "./saveLike";
+import { invalidateLibraryIndex } from "./discover";
 import { nav, useNav } from "./nav";
 import { ThemeToggle, setMiniActive, useLayout } from "./layout";
 import { WindowControls } from "./components/WindowControls";
@@ -62,6 +64,10 @@ export default function App() {
         const r = await api.syncLibrary(refresh);
         setSummary(r.summary);
         setLibraryVersion((v) => v + 1);
+        invalidateLibraryIndex();
+        resolvePendingLikes()
+          .then((n) => n && setNotice(`Saved and liked ${n} song${n === 1 ? "" : "s"}`))
+          .catch(() => {});
         if (r.full) setNotice(`Full sync: ${r.summary.tracks} tracks, ${r.playlists} playlists`);
         else if (r.upserted + r.deleted > 0) setNotice(`Synced: ${r.upserted} updated, ${r.deleted} removed`);
         setStatus((s) => (s ? { ...s, online: true } : s));
@@ -208,7 +214,10 @@ export default function App() {
       } else if (e.ctrlKey && e.key.toLowerCase() === "l") {
         e.preventDefault();
         const t = player.getSnapshot().current;
-        if (t && online) playerApi.setLike(t.id, !t.liked).then((liked) => likeBus.emit(t.id, liked)).catch(() => {});
+        if (t && online) {
+          if (t.online) saveAndLike(t).catch(() => {});
+          else playerApi.setLike(t.id, !t.liked).then((liked) => likeBus.emit(t.id, liked)).catch(() => {});
+        }
       }
     }
     // Mouse side buttons: ours, never the webview's own history.
@@ -248,6 +257,20 @@ export default function App() {
     setMiniActive(!!settings?.mini);
   }, [settings?.mini]);
 
+  // A heart on an online song asks for a sync once the server has it; while
+  // saves are still waiting, look again every minute.
+  useEffect(() => {
+    const onReq = () => sync(false);
+    window.addEventListener("downtify-sync-request", onReq);
+    const t = setInterval(() => {
+      if (hasWaiting() && status?.online) sync(false);
+    }, 60_000);
+    return () => {
+      window.removeEventListener("downtify-sync-request", onReq);
+      clearInterval(t);
+    };
+  }, [sync, status?.online]);
+
   // The tray menu mirrors the player.
   useEffect(() => {
     invoke("update_tray", {
@@ -271,7 +294,10 @@ export default function App() {
     listen<string>("tray-action", (e) => {
       const a = e.payload;
       const t = player.getSnapshot().current;
-      if (a === "like" && t) playerApi.setLike(t.id, !t.liked).then((liked) => likeBus.emit(t.id, liked)).catch(() => {});
+      if (a === "like" && t) {
+        if (t.online) saveAndLike(t).catch(() => {});
+        else playerApi.setLike(t.id, !t.liked).then((liked) => likeBus.emit(t.id, liked)).catch(() => {});
+      }
       else if (a === "shuffle") player.toggleShuffle();
       else if (a === "repeat-off") player.setRepeat("off");
       else if (a === "repeat-all") player.setRepeat("all");

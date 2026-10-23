@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { saveAndLike } from "../saveLike";
 import { PlaylistSummary, Track, api, isEditable, playerApi, playlistsApi } from "../api";
 import { player } from "../player/store";
 import { likeBus } from "../likeBus";
@@ -107,14 +108,16 @@ export function MiniStrip({
         {key("Shuffle", () => act(() => player.toggleShuffle(), true), <ShuffleIcon />, { on: shuffle })}
         {key(`Repeat: ${repeat}`, () => act(() => player.cycleRepeat(), true), repeat === "one" ? <RepeatOneIcon /> : <RepeatIcon />, { on: repeat !== "off" })}
         {key(
-          track.liked ? "Unlike" : "Like",
+          track.online ? "Save to your library and like it" : track.liked ? "Unlike" : "Like",
           () =>
             act(
               () =>
-                playerApi
-                  .setLike(track.id, !track.liked)
-                  .then((liked) => likeBus.emit(track.id, liked))
-                  .catch(() => {}),
+                track.online
+                  ? saveAndLike(track).catch(() => {})
+                  : playerApi
+                      .setLike(track.id, !track.liked)
+                      .then((liked) => likeBus.emit(track.id, liked))
+                      .catch(() => {}),
               true,
             ),
           track.liked ? "♥" : "♡",

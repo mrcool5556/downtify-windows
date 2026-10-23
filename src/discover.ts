@@ -86,6 +86,9 @@ export async function libraryIndex(): Promise<Map<string, Track>> {
   return indexPromise;
 }
 
+/** The key the library index uses: title + first artist, normalised. */
+export const songKey = (title: string, artist: string) => `${norm(title)}|${firstArtist(artist)}`;
+
 export function findInLibrary(idx: Map<string, Track>, s: OnlineSong): Track | undefined {
   return idx.get(`${norm(s.name)}|${firstArtist(songArtist(s))}`);
 }

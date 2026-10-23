@@ -7,6 +7,7 @@ import { likeBus } from "../likeBus";
 import { DownloadButton } from "./DownloadButton";
 import { WindowControls } from "./WindowControls";
 import { MiniStrip } from "./MiniStrip";
+import { saveAndLike, usePendingLike } from "../saveLike";
 import { useContextMenu } from "./ContextMenu";
 import { groupStyle, useLayout } from "../layout";
 import { OpacityBackgroundIcon, OpacityWindowIcon, PauseOutlineIcon, PinIcon, PlayOutlineIcon, RepeatIcon, RepeatOneIcon, ShuffleIcon, VolumeIcon, NextIcon, PrevIcon } from "./Icons";
@@ -108,8 +109,13 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
   }, []);
   const expanded = winH > MINI_BAR + 30;
 
+  const pendingLike = usePendingLike(current);
   async function toggleLike() {
     if (!current || !online) return;
+    if (current.online) {
+      await saveAndLike(current);
+      return;
+    }
     try {
       const liked = await playerApi.setLike(current.id, !current.liked);
       likeBus.emit(current.id, liked);
@@ -192,12 +198,19 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
             {compact && controls}
             {current ? (
               <>
-                <button className={`icon heart k-status k-heart ${current.liked ? "on" : ""}`} onClick={toggleLike} disabled={!online} title={current.liked ? "Unlike" : "Like"}>
-                  {current.liked ? "♥" : "♡"}
+                <button
+                  className={`icon heart k-status k-heart ${current.liked || pendingLike?.state === "liked" ? "on" : ""}`}
+                  onClick={toggleLike}
+                  disabled={!online || (!!current.online && !!pendingLike && pendingLike.state !== "failed" && pendingLike.state !== "liked")}
+                  title={current.online ? (pendingLike ? (pendingLike.state === "liked" ? "Saved and liked" : "Saving to your library…") : "Save to your library and like it") : current.liked ? "Unlike" : "Like"}
+                >
+                  {current.online ? (pendingLike?.state === "liked" ? "♥" : pendingLike && pendingLike.state !== "failed" ? <span className="heart-saving">♥</span> : "♡") : current.liked ? "♥" : "♡"}
                 </button>
-                <span className="k-status k-dl-wrap">
-                  <DownloadButton track={current} online={online} size={16} />
-                </span>
+                {!current.online && (
+                  <span className="k-status k-dl-wrap">
+                    <DownloadButton track={current} online={online} size={16} />
+                  </span>
+                )}
               </>
             ) : (
               <span />
