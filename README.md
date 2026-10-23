@@ -70,6 +70,7 @@ Settings live in `%APPDATA%\dev.george.downtify\settings.json`, the library inde
 | Tray icon, close to tray, start with Windows | done |
 | Mini player, frameless window, themes | done |
 | In-app updates from GitHub releases | done |
+| Theme page, Heavy controls, responsive mini, library-wide search | done |
 | Lyrics, gapless, equaliser | not planned yet |
 
 Sharing and detaching need Downtify 3.7.0 or newer on the server (added in response to [henriquesebastiao/downtify#465](https://github.com/henriquesebastiao/downtify/issues/465)). Older servers still work for everything else.
