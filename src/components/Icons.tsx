@@ -101,3 +101,15 @@ export const PauseFillIcon = () => (
     <rect x="9.2" y="3" width="2.6" height="10" rx="0.9" fill="currentColor" stroke="none" />
   </svg>
 );
+
+export const ChevronLeftIcon = () => (
+  <svg {...base} aria-hidden>
+    <path d="M9.8 3.8 5.6 8l4.2 4.2" strokeWidth={1.9} />
+  </svg>
+);
+
+export const ChevronRightIcon = () => (
+  <svg {...base} aria-hidden>
+    <path d="M6.2 3.8 10.4 8l-4.2 4.2" strokeWidth={1.9} />
+  </svg>
+);

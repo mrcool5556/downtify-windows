@@ -15,6 +15,7 @@ import { localBus } from "./downloads";
 import { nav, useNav } from "./nav";
 import { ThemeToggle, setMiniActive, useLayout } from "./layout";
 import { WindowControls } from "./components/WindowControls";
+import { ChevronLeftIcon, ChevronRightIcon } from "./components/Icons";
 import { MiniPlayer } from "./components/MiniPlayer";
 
 const LIST_SECTIONS = new Set(["tracks", "albums", "playlists", "search"]);
@@ -329,10 +330,10 @@ export default function App() {
           </div>
           <div className="histnav">
             <button className="icon" disabled={!canBack} onClick={() => nav.back()} title="Back (Alt+←)">
-              ‹
+              <ChevronLeftIcon />
             </button>
             <button className="icon" disabled={!canForward} onClick={() => nav.forward()} title="Forward (Alt+→)">
-              ›
+              <ChevronRightIcon />
             </button>
           </div>
         </div>

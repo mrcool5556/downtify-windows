@@ -811,3 +811,22 @@ img {
 .chip-btn:hover {
   border-color: var(--accent);
 }
+
+/* Back / forward: drawn chevrons, centred, and true circles when Round. */
+.histnav .icon {
+  display: inline-grid !important;
+  place-items: center;
+  padding: 0 !important;
+  width: 28px;
+  height: 26px;
+  line-height: 0;
+}
+.histnav .icon svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+:root[data-shape="round"] .histnav .icon {
+  width: 26px;
+  height: 26px;
+}
