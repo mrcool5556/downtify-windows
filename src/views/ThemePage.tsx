@@ -1,4 +1,4 @@
-import { GROUPS, GroupKey, GroupStyle, ShowKey, setLayout, useLayout } from "../layout";
+import { ButtonShape, GROUPS, GroupKey, GroupStyle, RowStyle, ShowKey, setLayout, useLayout } from "../layout";
 import { ControlStyle, THEMES, ThemeId, ThemeInfo, themeById } from "../themes";
 
 /** Settings → Theme: colour theme cards, control style, and the mini player's own look. */
@@ -45,6 +45,40 @@ export function ThemePage() {
             </div>
           </div>
         ))}
+        <h3 className="adv-sub">Shape and selection</h3>
+        <div className="setting-row">
+          <span>Button shape</span>
+          <div className="seg seg-text" role="radiogroup" aria-label="Button shape">
+            {(
+              [
+                ["default", "Default"],
+                ["round", "Round"],
+                ["square", "Square"],
+              ] as [ButtonShape, string][]
+            ).map(([v, label]) => (
+              <button key={v} className={p.shape === v ? "on" : ""} onClick={() => setLayout({ shape: v })}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="setting-row">
+          <span>Selected songs and playlists</span>
+          <div className="seg seg-text" role="radiogroup" aria-label="Selected rows">
+            {(
+              [
+                ["simple", "Simple"],
+                ["highlight", "Highlighted"],
+              ] as [RowStyle, string][]
+            ).map(([v, label]) => (
+              <button key={v} className={p.rows === v ? "on" : ""} onClick={() => setLayout({ rows: v })}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <p className="hint">Default keeps each style's own corners: a round play button in Modern, square keys in Heavy. Highlighted adds an accent bar and tint, pressed in when the controls are Heavy.</p>
+
         <h3 className="adv-sub">Show</h3>
         <p className="hint">Turned off, an item is hidden in both the full window and the mini. The mini also hides items on its own when it gets narrow; they stay in its right-click menu.</p>
         {(

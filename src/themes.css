@@ -623,3 +623,92 @@ h3,
 .mini-drawer {
   min-height: 0;
 }
+
+
+/* ── Heart and download wells: a real bezel, one pixel thicker ── */
+:root[data-s-status="heavy"] .k-status.icon,
+:root[data-s-status="heavy"] .k-status button.icon {
+  border: 2px solid transparent;
+  background: linear-gradient(var(--bg), var(--bg)) padding-box, var(--lip) border-box;
+  box-shadow: var(--inset), 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+:root[data-s-status="heavy"] .k-status.icon.on,
+:root[data-s-status="heavy"] .k-status button.icon.on {
+  box-shadow: var(--inset), inset 0 0 8px color-mix(in srgb, var(--accent) 35%, transparent), 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+/* ── Button shape (Advanced) ── */
+:root[data-shape="round"] button.icon:not(.winbtn),
+:root[data-shape="round"] .k-status button.icon,
+:root[data-shape="round"] .syncbtn,
+:root[data-shape="round"] .seg,
+:root[data-shape="round"] .seg button,
+:root[data-shape="round"] .strip-key,
+:root[data-shape="round"] .k-play::before {
+  border-radius: 999px;
+}
+/* A round play key is a circle, not a pill. */
+:root[data-shape="round"][data-s-play="heavy"] .k-play {
+  width: 46px;
+  height: 46px;
+}
+:root[data-shape="round"][data-s-play="heavy"] .mini .k-play {
+  width: 38px;
+  height: 38px;
+}
+:root[data-shape="round"] .k-status.icon,
+:root[data-shape="round"] .k-status button.icon {
+  width: 30px;
+  height: 30px;
+}
+:root[data-shape="square"] button.icon:not(.winbtn),
+:root[data-shape="square"] .k-status button.icon,
+:root[data-shape="square"] .syncbtn,
+:root[data-shape="square"] .seg,
+:root[data-shape="square"] .strip-key {
+  border-radius: 8px;
+}
+:root[data-shape="square"] button.icon.big,
+:root[data-shape="square"] .k-play,
+:root[data-shape="square"] .k-play::before {
+  border-radius: 10px;
+}
+:root[data-shape="square"] .seg button {
+  border-radius: 5px;
+}
+
+/* ── Selected rows: Highlighted (Advanced) ── */
+:root[data-rows="highlight"] table.tracks tr.selected td {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--fg);
+}
+:root[data-rows="highlight"] table.tracks tr.selected td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+:root[data-rows="highlight"] table.tracks tr.selected td.c-title {
+  color: var(--accent);
+  font-weight: 600;
+}
+:root[data-rows="highlight"] .sidebar-playlists .pl.active,
+:root[data-rows="highlight"] .sidebar > button.nav.active,
+:root[data-rows="highlight"] .sidebar-foot .nav.active {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  box-shadow: inset 3px 0 0 var(--accent);
+  color: var(--accent);
+}
+:root[data-rows="highlight"] .tile.selected {
+  outline: 2px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--bg-2));
+}
+/* With Heavy controls the highlight is pressed in as well. */
+:root[data-rows="highlight"][data-style="heavy"] table.tracks tr.selected td {
+  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.35), inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+}
+:root[data-rows="highlight"][data-style="heavy"] table.tracks tr.selected td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent), inset 0 2px 3px rgba(0, 0, 0, 0.35);
+}
+:root[data-rows="highlight"][data-style="heavy"] .sidebar-playlists .pl.active,
+:root[data-rows="highlight"][data-style="heavy"] .sidebar > button.nav.active,
+:root[data-rows="highlight"][data-style="heavy"] .sidebar-foot .nav.active {
+  box-shadow: inset 3px 0 0 var(--accent), var(--inset);
+}

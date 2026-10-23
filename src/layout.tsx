@@ -6,6 +6,10 @@ export type Density = "compact" | "comfortable" | "grid";
 export type GroupKey = "play" | "skip" | "toggles" | "status" | "sliders" | "topbar";
 export type GroupStyle = "follow" | ControlStyle;
 export type ShowKey = "toggles" | "volume" | "download" | "heart";
+/** Button corners: as designed (Modern round play, Heavy square keys), all round, or all square. */
+export type ButtonShape = "default" | "round" | "square";
+/** How selected songs and playlists stand out. */
+export type RowStyle = "simple" | "highlight";
 export const GROUPS: { key: GroupKey; label: string }[] = [
   { key: "play", label: "Play key" },
   { key: "skip", label: "Previous and next" },
@@ -35,6 +39,8 @@ export interface LayoutPrefs {
   advanced: Record<GroupKey, GroupStyle>;
   /** Optional player items; false hides them everywhere. */
   show: Record<ShowKey, boolean>;
+  shape: ButtonShape;
+  rows: RowStyle;
 }
 
 const KEY = "downtify.layout";
@@ -51,6 +57,8 @@ const DEFAULTS: LayoutPrefs = {
   showOthersPlaylists: false,
   advanced: { play: "follow", skip: "follow", toggles: "follow", status: "follow", sliders: "follow", topbar: "follow" },
   show: { toggles: true, volume: true, download: true, heart: true },
+  shape: "default",
+  rows: "simple",
 };
 
 let prefs: LayoutPrefs = load();
@@ -93,6 +101,8 @@ function applyTheme() {
   root.dataset.style = style;
   for (const g of GROUPS) root.setAttribute(`data-s-${g.key}`, groupStyle(g.key));
   for (const k of ["toggles", "volume", "download", "heart"] as ShowKey[]) root.toggleAttribute(`data-hide-${k}`, !prefs.show[k]);
+  root.dataset.shape = prefs.shape;
+  root.dataset.rows = prefs.rows;
 }
 applyTheme();
 
