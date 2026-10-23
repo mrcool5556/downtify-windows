@@ -1158,11 +1158,7 @@ pub fn set_mini_expanded(app: tauri::AppHandle, state: State<AppState>, on: bool
     };
     if snapshot.mini {
         if let Some(win) = app.get_webview_window("main") {
-            let h = crate::window_mode::mini_height(&snapshot);
-            let w = crate::window_mode::current_bounds(&win).map(|b| b.w).unwrap_or(520.0);
-            let _ = win.set_min_size(Some(tauri::LogicalSize::new(crate::window_mode::MINI_MIN_WIDTH, h)));
-            let _ = win.set_max_size(Some(tauri::LogicalSize::new(crate::window_mode::MINI_MAX_WIDTH, h)));
-            let _ = win.set_size(tauri::LogicalSize::new(w, h));
+            crate::window_mode::resize_mini_height(&win, crate::window_mode::mini_height(&snapshot));
         }
     }
     Ok(view(&snapshot))

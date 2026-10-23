@@ -169,3 +169,22 @@ pub fn opacity_now(app: &AppHandle, percent: u8) {
         set_opacity(&win, percent);
     }
 }
+
+/// Change only the mini's height, in physical pixels, without moving it.
+/// Constraints are lifted first so Windows resizes exactly once, the width
+/// is kept to the pixel, and the top-left corner is put back afterwards.
+pub fn resize_mini_height(win: &WebviewWindow, logical_h: f64) {
+    use tauri::{PhysicalPosition, PhysicalSize};
+    let Ok(scale) = win.scale_factor() else { return };
+    let Ok(pos) = win.outer_position() else { return };
+    let Ok(size) = win.inner_size() else { return };
+    let h = (logical_h * scale).round() as u32;
+    let _ = win.set_min_size(None::<LogicalSize<f64>>);
+    let _ = win.set_max_size(None::<LogicalSize<f64>>);
+    let _ = win.set_size(PhysicalSize::new(size.width, h));
+    let _ = win.set_position(PhysicalPosition::new(pos.x, pos.y));
+    let min_w = (MINI_MIN_WIDTH * scale).round() as u32;
+    let max_w = (MINI_MAX_WIDTH * scale).round() as u32;
+    let _ = win.set_min_size(Some(PhysicalSize::new(min_w, h)));
+    let _ = win.set_max_size(Some(PhysicalSize::new(max_w, h)));
+}
