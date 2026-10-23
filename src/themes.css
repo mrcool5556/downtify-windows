@@ -572,3 +572,35 @@ h3,
 .mini {
   position: relative;
 }
+
+/* Heavy play key: a thick metal bezel around a see-through face. */
+:root[data-s-play="heavy"] .k-play,
+:root[data-s-play="heavy"] .mini .k-play,
+:root[data-s-play="heavy"] .mini.faded .k-play {
+  border: 5px solid transparent;
+  background:
+    linear-gradient(transparent, transparent) padding-box,
+    var(--lip) border-box;
+  color: var(--accent);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.35);
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.6));
+}
+:root[data-s-play="heavy"] .k-play svg {
+  stroke: currentColor;
+  stroke-width: 2;
+}
+:root[data-s-play="heavy"] .k-play:hover:not(:disabled),
+:root[data-s-play="heavy"] .mini .k-play:hover:not(:disabled),
+:root[data-s-play="heavy"] .mini.faded .k-play:hover:not(:disabled) {
+  background:
+    linear-gradient(color-mix(in srgb, var(--accent) 16%, transparent), color-mix(in srgb, var(--accent) 16%, transparent)) padding-box,
+    var(--lip) border-box;
+  color: var(--accent);
+}
+:root[data-s-play="heavy"] .k-play:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45), inset 0 3px 5px rgba(0, 0, 0, 0.45);
+}
