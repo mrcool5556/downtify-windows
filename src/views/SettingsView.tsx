@@ -42,7 +42,7 @@ export function SettingsView({ tab, setTab, settings, summary, onSettings, onRes
       </nav>
       <div className="settings-body">
         {current === "general" && <General settings={settings} onSettings={onSettings} setError={setError} setTab={setTab} />}
-        {current === "theme" && <ThemePage />}
+        {current === "theme" && <ThemePage settings={settings} onSettings={onSettings} />}
         {current === "playback" && <Playback settings={settings} onSettings={onSettings} setError={setError} />}
         {current === "server" && <Server settings={settings} summary={summary} onResync={onResync} onUnpaired={onUnpaired} setError={setError} />}
         {current === "music" && <Music settings={settings} onSettings={onSettings} setError={setError} />}
@@ -105,6 +105,18 @@ function General({ settings, onSettings, setError, setTab }: Sub & { setTab: (t:
             }
           />
           Start Downtify when Windows starts
+        </label>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={settings.window_shadow}
+            onChange={(e) =>
+              invoke<Settings>("set_window_shadow", { mini: false, on: e.target.checked })
+                .then(onSettings)
+                .catch((err) => setError(String(err)))
+            }
+          />
+          Shadow around the window
         </label>
         <p className="hint">Quit for real from the tray icon's menu.</p>
       </section>

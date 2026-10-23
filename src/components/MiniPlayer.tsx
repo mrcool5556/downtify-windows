@@ -254,7 +254,7 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
                 max={100}
                 step={5}
                 value={settings.mini_opacity}
-                style={{ backgroundSize: `${((settings.mini_opacity - 10) / 90) * 100}% 100%` }}
+                style={{ backgroundSize: `${settings.mini_opacity}% 100%` }}
                 title={`Opacity ${settings.mini_opacity}%`}
                 onChange={(e) => invoke<Settings>("set_mini_opacity", { percent: Number(e.target.value) }).then(onSettings).catch(() => {})}
               />

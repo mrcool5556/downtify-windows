@@ -1,8 +1,10 @@
 import { ButtonShape, GROUPS, GroupKey, GroupStyle, RowStyle, ShowKey, setLayout, useLayout } from "../layout";
 import { ControlStyle, THEMES, ThemeId, ThemeInfo, themeById } from "../themes";
+import { invoke } from "@tauri-apps/api/core";
+import { Settings } from "../api";
 
 /** Settings → Theme: colour theme cards, control style, and the mini player's own look. */
-export function ThemePage() {
+export function ThemePage({ settings, onSettings }: { settings: Settings; onSettings: (s: Settings) => void }) {
   const p = useLayout();
 
   return (
@@ -118,6 +120,15 @@ export function ThemePage() {
             <option value="heavy">Heavy</option>
           </select>
         </div>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={settings.mini_shadow}
+            onChange={(e) => invoke<Settings>("set_window_shadow", { mini: true, on: e.target.checked }).then(onSettings).catch(() => {})}
+          />
+          Shadow around the mini player
+        </label>
+        <p className="hint">The mini's opacity slider (in its drawer) goes down to 0%. At 0% it still comes back fully when you hover over it.</p>
       </section>
     </>
   );

@@ -38,6 +38,11 @@ pub struct Settings {
     /// `window` fades everything; `background` keeps text and art solid.
     #[serde(default = "default_opacity_mode")]
     pub mini_opacity_mode: String,
+    /// Drop shadow around the full window and around the mini.
+    #[serde(default = "default_true")]
+    pub window_shadow: bool,
+    #[serde(default = "default_true")]
+    pub mini_shadow: bool,
     /// The up-next / opacity drawer under the seek bar is open.
     #[serde(default)]
     pub mini_expanded: bool,

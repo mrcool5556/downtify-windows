@@ -121,11 +121,13 @@ pub fn apply(app: &AppHandle, s: &Settings) {
             }
         }
         let _ = win.set_always_on_top(s.mini_pinned);
+        let _ = win.set_shadow(s.mini_shadow);
         set_opacity(&win, if s.mini_opacity_mode == "window" { s.mini_opacity } else { 100 });
     } else {
         let _ = win.set_max_size(None::<LogicalSize<f64>>);
         let _ = win.set_min_size(Some(LogicalSize::new(FULL_MIN.0, FULL_MIN.1)));
         let _ = win.set_always_on_top(false);
+        let _ = win.set_shadow(s.window_shadow);
         set_opacity(&win, 100);
         if let Some(b) = s.full_bounds {
             let _ = win.set_size(LogicalSize::new(b.w.max(FULL_MIN.0), b.h.max(FULL_MIN.1)));
@@ -147,7 +149,7 @@ pub fn set_opacity(win: &WebviewWindow, percent: u8) {
         };
         let Ok(h) = win.hwnd() else { return };
         let hwnd = HWND(h.0 as *mut core::ffi::c_void);
-        let pct = percent.clamp(10, 100) as u32;
+        let pct = percent.min(100) as u32;
         unsafe {
             let ex = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
             let layered = WS_EX_LAYERED.0 as isize;
@@ -160,7 +162,9 @@ pub fn set_opacity(win: &WebviewWindow, percent: u8) {
                 if ex & layered == 0 {
                     SetWindowLongPtrW(hwnd, GWL_EXSTYLE, ex | layered);
                 }
-                let alpha = ((pct * 255) / 100) as u8;
+                // Alpha 0 would make Windows pass clicks and hover through the
+                // window; keep one invisible step so 0% stays reachable.
+                let alpha = (((pct * 255) / 100) as u8).max(1);
                 let _ = SetLayeredWindowAttributes(hwnd, COLORREF(0), alpha, LWA_ALPHA);
             }
         }

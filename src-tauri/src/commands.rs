@@ -1137,7 +1137,7 @@ pub fn set_mini_pinned(app: tauri::AppHandle, state: State<AppState>, on: bool) 
 pub fn set_mini_opacity(app: tauri::AppHandle, state: State<AppState>, percent: u8) -> Result<SettingsView, String> {
     let snapshot = {
         let mut s = state.settings.lock().map_err(|e| e.to_string())?;
-        s.mini_opacity = percent.clamp(10, 100);
+        s.mini_opacity = percent.min(100);
         settings::save(&state.settings_path, &s)?;
         s.clone()
     };
@@ -1210,6 +1210,27 @@ pub fn set_mini_height(app: tauri::AppHandle, state: State<AppState>, height: f6
     if snapshot.mini {
         if let Some(win) = app.get_webview_window("main") {
             crate::window_mode::resize_mini_height(&win, h);
+        }
+    }
+    Ok(view(&snapshot))
+}
+
+/// Turn the drop shadow on or off for the full window or the mini.
+#[tauri::command]
+pub fn set_window_shadow(app: tauri::AppHandle, state: State<AppState>, mini: bool, on: bool) -> Result<SettingsView, String> {
+    let snapshot = {
+        let mut s = state.settings.lock().map_err(|e| e.to_string())?;
+        if mini {
+            s.mini_shadow = on;
+        } else {
+            s.window_shadow = on;
+        }
+        settings::save(&state.settings_path, &s)?;
+        s.clone()
+    };
+    if snapshot.mini == mini {
+        if let Some(win) = app.get_webview_window("main") {
+            let _ = win.set_shadow(on);
         }
     }
     Ok(view(&snapshot))
