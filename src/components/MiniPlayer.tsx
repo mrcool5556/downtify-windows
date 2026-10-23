@@ -250,7 +250,7 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
               </button>
               <input
                 type="range"
-                min={10}
+                min={0}
                 max={100}
                 step={5}
                 value={settings.mini_opacity}
