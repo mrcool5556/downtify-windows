@@ -57,8 +57,9 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
   const heavyKeys = groupStyle("play", layout, true) === "heavy" || groupStyle("skip", layout, true) === "heavy";
   const w = width - (heavyKeys ? 28 : 0);
   const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
-  // 100% at 520px, 80% at 420px, then on down to 72% at the 300px minimum.
-  const k = w >= 420 ? 0.8 + 0.2 * clamp01((w - 420) / 100) : 0.72 + 0.08 * clamp01((w - 300) / 120);
+  // Full size until shuffle and repeat fold away (~420px); then, sharing the
+  // right column with the heart, 100% down to 80% at the 300px minimum.
+  const k = w >= 420 ? 1 : 0.8 + 0.2 * clamp01((w - 300) / 120);
   const hidden = {
     toggles: w < 420 || !layout.show.toggles,
     volume: !layout.show.volume,
