@@ -2970,3 +2970,34 @@ table.tracks td.c-dl {
   padding: 5px 8px;
   max-width: 320px;
 }
+
+
+/* Theme page: Advanced */
+details.adv > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+details.adv > summary::-webkit-details-marker {
+  display: none;
+}
+details.adv > summary h2::before {
+  content: "▸ ";
+  color: var(--fg-2);
+}
+details.adv[open] > summary h2::before {
+  content: "▾ ";
+}
+details.adv > summary h2 {
+  margin: 0;
+}
+.adv-sub {
+  font-size: 14px;
+  margin: 16px 0 4px;
+}
+.seg.seg-text button {
+  padding: 4px 10px;
+  font-size: 12px;
+}

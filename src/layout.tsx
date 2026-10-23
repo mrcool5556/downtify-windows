@@ -3,6 +3,17 @@ import { useSyncExternalStore } from "react";
 import { ControlStyle, ThemeId, migrateThemeId, themeById } from "./themes";
 
 export type Density = "compact" | "comfortable" | "grid";
+export type GroupKey = "play" | "skip" | "toggles" | "status" | "sliders" | "topbar";
+export type GroupStyle = "follow" | ControlStyle;
+export type ShowKey = "toggles" | "volume" | "download" | "heart";
+export const GROUPS: { key: GroupKey; label: string }[] = [
+  { key: "play", label: "Play key" },
+  { key: "skip", label: "Previous and next" },
+  { key: "toggles", label: "Shuffle and repeat" },
+  { key: "status", label: "Heart and download" },
+  { key: "sliders", label: "Seek and volume sliders" },
+  { key: "topbar", label: "Top bar buttons and search" },
+];
 
 export interface LayoutPrefs {
   density: Density;
@@ -20,6 +31,10 @@ export interface LayoutPrefs {
   sidebarCollapsed: boolean;
   /** Admin accounts receive every user's playlist; show them in their own section. */
   showOthersPlaylists: boolean;
+  /** Per-group override of the control style ("follow" = the main choice). */
+  advanced: Record<GroupKey, GroupStyle>;
+  /** Optional player items; false hides them everywhere. */
+  show: Record<ShowKey, boolean>;
 }
 
 const KEY = "downtify.layout";
@@ -34,6 +49,8 @@ const DEFAULTS: LayoutPrefs = {
   lightPick: "studio-light",
   sidebarCollapsed: false,
   showOthersPlaylists: false,
+  advanced: { play: "follow", skip: "follow", toggles: "follow", status: "follow", sliders: "follow", topbar: "follow" },
+  show: { toggles: true, volume: true, download: true, heart: true },
 };
 
 let prefs: LayoutPrefs = load();
@@ -43,8 +60,14 @@ let miniActive = false;
 function load(): LayoutPrefs {
   try {
     const raw = localStorage.getItem(KEY);
-    const p = raw ? { ...DEFAULTS, ...(JSON.parse(raw) as Partial<LayoutPrefs>) } : DEFAULTS;
-    return { ...p, theme: migrateThemeId(p.theme as string) };
+    const saved = raw ? (JSON.parse(raw) as Partial<LayoutPrefs>) : {};
+    const p = { ...DEFAULTS, ...saved };
+    return {
+      ...p,
+      theme: migrateThemeId(p.theme as string),
+      advanced: { ...DEFAULTS.advanced, ...(saved.advanced ?? {}) },
+      show: { ...DEFAULTS.show, ...(saved.show ?? {}) },
+    };
   } catch {
     return DEFAULTS;
   }
@@ -56,12 +79,20 @@ export function effectiveLook(p: LayoutPrefs = prefs, mini = miniActive): { them
   return { theme: p.theme, style: p.controlStyle };
 }
 
+/** A group's style right now: its override, or the main / mini choice. */
+export function groupStyle(g: GroupKey, p: LayoutPrefs = prefs, mini = miniActive): ControlStyle {
+  const a = p.advanced[g];
+  return a === "follow" ? effectiveLook(p, mini).style : a;
+}
+
 function applyTheme() {
   const { theme, style } = effectiveLook();
   const root = document.documentElement;
   root.dataset.theme = theme;
   root.dataset.tone = themeById(theme).tone;
   root.dataset.style = style;
+  for (const g of GROUPS) root.setAttribute(`data-s-${g.key}`, groupStyle(g.key));
+  for (const k of ["toggles", "volume", "download", "heart"] as ShowKey[]) root.toggleAttribute(`data-hide-${k}`, !prefs.show[k]);
 }
 applyTheme();
 

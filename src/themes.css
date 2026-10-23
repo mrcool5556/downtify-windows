@@ -225,70 +225,70 @@ h3,
   border-radius: 999px;
 }
 
-/* ── Heavy controls ─────────────────────────────────────────────────────
-   Beveled faces in a metal lip; recessed sliders with raised knobs;
-   pressing sinks a face 2px into its well. Light comes from the top. */
+/* ── Heavy controls, per group ─────────────────────────────────────────
+   Each control group resolves to modern or heavy on <html>:
+   data-s-play, data-s-skip, data-s-toggles, data-s-status, data-s-sliders,
+   data-s-topbar. data-style is the base (sidebar selection, player utility
+   buttons). Window buttons, the mini's pin and drawer controls stay flat. */
 
-:root[data-style="heavy"] {
+:root {
   --heavy-face: var(--bg-3);
 }
 
-/* Faces in a lip: the lip is a gradient border, the face sits inside it. */
-:root[data-style="heavy"] .playerbar button.icon,
-:root[data-style="heavy"] .mini button.icon,
-:root[data-style="heavy"] .histnav .icon,
-:root[data-style="heavy"] .topbar-right > button.icon,
-:root[data-style="heavy"] .syncbtn,
-:root[data-style="heavy"] .seg {
+/* Key faces: a beveled face inside a metal lip (gradient border). */
+:root[data-s-skip="heavy"] .k-skip,
+:root[data-s-toggles="heavy"] .k-toggle,
+:root[data-style="heavy"] .k-util,
+:root[data-s-topbar="heavy"] .histnav .icon,
+:root[data-s-topbar="heavy"] .topbar-right > button.icon,
+:root[data-s-topbar="heavy"] .syncbtn,
+:root[data-s-topbar="heavy"] .seg {
   border: 2px solid transparent;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--heavy-face) 88%, #fff 12%), var(--heavy-face)) padding-box,
     var(--lip) border-box;
-  box-shadow:
-    var(--bevel),
-    0 0 0 1px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--bevel), 0 0 0 1px rgba(0, 0, 0, 0.35);
   border-radius: 9px;
   color: var(--fg);
   transition: transform 0.12s, box-shadow 0.12s;
 }
-:root[data-style="heavy"] .playerbar button.icon,
-:root[data-style="heavy"] .mini button.icon:not(.big) {
+:root[data-s-skip="heavy"] .k-skip,
+:root[data-s-toggles="heavy"] .k-toggle,
+:root[data-style="heavy"] .k-util {
   min-width: 30px;
   min-height: 28px;
   padding: 3px 7px;
 }
-:root[data-style="heavy"] .playerbar button.icon:hover:not(:disabled),
-:root[data-style="heavy"] .mini button.icon:hover:not(:disabled),
-:root[data-style="heavy"] .histnav .icon:hover:not(:disabled),
-:root[data-style="heavy"] .topbar-right > button.icon:hover,
-:root[data-style="heavy"] .syncbtn:hover:not(:disabled) {
+:root[data-s-skip="heavy"] .k-skip:hover:not(:disabled),
+:root[data-s-toggles="heavy"] .k-toggle:hover:not(:disabled),
+:root[data-style="heavy"] .k-util:hover:not(:disabled),
+:root[data-s-topbar="heavy"] .histnav .icon:hover:not(:disabled),
+:root[data-s-topbar="heavy"] .topbar-right > button.icon:hover,
+:root[data-s-topbar="heavy"] .syncbtn:hover:not(:disabled) {
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--heavy-face) 78%, #fff 22%), var(--heavy-face)) padding-box,
     var(--lip) border-box;
   color: var(--fg);
 }
-:root[data-style="heavy"] .playerbar button.icon:active:not(:disabled),
-:root[data-style="heavy"] .mini button.icon:active:not(:disabled),
-:root[data-style="heavy"] .histnav .icon:active:not(:disabled),
-:root[data-style="heavy"] .topbar-right > button.icon:active,
-:root[data-style="heavy"] .syncbtn:active:not(:disabled) {
+:root[data-s-skip="heavy"] .k-skip:active:not(:disabled),
+:root[data-s-toggles="heavy"] .k-toggle:active:not(:disabled),
+:root[data-style="heavy"] .k-util:active:not(:disabled),
+:root[data-s-topbar="heavy"] .histnav .icon:active:not(:disabled),
+:root[data-s-topbar="heavy"] .topbar-right > button.icon:active,
+:root[data-s-topbar="heavy"] .syncbtn:active:not(:disabled) {
   transform: translateY(2px);
   box-shadow: var(--inset), 0 0 0 1px rgba(0, 0, 0, 0.35);
 }
-/* Toggled-on buttons stay sunk, with the accent showing. */
-:root[data-style="heavy"] .playerbar button.icon.on,
-:root[data-style="heavy"] .mini button.icon.on {
+/* A toggle that is on stays pressed in, with the accent showing. */
+:root[data-s-toggles="heavy"] .k-toggle.on,
+:root[data-style="heavy"] .k-util.on {
   transform: translateY(1px);
   box-shadow: var(--inset), 0 0 0 1px rgba(0, 0, 0, 0.35);
   color: var(--accent);
 }
-:root[data-style="heavy"] button.icon.heart.on {
-  color: var(--accent);
-}
 
-/* The play button: a big accent key instead of a white disc. */
-:root[data-style="heavy"] .playerbar button.icon.big,
-:root[data-style="heavy"] .mini button.icon.big {
+/* The play key: a big accent key in the lip. */
+:root[data-s-play="heavy"] .k-play {
   width: 54px;
   height: 42px;
   border-radius: 11px;
@@ -298,41 +298,64 @@ h3,
     var(--lip) border-box;
   color: var(--on-accent);
   box-shadow: var(--bevel), 0 0 0 1px rgba(0, 0, 0, 0.4);
+  transition: transform 0.12s, box-shadow 0.12s;
 }
-:root[data-style="heavy"] .playerbar button.icon.big:hover:not(:disabled),
-:root[data-style="heavy"] .mini button.icon.big:hover:not(:disabled) {
+:root[data-s-play="heavy"] .k-play:hover:not(:disabled) {
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--accent) 70%, #fff 30%), var(--accent)) padding-box,
     var(--lip) border-box;
   color: var(--on-accent);
 }
-:root[data-style="heavy"] .mini button.icon.big {
+:root[data-s-play="heavy"] .k-play:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: var(--inset), 0 0 0 1px rgba(0, 0, 0, 0.4);
+}
+:root[data-s-play="heavy"] .mini .k-play {
   width: 46px;
   height: 36px;
 }
-:root[data-style="heavy"] .mini-play.big svg {
+:root[data-s-play="heavy"] .mini-play.big svg {
   stroke: currentColor;
 }
 
-/* Segmented layout picker: the group is the lip, the chosen key is sunk. */
-:root[data-style="heavy"] .seg {
+/* Heart and download: sunk wells that light up when on (status, not keys). */
+:root[data-s-status="heavy"] .k-status.icon,
+:root[data-s-status="heavy"] .k-status button.icon {
+  width: 30px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  border: none;
+  border-radius: 8px;
+  background: var(--bg);
+  box-shadow: var(--inset);
+  opacity: 1;
+}
+:root[data-s-status="heavy"] .k-status.icon.on,
+:root[data-s-status="heavy"] .k-status button.icon.on {
+  color: var(--accent);
+  box-shadow: var(--inset), inset 0 0 8px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+/* Layout picker: the group is the lip, the chosen key is sunk. */
+:root[data-s-topbar="heavy"] .seg {
   padding: 2px;
   gap: 2px;
 }
-:root[data-style="heavy"] .seg button {
+:root[data-s-topbar="heavy"] .seg button {
   border-radius: 6px;
 }
-:root[data-style="heavy"] .seg button.on {
+:root[data-s-topbar="heavy"] .seg button.on {
   box-shadow: var(--inset);
   background: var(--bg);
   color: var(--accent);
 }
-
-/* Wells: search, selected sidebar items, sliders. */
-:root[data-style="heavy"] .searchbox {
+:root[data-s-topbar="heavy"] .searchbox {
   box-shadow: var(--inset);
   background: var(--bg);
 }
+
+/* Selected sidebar items sit in a well. */
 :root[data-style="heavy"] .sidebar > button.nav.active,
 :root[data-style="heavy"] .sidebar-foot .nav.active,
 :root[data-style="heavy"] .sidebar-playlists .pl.active {
@@ -340,16 +363,18 @@ h3,
   background: var(--bg);
 }
 
-:root[data-style="heavy"] .playerbar input[type="range"],
-:root[data-style="heavy"] .mini input[type="range"] {
+/* Sliders: recessed tracks; the knob shows on hover or while dragging. */
+:root[data-s-sliders="heavy"] .playerbar input[type="range"],
+:root[data-s-sliders="heavy"] .mini-main input[type="range"],
+:root[data-s-sliders="heavy"] .mini-seek {
   height: 8px;
   border-radius: 4px;
   background: linear-gradient(var(--accent), var(--accent)) no-repeat, var(--bg);
   box-shadow: var(--inset);
 }
-:root[data-style="heavy"] .playerbar input[type="range"]::-webkit-slider-thumb,
-:root[data-style="heavy"] .mini input[type="range"]::-webkit-slider-thumb {
-  opacity: 1;
+:root[data-s-sliders="heavy"] .playerbar input[type="range"]::-webkit-slider-thumb,
+:root[data-s-sliders="heavy"] .mini-main input[type="range"]::-webkit-slider-thumb,
+:root[data-s-sliders="heavy"] .mini-seek::-webkit-slider-thumb {
   width: 16px;
   height: 16px;
   border: 2px solid transparent;
@@ -358,20 +383,78 @@ h3,
     var(--lip) border-box;
   box-shadow: var(--bevel);
 }
-:root[data-style="heavy"] .mini-seek {
+:root[data-s-sliders="heavy"] .mini-seek {
   height: 6px;
 }
 
 /* The heavy player bar is a little taller to hold the keys. */
-:root[data-style="heavy"] .playerbar {
+:root[data-s-play="heavy"] .playerbar {
   min-height: 92px;
 }
-:root[data-style="heavy"] .pb-controls {
+:root[data-s-skip="heavy"] .pb-controls,
+:root[data-s-toggles="heavy"] .pb-controls {
   gap: 8px;
 }
 
+/* ── Hide by choice (Settings → Theme → Advanced) ── */
+:root[data-hide-toggles] .k-toggle,
+:root[data-hide-toggles] .mini-modes {
+  display: none !important;
+}
+:root[data-hide-volume] .pb-volume,
+:root[data-hide-volume] .mini-volume input {
+  display: none !important;
+}
+:root[data-hide-download] .k-dl-wrap {
+  display: none !important;
+}
+:root[data-hide-heart] .k-heart {
+  display: none !important;
+}
+
+/* ── Mini: shrink keys, then hide by width ── */
+.mini-center,
+.mini-side-row:not(.chrome) {
+  zoom: var(--mini-k, 1);
+}
+.mini.w-toggles .mini-modes,
+.mini.w-volume .mini-volume input,
+.mini.w-prev .k-prev,
+.mini.w-download .k-dl-wrap,
+.mini.w-heart .k-heart {
+  display: none !important;
+}
+/* Narrow mini: the right column gives up its fixed width so the title keeps room. */
+.mini .mini-side {
+  min-width: 0;
+}
+.mini.w-prev .mini-side-row.chrome .winbtn,
+.mini.w-prev .mini-side-row.chrome .icon.pin {
+  width: 24px;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  :root[data-style="heavy"] button.icon {
-    transition: none;
+  .k-play,
+  .k-skip,
+  .k-toggle,
+  .k-util {
+    transition: none !important;
   }
+}
+
+/* Heavy play key also wins over the faded mini's outline style. */
+:root[data-s-play="heavy"] .mini.faded .k-play,
+:root[data-s-play="heavy"] .mini .k-play {
+  border: 3px solid transparent;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 82%, #fff 18%), var(--accent)) padding-box,
+    var(--lip) border-box;
+  color: var(--on-accent);
+  box-shadow: var(--bevel), 0 0 0 1px rgba(0, 0, 0, 0.4);
+  filter: none;
+}
+:root[data-s-play="heavy"] .mini.faded .k-play:hover:not(:disabled) {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 70%, #fff 30%), var(--accent)) padding-box,
+    var(--lip) border-box;
 }

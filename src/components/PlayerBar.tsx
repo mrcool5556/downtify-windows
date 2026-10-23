@@ -107,14 +107,16 @@ export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onRev
               </div>
             </div>
             <button
-              className={`icon heart ${current.liked ? "on" : ""}`}
+              className={`icon heart k-status k-heart ${current.liked ? "on" : ""}`}
               onClick={toggleLike}
               disabled={!online || likeBusy}
               title={online ? (current.liked ? "Unlike (Ctrl+L)" : "Like (Ctrl+L)") : "Likes need the server"}
             >
               {current.liked ? "♥" : "♡"}
             </button>
-            <DownloadButton track={current} online={online} size={18} />
+            <span className="k-status k-dl-wrap">
+              <DownloadButton track={current} online={online} size={18} />
+            </span>
           </>
         ) : (
           <div className="pb-meta muted">Nothing playing. Double-click a song to start.</div>
@@ -123,19 +125,19 @@ export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onRev
 
       <div className="pb-center">
         <div className="pb-controls">
-          <button className={`icon ${p.shuffle ? "on" : ""}`} onClick={() => player.toggleShuffle()} title="Shuffle">
+          <button className={`icon k-toggle ${p.shuffle ? "on" : ""}`} onClick={() => player.toggleShuffle()} title="Shuffle">
             <ShuffleIcon />
           </button>
-          <button className="icon" onClick={() => player.previous()} title="Previous (Ctrl+Left)" disabled={!current}>
+          <button className="icon k-skip k-prev" onClick={() => player.previous()} title="Previous (Ctrl+Left)" disabled={!current}>
             ⏮
           </button>
-          <button className="icon big" onClick={() => player.toggle()} title="Play/Pause (Space)" disabled={!current && p.queue.length === 0}>
+          <button className="icon big k-play" onClick={() => player.toggle()} title="Play/Pause (Space)" disabled={!current && p.queue.length === 0}>
             {p.playing ? "⏸" : "▶"}
           </button>
-          <button className="icon" onClick={() => player.next()} title="Next (Ctrl+Right)" disabled={!current}>
+          <button className="icon k-skip" onClick={() => player.next()} title="Next (Ctrl+Right)" disabled={!current}>
             ⏭
           </button>
-          <button className={`icon ${p.repeat !== "off" ? "on" : ""}`} onClick={() => player.cycleRepeat()} title={`Repeat: ${p.repeat}`}>
+          <button className={`icon k-toggle ${p.repeat !== "off" ? "on" : ""}`} onClick={() => player.cycleRepeat()} title={`Repeat: ${p.repeat}`}>
             {p.repeat === "one" ? <RepeatOneIcon /> : <RepeatIcon />}
           </button>
         </div>
@@ -159,7 +161,7 @@ export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onRev
       </div>
 
       <div className="pb-right">
-        <button className="icon" onClick={() => player.toggleMute()} title={p.muted ? "Unmute" : "Mute"}>
+        <button className="icon k-util" onClick={() => player.toggleMute()} title={p.muted ? "Unmute" : "Mute"}>
           <VolumeIcon muted={p.muted || p.volume === 0} />
         </button>
         <input
@@ -178,10 +180,10 @@ export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onRev
           title="Volume (scroll to change by 2)"
           style={{ backgroundSize: `${p.muted ? 0 : p.volume * 100}% 100%` }}
         />
-        <button className={`icon ${p.queueOpen ? "on" : ""}`} onClick={() => player.setQueueOpen(!p.queueOpen)} title="Queue">
+        <button className={`icon k-util ${p.queueOpen ? "on" : ""}`} onClick={() => player.setQueueOpen(!p.queueOpen)} title="Queue">
           ☰
         </button>
-        <button className="icon" onClick={onMini} title="Mini player (Ctrl+M)">
+        <button className="icon k-util" onClick={onMini} title="Mini player (Ctrl+M)">
           <MiniIcon />
         </button>
       </div>

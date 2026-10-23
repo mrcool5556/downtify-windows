@@ -18,7 +18,7 @@ pub fn mini_height(s: &Settings) -> f64 {
         MINI_HEIGHT
     }
 }
-pub const MINI_MIN_WIDTH: f64 = 360.0;
+pub const MINI_MIN_WIDTH: f64 = 300.0;
 pub const MINI_MAX_WIDTH: f64 = 700.0;
 pub const FULL_MIN: (f64, f64) = (820.0, 520.0);
 

@@ -5,7 +5,8 @@ import { usePlayer, usePlayerProgress } from "../player/usePlayer";
 import { likeBus } from "../likeBus";
 import { DownloadButton } from "./DownloadButton";
 import { WindowControls } from "./WindowControls";
-import { useContextMenu } from "./ContextMenu";
+import { MenuItem, useContextMenu } from "./ContextMenu";
+import { groupStyle, useLayout } from "../layout";
 import { trackMenu } from "../views/Library";
 import { OpacityBackgroundIcon, OpacityWindowIcon, PauseOutlineIcon, PinIcon, PlayOutlineIcon, RepeatIcon, RepeatOneIcon, ShuffleIcon, VolumeIcon } from "./Icons";
 
@@ -41,6 +42,37 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
   useEffect(() => () => window.clearTimeout(fadeTimer.current), []);
   const bgAlpha = windowMode || hovered ? 1 : settings.mini_opacity / 100;
 
+  // Narrower mini: keys shrink from ~520px to ~420px, then items hide one by one.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(520);
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => setWidth(Math.round(entries[0].contentRect.width)));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const layout = useLayout();
+  const heavyKeys = groupStyle("play", layout, true) === "heavy" || groupStyle("skip", layout, true) === "heavy";
+  const w = width - (heavyKeys ? 28 : 0);
+  const k = 0.8 + 0.2 * Math.max(0, Math.min(1, (w - 420) / 100));
+  const hidden = {
+    toggles: w < 420 || !layout.show.toggles,
+    volume: w < 395 || !layout.show.volume,
+    prev: w < 370,
+    download: w < 345 || !layout.show.download,
+    heart: w < 325 || !layout.show.heart,
+  };
+  const widthClasses = [
+    w < 420 && "w-toggles",
+    w < 395 && "w-volume",
+    w < 370 && "w-prev",
+    w < 345 && "w-download",
+    w < 325 && "w-heart",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   const upcoming = p.order.slice(p.cursor + 1, p.cursor + 6).map((qi) => ({ qi, t: p.queue[qi] }));
   const pct = p.duration ? (p.position / p.duration) * 100 : 0;
   const expanded = settings.mini_expanded;
@@ -57,15 +89,42 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
 
   const env = { online, playlists: [], setNotice: () => {}, reloadPlaylists: () => {}, promptNewPlaylist: () => {}, currentPlaylist: undefined };
 
+  /** The song menu, topped with whatever the mini is too narrow (or set) to show. */
+  function miniMenu(): MenuItem[] {
+    const extra: MenuItem[] = [];
+    if (hidden.prev) extra.push({ label: "Previous", onClick: () => player.previous() });
+    if (hidden.toggles) {
+      extra.push({ label: "Shuffle", checked: p.shuffle, onClick: () => player.toggleShuffle() });
+      extra.push({ label: `Repeat: ${p.repeat === "off" ? "off" : p.repeat === "all" ? "all" : "one"}`, onClick: () => player.cycleRepeat() });
+    }
+    const base = current ? trackMenu([current], env, { playFirst: () => player.play(), addToPlaylist: async () => {} }) : [];
+    // trackMenu already offers Like and Download / Remove, so hidden heart and download stay reachable.
+    return extra.length ? [...extra, { separator: true }, ...base] : base;
+  }
+
   return (
-    <div className={`mini ${bgAlpha < 1 ? "faded" : ""}`} onMouseEnter={onEnter} onMouseLeave={onLeave} data-tauri-drag-region style={{ "--mini-alpha": bgAlpha } as React.CSSProperties}>
+    <div
+      ref={rootRef}
+      className={`mini ${bgAlpha < 1 ? "faded" : ""} ${widthClasses}`}
+      onMouseEnter={onEnter}
+      onMouseLeave={onLeave}
+      data-tauri-drag-region
+      style={{ "--mini-alpha": bgAlpha, "--mini-k": k } as React.CSSProperties}
+    >
       {ctx.menu}
 
-      <div className="mini-main" data-tauri-drag-region>
+      <div
+        className="mini-main"
+        data-tauri-drag-region
+        onContextMenu={(e) => {
+          if ((e.target as HTMLElement).closest(".mini-track")) return;
+          if (current) ctx.open(e, miniMenu());
+        }}
+      >
         <div
           className="mini-track"
           data-tauri-drag-region
-          onContextMenu={(e) => current && ctx.open(e, trackMenu([current], env, { playFirst: () => player.play(), addToPlaylist: async () => {} }))}
+          onContextMenu={(e) => current && ctx.open(e, miniMenu())}
         >
           {current && coverOk && current.has_cover ? (
             <img className="mini-art" src={coverUrl(current.id, 150)} alt="" key={current.id} onError={() => setCoverOk(false)} />
@@ -80,21 +139,21 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
 
         <div className="mini-center" data-tauri-drag-region>
           <div className="mini-controls">
-            <button className="icon" onClick={() => player.previous()} disabled={!current} title="Previous">
+            <button className="icon k-skip k-prev" onClick={() => player.previous()} disabled={!current} title="Previous">
               ⏮
             </button>
-            <button className="icon big mini-play" onClick={() => player.toggle()} disabled={!current && p.queue.length === 0} title="Play / pause">
+            <button className="icon big mini-play k-play" onClick={() => player.toggle()} disabled={!current && p.queue.length === 0} title="Play / pause">
               {p.playing ? <PauseOutlineIcon /> : <PlayOutlineIcon />}
             </button>
-            <button className="icon" onClick={() => player.next()} disabled={!current} title="Next">
+            <button className="icon k-skip" onClick={() => player.next()} disabled={!current} title="Next">
               ⏭
             </button>
           </div>
           <div className="mini-modes">
-            <button className={`icon ${p.shuffle ? "on" : ""}`} onClick={() => player.toggleShuffle()} title="Shuffle">
+            <button className={`icon k-toggle ${p.shuffle ? "on" : ""}`} onClick={() => player.toggleShuffle()} title="Shuffle">
               <ShuffleIcon />
             </button>
-            <button className={`icon ${p.repeat !== "off" ? "on" : ""}`} onClick={() => player.cycleRepeat()} title={`Repeat: ${p.repeat}`}>
+            <button className={`icon k-toggle ${p.repeat !== "off" ? "on" : ""}`} onClick={() => player.cycleRepeat()} title={`Repeat: ${p.repeat}`}>
               {p.repeat === "one" ? <RepeatOneIcon /> : <RepeatIcon />}
             </button>
           </div>
@@ -114,10 +173,12 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
           <div className="mini-side-row">
             {current ? (
               <>
-                <button className={`icon heart ${current.liked ? "on" : ""}`} onClick={toggleLike} disabled={!online} title={current.liked ? "Unlike" : "Like"}>
+                <button className={`icon heart k-status k-heart ${current.liked ? "on" : ""}`} onClick={toggleLike} disabled={!online} title={current.liked ? "Unlike" : "Like"}>
                   {current.liked ? "♥" : "♡"}
                 </button>
-                <DownloadButton track={current} online={online} size={16} />
+                <span className="k-status k-dl-wrap">
+                  <DownloadButton track={current} online={online} size={16} />
+                </span>
               </>
             ) : (
               <span />

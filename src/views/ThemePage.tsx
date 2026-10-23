@@ -1,4 +1,4 @@
-import { setLayout, useLayout } from "../layout";
+import { GROUPS, GroupKey, GroupStyle, ShowKey, setLayout, useLayout } from "../layout";
 import { ControlStyle, THEMES, ThemeId, ThemeInfo, themeById } from "../themes";
 
 /** Settings → Theme: colour theme cards, control style, and the mini player's own look. */
@@ -26,6 +26,41 @@ export function ThemePage() {
         <h2>Controls</h2>
         <StyleChoice value={p.controlStyle} onChange={(v) => setLayout({ controlStyle: v })} />
       </section>
+
+      <details className="card adv">
+        <summary>
+          <h2>Advanced</h2>
+          <small className="hint">Style and show each part of the player on its own</small>
+        </summary>
+        <p className="hint">"Follow" uses the Controls choice above (or the mini player's own, in the mini).</p>
+        {GROUPS.map((g) => (
+          <div key={g.key} className="setting-row">
+            <span>{g.label}</span>
+            <div className="seg seg-text" role="radiogroup" aria-label={g.label}>
+              {(["follow", "modern", "heavy"] as GroupStyle[]).map((v) => (
+                <button key={v} className={p.advanced[g.key] === v ? "on" : ""} onClick={() => setLayout({ advanced: { ...p.advanced, [g.key as GroupKey]: v } })}>
+                  {v === "follow" ? "Follow" : v === "modern" ? "Modern" : "Heavy"}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+        <h3 className="adv-sub">Show</h3>
+        <p className="hint">Turned off, an item is hidden in both the full window and the mini. The mini also hides items on its own when it gets narrow; they stay in its right-click menu.</p>
+        {(
+          [
+            ["toggles", "Shuffle and repeat"],
+            ["volume", "Volume slider"],
+            ["download", "Download button"],
+            ["heart", "Heart (like)"],
+          ] as [ShowKey, string][]
+        ).map(([key, label]) => (
+          <label key={key} className="check">
+            <input type="checkbox" checked={p.show[key]} onChange={(e) => setLayout({ show: { ...p.show, [key]: e.target.checked } })} />
+            {label}
+          </label>
+        ))}
+      </details>
 
       <section className="card">
         <h2>Mini player</h2>
