@@ -6,7 +6,7 @@ import {
   Summary,
   Track,
   api,
-  coverUrl,
+  artFor, coverUrl,
   fmtDuration,
   homeApi,
   isEditable,
@@ -25,6 +25,10 @@ import { Downloads } from "./Downloads";
 import { downloadsApi, localBus, useDownloads } from "../downloads";
 import { MenuItem, useContextMenu } from "../components/ContextMenu";
 import { navBus } from "../navBus";
+import { DiscoverIcon } from "../components/Icons";
+import { CollectionPage, DiscoverPage } from "./DiscoverPage";
+import { OnlineList } from "../components/OnlineList";
+import { OnlineSong, discoverApi, findInLibrary, libraryIndex, resolveCollection, searchOnline } from "../discover";
 import { listen } from "@tauri-apps/api/event";
 import { useUpdates } from "../updates";
 import { Section, nav, useNav } from "../nav";
@@ -45,6 +49,8 @@ const SECTION_TITLE: Record<Section, string> = {
   downloads: "Downloads",
   settings: "Settings",
   search: "Search",
+  discover: "Discover",
+  collection: "Album",
 };
 
 const DRAG_MIME = "application/x-downtify-tracks";
@@ -103,6 +109,32 @@ export function Library({
   const layout = useLayout();
   const ctx = useContextMenu();
   const updates = useUpdates();
+
+  // An album or playlist opened from Discover: the server resolves its tracklist.
+  const [collSongs, setCollSongs] = useState<OnlineSong[] | null>(null);
+  const [collError, setCollError] = useState("");
+  const collUrl = section === "collection" ? String((scope as Record<string, unknown>).url ?? "") : "";
+  useEffect(() => {
+    if (!collUrl) return;
+    let cancelled = false;
+    setCollSongs(null);
+    setCollError("");
+    resolveCollection(collUrl)
+      .then((s) => !cancelled && setCollSongs(s))
+      .catch((e) => !cancelled && setCollError(String(e)));
+    return () => {
+      cancelled = true;
+    };
+  }, [collUrl]);
+  async function addCollection() {
+    if (!collSongs?.length) return;
+    try {
+      await discoverApi("POST", "/api/download/batch", { songs: collSongs, generate_m3u: false });
+      setNotice(`Asked the server to add ${collSongs.length} songs. They appear after the next sync.`);
+    } catch (e) {
+      setNotice(String(e));
+    }
+  }
 
   const playContext = { section, scope, search, localOnly };
 
@@ -477,6 +509,8 @@ export function Library({
         ? scope.artist.name
         : section === "search"
           ? `Results for “${search}”`
+          : section === "collection"
+            ? String((scope as Record<string, unknown>).name ?? "Album")
           : SECTION_TITLE[section];
   const headerPlaylist = scope.playlist ? (playlists.find((x) => x.name === scope.playlist!.name) ?? scope.playlist) : undefined;
 
@@ -491,6 +525,12 @@ export function Library({
         <button className={`nav ${section === "downloads" ? "active" : ""}`} onClick={() => go("downloads")} title="Downloads">
           <span className="nav-icon">⤓</span> <span className="lbl">Downloads</span>
           {activeDownloads > 0 && <small className="badge">{activeDownloads}</small>}
+        </button>
+        <button className={`nav ${section === "discover" || section === "collection" ? "active" : ""}`} onClick={() => go("discover")} title="Discover">
+          <span className="nav-icon">
+            <DiscoverIcon />
+          </span>{" "}
+          <span className="lbl">Discover</span>
         </button>
         <div className="sidebar-title">
           <span className="lbl">Your playlists</span>
@@ -650,6 +690,11 @@ export function Library({
               {headerPlaylist.local_count} of {headerPlaylist.count} on this PC <DownloadGlyph on={headerPlaylist.keep_synced} />
             </small>
           )}
+          {section === "collection" && collSongs && collSongs.length > 0 && (
+            <button className="small primary" onClick={addCollection} disabled={!online} title="Ask the server to download every song">
+              Add all to library
+            </button>
+          )}
           {showingTracks && search && (
             <small className="head-owner">
               matching “{search}”{" "}
@@ -716,6 +761,10 @@ export function Library({
           renderSettings(view.tab ?? "general", (t) => nav.replace({ ...view, tab: t }))
         ) : empty ? (
           <div className="empty">{online ? "Library is empty. Download something on the server, then press Sync." : "No library yet. Connect to the server once to sync it."}</div>
+        ) : section === "discover" ? (
+          <DiscoverPage online={online} openMenu={ctx.open} />
+        ) : section === "collection" ? (
+          <CollectionPage url={String((scope as Record<string, unknown>).url ?? "")} online={online} openMenu={ctx.open} songs={collSongs} error={collError} />
         ) : section === "search" ? (
           <SearchResults
             q={search}
@@ -1067,7 +1116,7 @@ function PlaylistArt({ p, size }: { p: PlaylistSummary; size: number }) {
 function RowArt({ track }: { track: Track }) {
   const [failed, setFailed] = useState(false);
   if (!track.has_cover || failed) return <div className="row-art">♫</div>;
-  return <img className="row-art" src={coverUrl(track.id, 150)} alt="" loading="lazy" onError={() => setFailed(true)} />;
+  return <img className="row-art" src={artFor(track, 150)} alt="" loading="lazy" onError={() => setFailed(true)} />;
 }
 
 function AlbumArt({ trackId }: { trackId: string }) {
@@ -1133,11 +1182,40 @@ function SearchResults({
   useEffect(() => localBus.on((id, local_path) => setSongs((ts) => ts.map((t) => (t.id === id ? { ...t, local_path } : t)))), []);
 
   const lists = needle ? playlists.filter((p) => playlistLabel(p).toLowerCase().includes(needle)) : [];
+
+  // Online matches the library doesn't have yet.
+  const [web, setWeb] = useState<OnlineSong[] | null>(null);
+  useEffect(() => {
+    if (!needle || !online) {
+      setWeb(null);
+      return;
+    }
+    let cancelled = false;
+    setWeb(null);
+    Promise.all([searchOnline(q.trim()), libraryIndex()])
+      .then(([rows, idx]) => !cancelled && setWeb(rows.filter((r) => !findInLibrary(idx, r))))
+      .catch(() => !cancelled && setWeb([]));
+    return () => {
+      cancelled = true;
+    };
+  }, [q, needle, online]);
   const nothing = needle && !songs.length && !albums.length && !artists.length && !lists.length;
   const sctx = { section: "search", scope: {}, search: q, localOnly: false };
 
   if (!needle) return <div className="empty">Type something and press Enter to search songs, albums, artists and playlists.</div>;
-  if (nothing) return <div className="empty">Nothing in your library matches “{q}”.</div>;
+  const webSection = (
+    <>
+      <h3>
+        Online <small>{web === null ? (online ? "searching…" : "needs the server") : web.length}</small>
+      </h3>
+      {web && web.length > 0 ? (
+        <OnlineList songs={web} online={online} openMenu={openMenu} context={{ section: "search", scope: {}, search: q, localOnly: false }} />
+      ) : web && web.length === 0 ? (
+        <div className="hint">Nothing new online for “{q}”.</div>
+      ) : null}
+    </>
+  );
+  if (nothing) return <div className="search-results"><div className="hint">Nothing in your library matches “{q}”.</div>{webSection}</div>;
 
   return (
     <div className="search-results">
@@ -1185,6 +1263,7 @@ function SearchResults({
           <AlbumGrid albums={albums} onOpen={onOpenAlbum} onMenu={(e, a) => openMenu(e, albumMenu(a))} />
         </>
       )}
+      {webSection}
     </div>
   );
 }
@@ -1488,7 +1567,7 @@ function TrackGrid({ tracks, online, onPlay, env, openMenu, addToPlaylist, remov
             title="Double-click to play · right-click for more"
           >
             <div className="tile-art-wrap">
-              {t.has_cover ? <img className="tile-art" src={coverUrl(t.id, 300)} alt="" loading="lazy" /> : <div className="tile-art">♫</div>}
+              {t.has_cover ? <img className="tile-art" src={artFor(t, 300)} alt="" loading="lazy" /> : <div className="tile-art">♫</div>}
               <span
                 className="tile-play"
                 onClick={(e) => {

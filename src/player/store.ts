@@ -4,6 +4,7 @@
 
 import { listen } from "@tauri-apps/api/event";
 import { Track, api, homeApi, localTrackUrl, playerApi } from "../api";
+import { onlineSource } from "../discover";
 import { invoke } from "@tauri-apps/api/core";
 
 export type Repeat = "off" | "all" | "one";
@@ -39,6 +40,10 @@ export interface PlayerSnapshot {
   repeat: Repeat;
   error: string;
   queueOpen: boolean;
+  /** Which tab of the side panel is showing. */
+  panelTab: "queue" | "recent" | "like";
+  /** Radio: keep adding songs like the current one as the queue runs out. */
+  radio: boolean;
   context: PlayContext | null;
   /** Bumped when the user asks to see the list the queue came from. */
   revealNonce: number;
@@ -83,6 +88,8 @@ class PlayerStore {
     repeat: "off",
     error: "",
     queueOpen: false,
+    panelTab: "queue",
+    radio: false,
     context: null,
     revealNonce: 0,
   };
@@ -254,6 +261,7 @@ class PlayerStore {
   // ── Source resolution ───────────────────────────────────────────────
 
   private async sourceFor(track: Track): Promise<string> {
+    if (track.online) return onlineSource(track);
     if (track.local_path) return localTrackUrl(track.id);
     const cached = this.streamCache.get(track.id);
     const nowSec = Date.now() / 1000;
@@ -283,8 +291,8 @@ class PlayerStore {
     this.audio.load();
     this.pushSmtc(autoplay ? "playing" : "paused");
     if (autoplay) {
-      homeApi.recordPlay(track.id).catch(() => {});
-      if (!track.local_path) {
+      if (!track.online) homeApi.recordPlay(track.id).catch(() => {});
+      if (!track.local_path && !track.online) {
         api.getSettings()
           .then((s) => {
             if (s.keep_played) invoke("download_tracks", { trackIds: [track.id] }).catch(() => {});
@@ -307,8 +315,54 @@ class PlayerStore {
     const order = this.snap.shuffle ? shuffledOrder(tracks.length, start) : tracks.map((_, i) => i);
     const cursor = order.indexOf(start);
     this.pendingSeek = null;
-    this.set({ queue: tracks, order, cursor, current: tracks[start], context });
+    this.set({ queue: tracks, order, cursor, current: tracks[start], context, radio: false });
+    this.radioMore = null;
     this.loadCurrent(true);
+  }
+
+  private radioMore: ((t: Track) => Promise<Track[]>) | null = null;
+  private radioBusy = false;
+
+  /** Play a list as a radio: when it nears its end, more like the playing song are added. */
+  startRadio(tracks: Track[], more: (t: Track) => Promise<Track[]>) {
+    this.playList(tracks, 0, { section: "home", scope: {}, search: "radio", localOnly: false });
+    this.radioMore = more;
+    this.set({ radio: true });
+  }
+
+  stopRadio() {
+    this.radioMore = null;
+    this.set({ radio: false });
+  }
+
+  private topUpRadio() {
+    const { radio, cursor, order, queue, current } = this.snap;
+    if (!radio || !this.radioMore || this.radioBusy || !current || cursor < order.length - 3) return;
+    this.radioBusy = true;
+    this.radioMore(current)
+      .then((more) => {
+        const have = new Set(this.snap.queue.map((t) => t.id));
+        const fresh = more.filter((t) => !have.has(t.id));
+        if (fresh.length) {
+          const base = this.snap.queue.length;
+          this.set({ queue: [...this.snap.queue, ...fresh], order: [...this.snap.order, ...fresh.map((_, i) => base + i)] });
+          this.scheduleSave();
+        }
+        void queue;
+      })
+      .catch(() => {})
+      .finally(() => {
+        this.radioBusy = false;
+      });
+  }
+
+  /** Open the side panel on a tab. */
+  openPanel(tab: "queue" | "recent" | "like") {
+    this.set({ queueOpen: true, panelTab: tab });
+  }
+
+  setPanelTab(tab: "queue" | "recent" | "like") {
+    this.set({ panelTab: tab });
   }
 
   /** Ask the library to show the list the queue came from. */
@@ -343,6 +397,7 @@ class PlayerStore {
     this.pendingSeek = null;
     this.set({ cursor, current: queue[order[cursor]], position: 0 });
     this.loadCurrent(autoplay);
+    this.topUpRadio();
   }
 
   next() {
@@ -530,7 +585,7 @@ class PlayerStore {
 
   private maybeReportListen() {
     const t = this.snap.current;
-    if (!t || this.listenReported) return;
+    if (!t || this.listenReported || t.online) return;
     const d = this.audio.duration || t.duration || 0;
     if (!d) return;
     const threshold = Math.min(d / 2, 240);
@@ -542,7 +597,7 @@ class PlayerStore {
 
   private trackPayload() {
     const t = this.snap.current;
-    return t ? { track_id: t.id, title: t.title, artist: t.artist, album: t.album, duration: Math.round(t.duration || 0) } : {};
+    return t ? { track_id: t.online ? "" : t.id, title: t.title, artist: t.artist, album: t.album, duration: Math.round(t.duration || 0) } : {};
   }
 
   private pushNowPlaying(state: "playing" | "paused" | "stopped") {

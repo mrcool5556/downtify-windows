@@ -4,7 +4,7 @@ import { player } from "../player/store";
 import { likeBus } from "../likeBus";
 import { downloadsApi, useDownload } from "../downloads";
 import { navBus } from "../navBus";
-import { PrevIcon, RepeatIcon, RepeatOneIcon, ShuffleIcon } from "./Icons";
+import { DiscoverIcon, PrevIcon, RepeatIcon, RepeatOneIcon, ShuffleIcon } from "./Icons";
 
 /**
  * The mini player's own right-click menu: a strip of themed keys that fits
@@ -127,6 +127,16 @@ export function MiniStrip({
         {key("Go to album", () => act(() => openInFull({ album_id: track.album_id, album: track.album, album_artist: track.album_artist, artist_id: track.artist_id, cover_track_id: track.id })), "◫", {
           disabled: !track.album_id,
         })}
+        {key(
+          "Songs like this",
+          () =>
+            act(() => {
+              onOpenFull();
+              setTimeout(() => player.openPanel("like"), 80);
+            }),
+          <DiscoverIcon />,
+          { disabled: !online },
+        )}
         {key("Open full window", () => act(onOpenFull), "⤢")}
         <button className="icon strip-close" onClick={onClose} aria-label="Close" title="Close (Esc)">
           ✕

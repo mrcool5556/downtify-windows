@@ -856,3 +856,76 @@ img {
 .pb-status.err {
   color: #ffb4b6;
 }
+
+
+/* ── Discover ── */
+.discover h3 {
+  font-size: 15px;
+  margin: 18px 0 10px;
+}
+.discover h3:first-child {
+  margin-top: 4px;
+}
+.strip-grid {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
+.tile-art.round {
+  border-radius: 50%;
+}
+.artist-tile {
+  text-align: center;
+  align-items: center;
+}
+.badge-in,
+.badge-pre {
+  margin-left: 8px;
+  font-size: 10.5px;
+  padding: 0 6px;
+  border-radius: 999px;
+  vertical-align: 1px;
+}
+.badge-in {
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+}
+.badge-pre {
+  color: var(--fg-2);
+  border: 1px solid var(--border);
+}
+.dl-glyph-ok {
+  color: var(--accent);
+  font-size: 13px;
+}
+table.tracks.online td.c-artist {
+  color: var(--fg-2);
+}
+.likethis {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+}
+.likethis-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.likethis-head .hint {
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.queue table.tracks.online td.c-artist {
+  display: none;
+}
+.queue table.tracks.online td {
+  padding: 3px 4px;
+}
+.tabs2 button {
+  padding: 4px 6px;
+}

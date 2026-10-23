@@ -37,6 +37,8 @@ pub fn handle(ctx: UriSchemeContext<'_, tauri::Wry>, req: Request<Vec<u8>>, resp
             serve_cover(&app, id, &query).await
         } else if path == "/playlist-cover" {
             serve_playlist_cover(&app, &query).await
+        } else if let Some(vid) = path.strip_prefix("/online/") {
+            serve_online(&app, vid, range.as_deref()).await
         } else {
             Err(StatusCode::NOT_FOUND)
         };
@@ -231,4 +233,37 @@ async fn serve_playlist_cover(app: &AppHandle, query: &str) -> Result<Response<V
         .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
         .body(bytes)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+/// `/online/<video_id>`: a song that isn't in the library yet, streamed by
+/// the server (`GET /api/stream/file`, which needs the device token the
+/// audio element can't send). Range is passed through so seeking works.
+async fn serve_online(app: &AppHandle, video_id: &str, range: Option<&str>) -> Result<Response<Vec<u8>>, StatusCode> {
+    if video_id.is_empty() || video_id.len() > 64 || !video_id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    let state = app.state::<AppState>();
+    let client = client_for(&state).map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+    let mut req = client.get(&format!("/api/stream/file?video_id={video_id}"));
+    if let Some(r) = range {
+        req = req.header(header::RANGE, r);
+    }
+    let resp = req.send().await.map_err(|_| StatusCode::BAD_GATEWAY)?;
+    let status = StatusCode::from_u16(resp.status().as_u16()).unwrap_or(StatusCode::BAD_GATEWAY);
+    if !status.is_success() {
+        return Err(status);
+    }
+    let mut b = Response::builder()
+        .status(status)
+        .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+        .header(header::ACCEPT_RANGES, "bytes")
+        .header(header::CACHE_CONTROL, "no-store");
+    for name in [header::CONTENT_TYPE, header::CONTENT_RANGE] {
+        if let Some(v) = resp.headers().get(&name) {
+            b = b.header(name.clone(), v.clone());
+        }
+    }
+    let bytes = resp.bytes().await.map_err(|_| StatusCode::BAD_GATEWAY)?.to_vec();
+    b = b.header(header::CONTENT_LENGTH, bytes.len().to_string());
+    b.body(bytes).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }

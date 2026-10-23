@@ -61,6 +61,8 @@ export interface Track {
   local_path: string | null;
   liked: boolean;
   orphaned: boolean;
+  /** Set for songs from outside the library (Discover, online search). */
+  online?: { cover: string; video_id?: string; preview?: string; song: unknown };
 }
 
 export interface Album {
@@ -237,3 +239,8 @@ export const sharingApi = {
   copy: (name: string, newName?: string) => invoke<PlaylistSummary[]>("copy_playlist", { name, newName: newName ?? null }),
   detach: (name: string) => invoke<PlaylistSummary[]>("detach_playlist", { name }),
 };
+
+/** Cover image for any track: the server's for library songs, the remote one for online songs. */
+export function artFor(t: Track, size: 150 | 300 | 600 = 150): string {
+  return t.online ? t.online.cover : coverUrl(t.id, size);
+}

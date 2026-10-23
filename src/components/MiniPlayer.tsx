@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { Settings, coverUrl, fmtDuration, playerApi } from "../api";
+import { Settings, artFor, coverUrl, fmtDuration, playerApi } from "../api";
 import { usePlayer, usePlayerProgress } from "../player/usePlayer";
 import { likeBus } from "../likeBus";
 import { DownloadButton } from "./DownloadButton";
@@ -153,7 +153,7 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
           }}
         >
           {current && coverOk && current.has_cover ? (
-            <img className="mini-art" src={coverUrl(current.id, 150)} alt="" key={current.id} onError={() => setCoverOk(false)} draggable={false} data-tauri-drag-region />
+            <img className="mini-art" src={artFor(current, 150)} alt="" key={current.id} onError={() => setCoverOk(false)} draggable={false} data-tauri-drag-region />
           ) : (
             <div className="mini-art placeholder" data-tauri-drag-region>
               ♫

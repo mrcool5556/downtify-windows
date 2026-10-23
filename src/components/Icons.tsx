@@ -113,3 +113,11 @@ export const ChevronRightIcon = () => (
     <path d="M6.2 3.8 10.4 8l-4.2 4.2" strokeWidth={1.9} />
   </svg>
 );
+
+/** Discover: a compass. */
+export const DiscoverIcon = () => (
+  <svg {...base} aria-hidden>
+    <circle cx="8" cy="8" r="6" />
+    <path d="M10.6 5.4 9 9 5.4 10.6 7 7z" fill="currentColor" stroke="none" />
+  </svg>
+);

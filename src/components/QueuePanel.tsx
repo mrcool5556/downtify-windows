@@ -5,6 +5,8 @@ import { likeBus } from "../likeBus";
 import { MenuItem, useContextMenu } from "../components/ContextMenu";
 import { trackMenu } from "../views/Library";
 import { api } from "../api";
+import { OnlineList } from "./OnlineList";
+import { OnlineSong, libraryIndex, similarTo, toTrack } from "../discover";
 
 export function QueuePanel({ online }: { online: boolean }) {
   const { queue, order, cursor, current, player } = usePlayer();
@@ -14,7 +16,8 @@ export function QueuePanel({ online }: { online: boolean }) {
   const [notice, setNotice] = useState("");
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [dragOver, setDragOver] = useState<number | null>(null);
-  const [tab, setTab] = useState<"queue" | "recent">("queue");
+  const { panelTab: tab, radio } = usePlayer();
+  const setTab = (t: "queue" | "recent" | "like") => player.setPanelTab(t);
   const [recent, setRecent] = useState<Track[]>([]);
   useEffect(() => {
     if (tab === "recent") homeApi.recentPlays(50).then(setRecent).catch(() => {});
@@ -77,7 +80,10 @@ export function QueuePanel({ online }: { online: boolean }) {
             Queue <small>{queue.length}</small>
           </button>
           <button className={tab === "recent" ? "on" : ""} onClick={() => setTab("recent")}>
-            Recently played
+            Recent
+          </button>
+          <button className={tab === "like" ? "on" : ""} onClick={() => setTab("like")} title="Songs like the one playing">
+            Like this
           </button>
         </div>
         {tab === "queue" && (
@@ -90,7 +96,9 @@ export function QueuePanel({ online }: { online: boolean }) {
         </button>
       </div>
       {notice && <div className="toast">{notice}</div>}
-      {tab === "recent" ? (
+      {tab === "like" ? (
+        <LikeThis online={online} radio={radio} openMenu={ctx.open} />
+      ) : tab === "recent" ? (
         recent.length === 0 ? (
           <div className="empty">Nothing played yet.</div>
         ) : (
@@ -237,3 +245,55 @@ const QueueRow = forwardRef<HTMLLIElement, RowProps>(function QueueRow(
     </li>
   );
 });
+
+
+/** "Like this": songs similar to the playing one, with Start radio. */
+function LikeThis({ online, radio, openMenu }: { online: boolean; radio: boolean; openMenu: (e: React.MouseEvent, items: MenuItem[]) => void }) {
+  const { current, player } = usePlayer();
+  const [songs, setSongs] = useState<OnlineSong[] | null>(null);
+  const [error, setError] = useState("");
+  const seed = current ? `${current.artist}|${current.title}` : "";
+
+  useEffect(() => {
+    if (!current || !online) return;
+    let cancelled = false;
+    setSongs(null);
+    setError("");
+    similarTo(current.artist, current.title, 30)
+      .then((s) => !cancelled && setSongs(s))
+      .catch((e) => !cancelled && setError(String(e)));
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seed, online]);
+
+  async function startRadio() {
+    if (!current || !songs) return;
+    const idx = await libraryIndex();
+    const tracks = [current, ...songs.map((s) => toTrack(s, idx)).filter((t) => t.id !== current.id)];
+    player.startRadio(tracks, async (t) => (await similarTo(t.artist, t.title, 20)).map((s) => toTrack(s, idx)));
+  }
+
+  if (!online) return <div className="empty">Songs like this need the server.</div>;
+  if (!current) return <div className="empty">Play something to see songs like it.</div>;
+  return (
+    <div className="likethis">
+      <div className="likethis-head">
+        <span className="hint">
+          Like <b>{current.title}</b>
+        </span>
+        {radio ? (
+          <button className="small" onClick={() => player.stopRadio()} title="Stop adding songs automatically">
+            Radio on · stop
+          </button>
+        ) : (
+          <button className="small primary" onClick={startRadio} disabled={!songs?.length} title="Play these, and keep adding more like the song playing">
+            Start radio
+          </button>
+        )}
+      </div>
+      {error ? <div className="empty">{error}</div> : songs === null ? <div className="hint" style={{ padding: 12 }}>Finding songs like this…</div> : <OnlineList songs={songs} online={online} openMenu={openMenu} context={{ section: "home", scope: {}, search: "like-this", localOnly: false }} compact />}
+    </div>
+  );
+}

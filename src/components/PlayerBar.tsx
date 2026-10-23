@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { coverUrl, fmtDuration, playerApi } from "../api";
+import { artFor, coverUrl, fmtDuration, playerApi } from "../api";
 import { usePlayer, usePlayerProgress } from "../player/usePlayer";
 import { likeBus } from "../likeBus";
 import { DownloadButton } from "./DownloadButton";
-import { MiniIcon, RepeatIcon, RepeatOneIcon, ShuffleIcon, VolumeIcon, NextIcon, PauseFillIcon, PlayFillIcon, PrevIcon } from "./Icons";
+import { MiniIcon, RepeatIcon, RepeatOneIcon, ShuffleIcon, VolumeIcon, DiscoverIcon, NextIcon, PauseFillIcon, PlayFillIcon, PrevIcon } from "./Icons";
 import { useContextMenu } from "./ContextMenu";
 import { navBus } from "../navBus";
 import { trackMenu } from "../views/Library";
@@ -67,7 +67,7 @@ export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onRev
         {current ? (
           <>
             {coverOk && current.has_cover ? (
-              <img className="pb-art" src={coverUrl(current.id, 150)} alt="" onError={() => setCoverOk(false)} key={current.id} />
+              <img className="pb-art" src={artFor(current, 150)} alt="" onError={() => setCoverOk(false)} key={current.id} />
             ) : (
               <div className="pb-art placeholder">♫</div>
             )}
@@ -109,14 +109,16 @@ export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onRev
             <button
               className={`icon heart k-status k-heart ${current.liked ? "on" : ""}`}
               onClick={toggleLike}
-              disabled={!online || likeBusy}
+              disabled={!online || likeBusy || !!current.online}
               title={online ? (current.liked ? "Unlike (Ctrl+L)" : "Like (Ctrl+L)") : "Likes need the server"}
             >
               {current.liked ? "♥" : "♡"}
             </button>
-            <span className="k-status k-dl-wrap">
-              <DownloadButton track={current} online={online} size={18} />
-            </span>
+            {!current.online && (
+              <span className="k-status k-dl-wrap">
+                <DownloadButton track={current} online={online} size={18} />
+              </span>
+            )}
           </>
         ) : (
           <div className="pb-meta muted">Nothing playing. Double-click a song to start.</div>
@@ -125,6 +127,9 @@ export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onRev
 
       <div className="pb-center">
         <div className="pb-controls">
+          <button className={`icon k-util ${p.queueOpen && p.panelTab === "like" ? "on" : ""}`} onClick={() => (p.queueOpen && p.panelTab === "like" ? player.setQueueOpen(false) : player.openPanel("like"))} title="Songs like this one">
+            <DiscoverIcon />
+          </button>
           <button className={`icon k-toggle ${p.shuffle ? "on" : ""}`} onClick={() => player.toggleShuffle()} title="Shuffle">
             <ShuffleIcon />
           </button>

@@ -1241,3 +1241,51 @@ pub fn set_window_shadow(app: tauri::AppHandle, state: State<AppState>, mini: bo
 pub fn update_tray(app: tauri::AppHandle, state: crate::tray::TrayState) {
     crate::tray::update(&app, &state);
 }
+
+// ── Discover (server passthrough for the endpoints a device may call) ──
+
+const DISCOVER_PREFIXES: &[&str] = &[
+    "/api/discover",
+    "/api/similar/",
+    "/api/songs/search",
+    "/api/artists/search",
+    "/api/albums/search",
+    "/api/preview",
+    "/api/url?",
+    "/api/download/url",
+    "/api/download/batch",
+];
+
+/// GET / POST / DELETE one of the discovery endpoints; returns its JSON.
+#[tauri::command]
+pub async fn discover_api(state: State<'_, AppState>, method: String, path: String, body: Option<Value>) -> Result<Value, String> {
+    if !path.starts_with('/') || !DISCOVER_PREFIXES.iter().any(|p| path.starts_with(p)) {
+        return Err("Not allowed".into());
+    }
+    let client = client_for(&state)?;
+    let m = match method.as_str() {
+        "POST" => reqwest::Method::POST,
+        "DELETE" => reqwest::Method::DELETE,
+        _ => reqwest::Method::GET,
+    };
+    if m == reqwest::Method::GET {
+        let resp = client.get(&path).send().await.map_err(|e| {
+            if e.is_connect() || e.is_timeout() {
+                "Server unreachable".to_string()
+            } else {
+                e.to_string()
+            }
+        })?;
+        let status = resp.status();
+        if !status.is_success() {
+            let v: Value = resp.json().await.unwrap_or(Value::Null);
+            let d = v.get("detail").and_then(|d| d.as_str()).unwrap_or("").to_string();
+            return Err(if d.is_empty() { format!("Server answered {}", status.as_u16()) } else { d });
+        }
+        return resp.json().await.map_err(|e| e.to_string());
+    }
+    client
+        .send_json(m, &path, &body.unwrap_or(Value::Null))
+        .await
+        .map_err(String::from)
+}
