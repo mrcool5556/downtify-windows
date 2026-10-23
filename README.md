@@ -25,7 +25,7 @@ Built with Tauri 2, React and Rust. Early and under active development; expect r
 - **Shares playlists** (Downtify 3.7+): make a playlist private, shared with named people, or public; see "Shared with me" and "Public playlists" in the sidebar; follow public ones, save a copy of any you can open, and detach an imported playlist to make it editable.
 - **Home** page with recently added albums and songs, recently played, and your playlists front and centre.
 - **Mini player** (Ctrl+M): a small always-on-top bar with playback, heart, download, volume, an up-next drawer, and adjustable opacity that fades only the background so the song stays readable over whatever is behind it.
-- **Themes**: eight colour themes from our UI/UX design library (Downtify, Studio Light, Retro Console, Arcade, Night Glass, GR1MOS, Cozy, Lavender Glass) and two control styles, Modern (flat) or Heavy (raised keys in a metal bezel). The mini player can have its own.
+- **Themes**: eight colour themes from our UI/UX design library (Downtify, Studio Light, Retro Console, Arcade, Night Glass, Sleek, Cozy, Lavender Glass) and two control styles, Modern (flat) or Heavy (raised keys in a metal bezel). The mini player can have its own.
 - **Frameless window**, tray icon with close-to-tray and start-with-Windows, global search that also takes a Spotify or YouTube Music link to download.
 
 Plays are reported to the server the way the web player does (queued while offline), and the server's Activity page sees what is playing.
