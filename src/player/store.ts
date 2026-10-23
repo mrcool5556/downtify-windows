@@ -103,6 +103,19 @@ class PlayerStore {
   /** Position to apply once metadata for a restored track arrives. */
   private pendingSeek: number | null = null;
 
+  private unlistenKeys: Promise<() => void> | null = null;
+
+  /** Stop this player for good (used when the dev server swaps the module). */
+  dispose() {
+    this.audio.pause();
+    this.audio.removeAttribute("src");
+    this.audio.load();
+    this.unlistenKeys?.then((u) => u()).catch(() => {});
+    this.listeners.clear();
+    this.progressListeners.clear();
+    window.clearInterval(this.nowPlayingTimer);
+  }
+
   constructor() {
     const a = this.audio;
     a.preload = "auto";
@@ -133,7 +146,7 @@ class PlayerStore {
     });
     a.addEventListener("timeupdate", () => this.maybeReportListen());
 
-    listen<string>("media-key", (e) => {
+    this.unlistenKeys = listen<string>("media-key", (e) => {
       switch (e.payload) {
         case "play":
           this.play();
@@ -634,3 +647,9 @@ class PlayerStore {
 }
 
 export const player = new PlayerStore();
+
+// In development a code change swaps this module in place; without this the
+// old player would keep playing and answering media keys next to the new one.
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => player.dispose());
+}
