@@ -1,40 +1,84 @@
 // Per-PC look-and-feel choices, remembered in localStorage.
 import { useSyncExternalStore } from "react";
+import { ControlStyle, ThemeId, migrateThemeId, themeById } from "./themes";
 
 export type Density = "compact" | "comfortable" | "grid";
-export type Theme = "dark" | "light";
 
 export interface LayoutPrefs {
   density: Density;
   rowArt: boolean;
-  theme: Theme;
+  /** Colour theme of the full window. */
+  theme: ThemeId;
+  /** Modern (flat) or Heavy (beveled keys in a metal lip). */
+  controlStyle: ControlStyle;
+  /** The mini player's own theme and style; "" means same as the window. */
+  miniTheme: ThemeId | "";
+  miniStyle: ControlStyle | "";
+  /** What the sun / moon button switches between. */
+  darkPick: ThemeId;
+  lightPick: ThemeId;
   sidebarCollapsed: boolean;
   /** Admin accounts receive every user's playlist; show them in their own section. */
   showOthersPlaylists: boolean;
 }
 
 const KEY = "downtify.layout";
-const DEFAULTS: LayoutPrefs = { density: "compact", rowArt: true, theme: "dark", sidebarCollapsed: false, showOthersPlaylists: false };
+const DEFAULTS: LayoutPrefs = {
+  density: "compact",
+  rowArt: true,
+  theme: "downtify",
+  controlStyle: "modern",
+  miniTheme: "",
+  miniStyle: "",
+  darkPick: "downtify",
+  lightPick: "studio-light",
+  sidebarCollapsed: false,
+  showOthersPlaylists: false,
+};
 
 let prefs: LayoutPrefs = load();
 const listeners = new Set<() => void>();
+let miniActive = false;
 
 function load(): LayoutPrefs {
   try {
     const raw = localStorage.getItem(KEY);
-    return raw ? { ...DEFAULTS, ...(JSON.parse(raw) as Partial<LayoutPrefs>) } : DEFAULTS;
+    const p = raw ? { ...DEFAULTS, ...(JSON.parse(raw) as Partial<LayoutPrefs>) } : DEFAULTS;
+    return { ...p, theme: migrateThemeId(p.theme as string) };
   } catch {
     return DEFAULTS;
   }
 }
 
+/** The theme and style in force right now (the mini may override them). */
+export function effectiveLook(p: LayoutPrefs = prefs, mini = miniActive): { theme: ThemeId; style: ControlStyle } {
+  if (mini) return { theme: p.miniTheme || p.theme, style: p.miniStyle || p.controlStyle };
+  return { theme: p.theme, style: p.controlStyle };
+}
+
 function applyTheme() {
-  document.documentElement.dataset.theme = prefs.theme;
+  const { theme, style } = effectiveLook();
+  const root = document.documentElement;
+  root.dataset.theme = theme;
+  root.dataset.tone = themeById(theme).tone;
+  root.dataset.style = style;
 }
 applyTheme();
 
+/** The app tells us when it switches between the full window and the mini. */
+export function setMiniActive(on: boolean) {
+  if (miniActive === on) return;
+  miniActive = on;
+  applyTheme();
+}
+
 export function setLayout(patch: Partial<LayoutPrefs>) {
   prefs = { ...prefs, ...patch };
+  // Picking a theme also records it as your dark or light choice for the sun button.
+  if (patch.theme) {
+    if (themeById(patch.theme).tone === "dark") prefs.darkPick = patch.theme;
+    else prefs.lightPick = patch.theme;
+  }
   try {
     localStorage.setItem(KEY, JSON.stringify(prefs));
   } catch {
@@ -103,11 +147,12 @@ export function DensityPicker({ small }: { small?: boolean }) {
 }
 
 export function ThemeToggle() {
-  const { theme } = useLayout();
-  const next: Theme = theme === "dark" ? "light" : "dark";
+  const p = useLayout();
+  const tone = themeById(p.theme).tone;
+  const next = tone === "dark" ? p.lightPick : p.darkPick;
   return (
-    <button className="icon" onClick={() => setLayout({ theme: next })} title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}>
-      {theme === "dark" ? "☀" : "☾"}
+    <button className="icon" onClick={() => setLayout({ theme: next })} title={`Switch to ${themeById(next).name}`}>
+      {tone === "dark" ? "☀" : "☾"}
     </button>
   );
 }

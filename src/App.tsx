@@ -12,7 +12,7 @@ import { usePlayer } from "./player/usePlayer";
 import { likeBus } from "./likeBus";
 import { localBus } from "./downloads";
 import { nav, useNav } from "./nav";
-import { ThemeToggle, useLayout } from "./layout";
+import { ThemeToggle, setMiniActive, useLayout } from "./layout";
 import { WindowControls } from "./components/WindowControls";
 import { MiniPlayer } from "./components/MiniPlayer";
 
@@ -235,6 +235,7 @@ export default function App() {
   // Only the mini needs a see-through window; the full one paints solid.
   useEffect(() => {
     document.documentElement.toggleAttribute("data-mini", !!settings?.mini);
+    setMiniActive(!!settings?.mini);
   }, [settings?.mini]);
 
   // Window title and tray tooltip follow the song.

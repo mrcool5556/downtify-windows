@@ -3,7 +3,8 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { openPath, openUrl } from "@tauri-apps/plugin-opener";
 import { invoke } from "@tauri-apps/api/core";
 import { Settings, Summary, WebStatus, api, fmtWhen, playerApi, playlistsApi } from "../api";
-import { DensityPicker, ThemeToggle, setLayout, useLayout } from "../layout";
+import { DensityPicker, setLayout, useLayout } from "../layout";
+import { ThemePage } from "./ThemePage";
 import { downloadsApi } from "../downloads";
 import { checkForUpdates, fmtMb, installUpdate, useUpdates } from "../updates";
 
@@ -19,6 +20,7 @@ interface Props {
 
 const TABS: [string, string][] = [
   ["general", "General"],
+  ["theme", "Theme"],
   ["playback", "Playback"],
   ["server", "Server"],
   ["music", "Music folder"],
@@ -39,7 +41,8 @@ export function SettingsView({ tab, setTab, settings, summary, onSettings, onRes
         ))}
       </nav>
       <div className="settings-body">
-        {current === "general" && <General settings={settings} onSettings={onSettings} setError={setError} />}
+        {current === "general" && <General settings={settings} onSettings={onSettings} setError={setError} setTab={setTab} />}
+        {current === "theme" && <ThemePage />}
         {current === "playback" && <Playback settings={settings} onSettings={onSettings} setError={setError} />}
         {current === "server" && <Server settings={settings} summary={summary} onResync={onResync} onUnpaired={onUnpaired} setError={setError} />}
         {current === "music" && <Music settings={settings} onSettings={onSettings} setError={setError} />}
@@ -52,17 +55,17 @@ export function SettingsView({ tab, setTab, settings, summary, onSettings, onRes
 
 type Sub = { settings: Settings; onSettings: (s: Settings) => void; setError: (s: string) => void };
 
-function General({ settings, onSettings, setError }: Sub) {
+function General({ settings, onSettings, setError, setTab }: Sub & { setTab: (t: string) => void }) {
   const layout = useLayout();
   return (
     <>
       <section className="card">
         <h2>Look</h2>
         <div className="setting-row">
-          <span>Theme</span>
-          <span className="row">
-            {layout.theme === "dark" ? "Dark" : "Light"} <ThemeToggle />
-          </span>
+          <span>Colours and button style</span>
+          <button className="small" onClick={() => setTab("theme")}>
+            Open Theme…
+          </button>
         </div>
         <div className="setting-row">
           <span>Song lists</span>

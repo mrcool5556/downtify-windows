@@ -1,0 +1,377 @@
+/* ── Colour themes ──────────────────────────────────────────────────────
+   Values from the UI/UX design library tokens, mapped onto the app's
+   variable names. --bevel / --inset give height; --lip is the metal bezel
+   Heavy controls sit in. Downtify (default) keeps the original values. */
+
+:root,
+:root[data-theme="downtify"] {
+  --bg: #121417;
+  --bg-2: #1a1d22;
+  --bg-3: #23272e;
+  --fg: #e8eaed;
+  --fg-2: #9aa0a6;
+  --accent: #1ed760;
+  --accent-2: #169c46;
+  --on-accent: #06230f;
+  --warn: #f6b73c;
+  --danger: #e5484d;
+  --border: #2c313a;
+  --bevel: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 -2px 0 rgba(0, 0, 0, 0.35), 0 2px 3px rgba(0, 0, 0, 0.5);
+  --inset: inset 0 2px 3px rgba(0, 0, 0, 0.55), inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+  --lip: linear-gradient(180deg, #5b6168 0%, #2d3237 30%, #16191c 100%);
+  --app-font: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  --app-font-display: var(--app-font);
+  color-scheme: dark;
+}
+
+:root[data-theme="studio-light"] {
+  --bg: #f6f5f2;
+  --bg-2: #ffffff;
+  --bg-3: #ecebe6;
+  --fg: #1c1f23;
+  --fg-2: #5c5a55;
+  --accent: #0d6e63;
+  --accent-2: #0a5a51;
+  --on-accent: #ffffff;
+  --warn: #8a5a00;
+  --danger: #b3261e;
+  --border: #dcd9d2;
+  --bevel: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 -2px 0 rgba(0, 0, 0, 0.08), 0 2px 3px rgba(0, 0, 0, 0.16);
+  --inset: inset 0 2px 3px rgba(0, 0, 0, 0.16), inset 0 -1px 0 rgba(255, 255, 255, 0.8);
+  --lip: linear-gradient(180deg, #ffffff 0%, #e4e8eb 16%, #c6ccd1 44%, #9aa3aa 74%, #5f676e 100%);
+  color-scheme: light;
+}
+
+:root[data-theme="retro-console"] {
+  --bg: #c4c4c8;
+  --bg-2: #d6d6d9;
+  --bg-3: #b4b4b9;
+  --fg: #1e1e22;
+  --fg-2: #404047;
+  --accent: #4a3f8c;
+  --accent-2: #3a3070;
+  --on-accent: #ffffff;
+  --warn: #634100;
+  --danger: #8e1b1b;
+  --border: #a9a9ae;
+  --bevel: inset 0 2px 0 rgba(255, 255, 255, 0.75), inset 0 -3px 0 rgba(0, 0, 0, 0.18), 0 3px 6px rgba(0, 0, 0, 0.25);
+  --inset: inset 0 3px 6px rgba(0, 0, 0, 0.3), inset 0 -1px 0 rgba(255, 255, 255, 0.6);
+  --lip: linear-gradient(180deg, #ffffff 0%, #e4e8eb 16%, #c6ccd1 44%, #9aa3aa 74%, #5f676e 100%);
+  color-scheme: light;
+}
+
+:root[data-theme="arcade"] {
+  --bg: #0b0d12;
+  --bg-2: #151924;
+  --bg-3: #1f2535;
+  --fg: #f5f3ea;
+  --fg-2: #a9b0c2;
+  --accent: #ffd23f;
+  --accent-2: #e6b82a;
+  --on-accent: #1a1400;
+  --warn: #ff9f1c;
+  --danger: #ff6b6b;
+  --border: #2b3346;
+  --bevel: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -2px 0 rgba(0, 0, 0, 0.4), 0 2px 0 rgba(0, 0, 0, 0.6);
+  --inset: inset 0 2px 0 rgba(0, 0, 0, 0.55), inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+  --lip: linear-gradient(180deg, #fff1b0 0%, #f0c75c 14%, #e6b84a 38%, #c9972c 66%, #8f6a1d 90%, #5a4012 100%);
+  color-scheme: dark;
+}
+
+:root[data-theme="night-glass"] {
+  --bg: #0d0f10;
+  --bg-2: rgba(255, 255, 255, 0.06);
+  --bg-3: rgba(255, 255, 255, 0.11);
+  --fg: #f2f4ee;
+  --fg-2: #a7aca3;
+  --accent: #d4f53c;
+  --accent-2: #b8d82a;
+  --on-accent: #151a00;
+  --warn: #ffc04d;
+  --danger: #ff7a6e;
+  --border: rgba(255, 255, 255, 0.1);
+  --bevel: inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 6px 16px rgba(0, 0, 0, 0.45);
+  --inset: inset 0 2px 6px rgba(0, 0, 0, 0.55);
+  --lip: linear-gradient(180deg, #5b6168 0%, #2d3237 30%, #16191c 100%);
+  color-scheme: dark;
+}
+
+:root[data-theme="gr1mos"] {
+  --bg: #07090c;
+  --bg-2: #11161c;
+  --bg-3: #1a2027;
+  --fg: #f2efe8;
+  --fg-2: #aab3bc;
+  --accent: #e6b84a;
+  --accent-2: #c9972c;
+  --on-accent: #14100a;
+  --warn: #e8ab45;
+  --danger: #e5484d;
+  --border: rgba(236, 232, 220, 0.12);
+  --bevel: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -2px 0 rgba(0, 0, 0, 0.4), 0 2px 3px rgba(0, 0, 0, 0.5);
+  --inset: inset 0 2px 3px rgba(0, 0, 0, 0.6);
+  --lip: linear-gradient(180deg, #fff1b0 0%, #f0c75c 14%, #e6b84a 38%, #c9972c 66%, #8f6a1d 90%, #5a4012 100%);
+  --app-font: "GR1MOS Body", "Segoe UI", system-ui, sans-serif;
+  --app-font-display: "GR1MOS Display", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+:root[data-theme="cozy"] {
+  --bg: #fbf4ec;
+  --bg-2: #fffaf4;
+  --bg-3: #f3e6d8;
+  --fg: #2e211a;
+  --fg-2: #6b574a;
+  --accent: #b0440f;
+  --accent-2: #8c360b;
+  --on-accent: #ffffff;
+  --warn: #855400;
+  --danger: #a3271d;
+  --border: #e6d6c4;
+  --bevel: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 -2px 0 rgba(46, 33, 26, 0.1), 0 2px 3px rgba(46, 33, 26, 0.2);
+  --inset: inset 0 2px 3px rgba(46, 33, 26, 0.18), inset 0 -1px 0 rgba(255, 255, 255, 0.8);
+  --lip: linear-gradient(180deg, #ffe0c4 0%, #e3a06c 16%, #c27a47 44%, #8e4f25 76%, #4f2a12 100%);
+  color-scheme: light;
+}
+
+:root[data-theme="lavender-glass"] {
+  --bg: #e8e6f3;
+  --bg-2: rgba(255, 255, 255, 0.62);
+  --bg-3: rgba(91, 63, 209, 0.09);
+  --fg: #1f1b33;
+  --fg-2: #575270;
+  --accent: #5b3fd1;
+  --accent-2: #45309f;
+  --on-accent: #ffffff;
+  --warn: #8a5a00;
+  --danger: #b42a3c;
+  --border: rgba(91, 63, 209, 0.16);
+  --bevel: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 -2px 0 rgba(31, 27, 51, 0.08), 0 3px 8px rgba(31, 27, 51, 0.14);
+  --inset: inset 0 2px 4px rgba(31, 27, 51, 0.16), inset 0 -1px 0 rgba(255, 255, 255, 0.8);
+  --lip: linear-gradient(180deg, #ffffff 0%, #e4e8eb 16%, #c6ccd1 44%, #9aa3aa 74%, #5f676e 100%);
+  color-scheme: light;
+}
+
+/* Glass themes need something behind the glass. */
+:root[data-theme="night-glass"]:not([data-mini]) body {
+  background:
+    radial-gradient(circle at 18% 8%, rgba(212, 245, 60, 0.14), transparent 45%),
+    radial-gradient(circle at 92% 92%, rgba(124, 196, 255, 0.12), transparent 40%),
+    #0d0f10;
+}
+:root[data-theme="lavender-glass"]:not([data-mini]) body {
+  background:
+    radial-gradient(circle at 15% 0%, rgba(207, 233, 247, 0.95), transparent 50%),
+    radial-gradient(circle at 100% 100%, rgba(249, 211, 184, 0.75), transparent 45%),
+    #e8e6f3;
+}
+:root[data-theme="night-glass"]:not([data-mini]) .shell,
+:root[data-theme="lavender-glass"]:not([data-mini]) .shell {
+  background: transparent;
+}
+:root[data-theme="night-glass"] .sidebar,
+:root[data-theme="night-glass"] .topbar,
+:root[data-theme="night-glass"] .topleft,
+:root[data-theme="night-glass"] .playerbar,
+:root[data-theme="night-glass"] .queue,
+:root[data-theme="lavender-glass"] .sidebar,
+:root[data-theme="lavender-glass"] .topbar,
+:root[data-theme="lavender-glass"] .topleft,
+:root[data-theme="lavender-glass"] .playerbar,
+:root[data-theme="lavender-glass"] .queue {
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root[data-theme="night-glass"] .sidebar,
+  :root[data-theme="night-glass"] .playerbar,
+  :root[data-theme="lavender-glass"] .sidebar,
+  :root[data-theme="lavender-glass"] .playerbar {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* GR1MOS faces, bundled (about 52 KB). */
+@font-face {
+  font-family: "GR1MOS Display";
+  src: url("./assets/fonts/encode-600.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "GR1MOS Body";
+  src: url("./assets/fonts/manrope-400.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "GR1MOS Body";
+  src: url("./assets/fonts/manrope-600.woff2") format("woff2");
+  font-weight: 600 700;
+  font-display: swap;
+}
+:root {
+  font-family: var(--app-font);
+}
+h1,
+h2,
+h3,
+.brand {
+  font-family: var(--app-font-display);
+}
+:root[data-theme="gr1mos"] button.primary,
+:root[data-theme="gr1mos"] button.small {
+  border-radius: 999px;
+}
+
+/* ── Heavy controls ─────────────────────────────────────────────────────
+   Beveled faces in a metal lip; recessed sliders with raised knobs;
+   pressing sinks a face 2px into its well. Light comes from the top. */
+
+:root[data-style="heavy"] {
+  --heavy-face: var(--bg-3);
+}
+
+/* Faces in a lip: the lip is a gradient border, the face sits inside it. */
+:root[data-style="heavy"] .playerbar button.icon,
+:root[data-style="heavy"] .mini button.icon,
+:root[data-style="heavy"] .histnav .icon,
+:root[data-style="heavy"] .topbar-right > button.icon,
+:root[data-style="heavy"] .syncbtn,
+:root[data-style="heavy"] .seg {
+  border: 2px solid transparent;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--heavy-face) 88%, #fff 12%), var(--heavy-face)) padding-box,
+    var(--lip) border-box;
+  box-shadow:
+    var(--bevel),
+    0 0 0 1px rgba(0, 0, 0, 0.35);
+  border-radius: 9px;
+  color: var(--fg);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+:root[data-style="heavy"] .playerbar button.icon,
+:root[data-style="heavy"] .mini button.icon:not(.big) {
+  min-width: 30px;
+  min-height: 28px;
+  padding: 3px 7px;
+}
+:root[data-style="heavy"] .playerbar button.icon:hover:not(:disabled),
+:root[data-style="heavy"] .mini button.icon:hover:not(:disabled),
+:root[data-style="heavy"] .histnav .icon:hover:not(:disabled),
+:root[data-style="heavy"] .topbar-right > button.icon:hover,
+:root[data-style="heavy"] .syncbtn:hover:not(:disabled) {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--heavy-face) 78%, #fff 22%), var(--heavy-face)) padding-box,
+    var(--lip) border-box;
+  color: var(--fg);
+}
+:root[data-style="heavy"] .playerbar button.icon:active:not(:disabled),
+:root[data-style="heavy"] .mini button.icon:active:not(:disabled),
+:root[data-style="heavy"] .histnav .icon:active:not(:disabled),
+:root[data-style="heavy"] .topbar-right > button.icon:active,
+:root[data-style="heavy"] .syncbtn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: var(--inset), 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+/* Toggled-on buttons stay sunk, with the accent showing. */
+:root[data-style="heavy"] .playerbar button.icon.on,
+:root[data-style="heavy"] .mini button.icon.on {
+  transform: translateY(1px);
+  box-shadow: var(--inset), 0 0 0 1px rgba(0, 0, 0, 0.35);
+  color: var(--accent);
+}
+:root[data-style="heavy"] button.icon.heart.on {
+  color: var(--accent);
+}
+
+/* The play button: a big accent key instead of a white disc. */
+:root[data-style="heavy"] .playerbar button.icon.big,
+:root[data-style="heavy"] .mini button.icon.big {
+  width: 54px;
+  height: 42px;
+  border-radius: 11px;
+  border: 3px solid transparent;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 82%, #fff 18%), var(--accent)) padding-box,
+    var(--lip) border-box;
+  color: var(--on-accent);
+  box-shadow: var(--bevel), 0 0 0 1px rgba(0, 0, 0, 0.4);
+}
+:root[data-style="heavy"] .playerbar button.icon.big:hover:not(:disabled),
+:root[data-style="heavy"] .mini button.icon.big:hover:not(:disabled) {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--accent) 70%, #fff 30%), var(--accent)) padding-box,
+    var(--lip) border-box;
+  color: var(--on-accent);
+}
+:root[data-style="heavy"] .mini button.icon.big {
+  width: 46px;
+  height: 36px;
+}
+:root[data-style="heavy"] .mini-play.big svg {
+  stroke: currentColor;
+}
+
+/* Segmented layout picker: the group is the lip, the chosen key is sunk. */
+:root[data-style="heavy"] .seg {
+  padding: 2px;
+  gap: 2px;
+}
+:root[data-style="heavy"] .seg button {
+  border-radius: 6px;
+}
+:root[data-style="heavy"] .seg button.on {
+  box-shadow: var(--inset);
+  background: var(--bg);
+  color: var(--accent);
+}
+
+/* Wells: search, selected sidebar items, sliders. */
+:root[data-style="heavy"] .searchbox {
+  box-shadow: var(--inset);
+  background: var(--bg);
+}
+:root[data-style="heavy"] .sidebar > button.nav.active,
+:root[data-style="heavy"] .sidebar-foot .nav.active,
+:root[data-style="heavy"] .sidebar-playlists .pl.active {
+  box-shadow: var(--inset);
+  background: var(--bg);
+}
+
+:root[data-style="heavy"] .playerbar input[type="range"],
+:root[data-style="heavy"] .mini input[type="range"] {
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(var(--accent), var(--accent)) no-repeat, var(--bg);
+  box-shadow: var(--inset);
+}
+:root[data-style="heavy"] .playerbar input[type="range"]::-webkit-slider-thumb,
+:root[data-style="heavy"] .mini input[type="range"]::-webkit-slider-thumb {
+  opacity: 1;
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--heavy-face) 80%, #fff 20%), var(--heavy-face)) padding-box,
+    var(--lip) border-box;
+  box-shadow: var(--bevel);
+}
+:root[data-style="heavy"] .mini-seek {
+  height: 6px;
+}
+
+/* The heavy player bar is a little taller to hold the keys. */
+:root[data-style="heavy"] .playerbar {
+  min-height: 92px;
+}
+:root[data-style="heavy"] .pb-controls {
+  gap: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-style="heavy"] button.icon {
+    transition: none;
+  }
+}
