@@ -780,3 +780,34 @@ img {
 ::selection {
   background: color-mix(in srgb, var(--accent) 35%, transparent);
 }
+
+
+/* Search results (Enter in the search box) */
+.search-results h3 {
+  font-size: 15px;
+  margin: 16px 0 8px;
+}
+.search-results h3:first-child {
+  margin-top: 4px;
+}
+.search-results h3 small {
+  color: var(--fg-2);
+  font-weight: 400;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chip-btn {
+  border-radius: 999px;
+  padding: 4px 12px;
+  background: var(--bg-2);
+}
+.chip-btn small {
+  color: var(--fg-2);
+  margin-left: 4px;
+}
+.chip-btn:hover {
+  border-color: var(--accent);
+}

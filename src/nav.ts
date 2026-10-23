@@ -3,7 +3,7 @@
 
 import { useSyncExternalStore } from "react";
 
-export type Section = "home" | "tracks" | "albums" | "artists" | "playlists" | "downloads" | "settings";
+export type Section = "home" | "tracks" | "albums" | "artists" | "playlists" | "downloads" | "settings" | "search";
 
 export interface View {
   section: Section;

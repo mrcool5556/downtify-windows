@@ -17,7 +17,7 @@ import { ThemeToggle, setMiniActive, useLayout } from "./layout";
 import { WindowControls } from "./components/WindowControls";
 import { MiniPlayer } from "./components/MiniPlayer";
 
-const LIST_SECTIONS = new Set(["tracks", "albums", "playlists"]);
+const LIST_SECTIONS = new Set(["tracks", "albums", "playlists", "search"]);
 
 function looksLikeLink(s: string) {
   return /^https?:\/\/\S+$/i.test(s.trim());
@@ -118,20 +118,28 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view]);
 
+  /** Is the current page a list the box can filter as you type? */
+  function filtersHere(): boolean {
+    if (view.section === "tracks" || view.section === "search") return true;
+    return LIST_SECTIONS.has(view.section) && ("album" in view.scope || "playlist" in view.scope);
+  }
+
+  // Typing filters the list you're in; elsewhere it waits for Enter.
   function onQuery(q: string) {
     setQuery(q);
     if (looksLikeLink(q)) return;
-    const onSongs = view.section === "tracks";
-    const onScopedList = LIST_SECTIONS.has(view.section) && ("album" in view.scope || "playlist" in view.scope);
-    if (onSongs || onScopedList) {
-      nav.replace({ ...view, search: q });
-    } else if (q.trim()) {
-      nav.push({ section: "tracks", scope: {}, search: q });
-    }
+    if (filtersHere()) nav.replace({ ...view, search: q });
   }
 
+  // Enter: a pasted link goes to the server; anything else searches the whole library.
   async function onSearchEnter() {
-    if (!looksLikeLink(query)) return;
+    if (!looksLikeLink(query)) {
+      const q = query.trim();
+      if (!q) return;
+      if (view.section === "search") nav.replace({ ...view, search: q });
+      else nav.push({ section: "search", scope: {}, search: q });
+      return;
+    }
     try {
       await invoke("request_download", { url: query.trim() });
       setNotice("Sent to the server. It will show up after the next sync.");
@@ -334,7 +342,13 @@ export default function App() {
           </span>
           <input
             ref={searchRef}
-            placeholder={online ? "Search, or paste a Spotify or YouTube Music link" : "Search your library"}
+            placeholder={
+              filtersHere()
+                ? "Filter this list · Enter searches everything"
+                : online
+                  ? "Search everything (Enter), or paste a Spotify or YouTube Music link"
+                  : "Search everything (Enter)"
+            }
             value={query}
             onChange={(e) => onQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && onSearchEnter()}

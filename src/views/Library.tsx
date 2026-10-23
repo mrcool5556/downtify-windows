@@ -44,6 +44,7 @@ const SECTION_TITLE: Record<Section, string> = {
   playlists: "Playlists",
   downloads: "Downloads",
   settings: "Settings",
+  search: "Search",
 };
 
 const DRAG_MIME = "application/x-downtify-tracks";
@@ -453,7 +454,9 @@ export function Library({
       ? playlistLabel(scope.playlist)
       : scope.artist
         ? scope.artist.name
-        : SECTION_TITLE[section];
+        : section === "search"
+          ? `Results for “${search}”`
+          : SECTION_TITLE[section];
   const headerPlaylist = scope.playlist ? (playlists.find((x) => x.name === scope.playlist!.name) ?? scope.playlist) : undefined;
 
   const collapsed = layout.sidebarCollapsed;
@@ -692,6 +695,20 @@ export function Library({
           renderSettings(view.tab ?? "general", (t) => nav.replace({ ...view, tab: t }))
         ) : empty ? (
           <div className="empty">{online ? "Library is empty. Download something on the server, then press Sync." : "No library yet. Connect to the server once to sync it."}</div>
+        ) : section === "search" ? (
+          <SearchResults
+            q={search}
+            online={online}
+            env={env}
+            openMenu={ctx.open}
+            addToPlaylist={addToPlaylist}
+            playlists={playlists}
+            onOpenAlbum={(a) => nav.push({ section: "albums", scope: { album: a } as Record<string, unknown>, search: "" })}
+            onOpenArtist={(a) => nav.push({ section: "albums", scope: { artist: a } as Record<string, unknown>, search: "" })}
+            onOpenPlaylist={openPlaylist}
+            albumMenu={albumMenu}
+            playlistMenu={playlistMenu}
+          />
         ) : section === "downloads" ? (
           <Downloads
             renderTable={(local) => (
@@ -1036,6 +1053,119 @@ function AlbumArt({ trackId }: { trackId: string }) {
   const [failed, setFailed] = useState(false);
   if (!trackId || failed) return <div className="tile-art">♫</div>;
   return <img className="tile-art" src={coverUrl(trackId, 300)} alt="" loading="lazy" onError={() => setFailed(true)} />;
+}
+
+/** Enter in the search box: songs, albums, artists and playlists across the whole library. */
+function SearchResults({
+  q,
+  online,
+  env,
+  openMenu,
+  addToPlaylist,
+  playlists,
+  onOpenAlbum,
+  onOpenArtist,
+  onOpenPlaylist,
+  albumMenu,
+  playlistMenu,
+}: {
+  q: string;
+  online: boolean;
+  env: MenuEnv;
+  openMenu: (e: React.MouseEvent, items: MenuItem[]) => void;
+  addToPlaylist: (name: string, ids: string[]) => Promise<void>;
+  playlists: PlaylistSummary[];
+  onOpenAlbum: (a: Album) => void;
+  onOpenArtist: (a: Artist) => void;
+  onOpenPlaylist: (p: PlaylistSummary) => void;
+  albumMenu: (a: Album) => MenuItem[];
+  playlistMenu: (p: PlaylistSummary) => MenuItem[];
+}) {
+  const { player } = usePlayer();
+  const [songs, setSongs] = useState<Track[]>([]);
+  const [albums, setAlbums] = useState<Album[]>([]);
+  const [artists, setArtists] = useState<Artist[]>([]);
+  const needle = q.trim().toLowerCase();
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!needle) {
+      setSongs([]);
+      setAlbums([]);
+      setArtists([]);
+      return;
+    }
+    Promise.all([api.listTracks({ search: q.trim(), limit: 300 }), api.listAlbums(), api.listArtists()])
+      .then(([t, al, ar]) => {
+        if (cancelled) return;
+        setSongs(t);
+        setAlbums(al.filter((a) => a.album.toLowerCase().includes(needle) || a.album_artist.toLowerCase().includes(needle)).slice(0, 24));
+        setArtists(ar.filter((a) => a.name.toLowerCase().includes(needle)).slice(0, 24));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [q, needle]);
+
+  useEffect(() => likeBus.on((id, liked) => setSongs((ts) => ts.map((t) => (t.id === id ? { ...t, liked } : t)))), []);
+  useEffect(() => localBus.on((id, local_path) => setSongs((ts) => ts.map((t) => (t.id === id ? { ...t, local_path } : t)))), []);
+
+  const lists = needle ? playlists.filter((p) => playlistLabel(p).toLowerCase().includes(needle)) : [];
+  const nothing = needle && !songs.length && !albums.length && !artists.length && !lists.length;
+  const sctx = { section: "search", scope: {}, search: q, localOnly: false };
+
+  if (!needle) return <div className="empty">Type something and press Enter to search songs, albums, artists and playlists.</div>;
+  if (nothing) return <div className="empty">Nothing in your library matches “{q}”.</div>;
+
+  return (
+    <div className="search-results">
+      {artists.length > 0 && (
+        <>
+          <h3>
+            Artists <small>{artists.length}</small>
+          </h3>
+          <div className="chips">
+            {artists.map((a) => (
+              <button key={a.artist_id} className="chip-btn" onClick={() => onOpenArtist(a)}>
+                {a.name} <small>{a.count}</small>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+      {lists.length > 0 && (
+        <>
+          <h3>
+            Playlists <small>{lists.length}</small>
+          </h3>
+          <div className="chips">
+            {lists.map((p) => (
+              <button key={p.name} className="chip-btn" onClick={() => onOpenPlaylist(p)} onContextMenu={(e) => openMenu(e, playlistMenu(p))}>
+                {playlistLabel(p)} <small>{p.count}</small>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+      {songs.length > 0 && (
+        <>
+          <h3>
+            Songs <small>{songs.length >= 300 ? "300+" : songs.length}</small>
+          </h3>
+          <TrackTable tracks={songs} online={online} showAlbum onPlay={(i) => player.playList(songs, i, sctx)} env={{ ...env, currentPlaylist: undefined }} openMenu={openMenu} addToPlaylist={addToPlaylist} />
+        </>
+      )}
+      {albums.length > 0 && (
+        <>
+          <h3>
+            Albums <small>{albums.length}</small>
+          </h3>
+          <AlbumGrid albums={albums} onOpen={onOpenAlbum} onMenu={(e, a) => openMenu(e, albumMenu(a))} />
+        </>
+      )}
+    </div>
+  );
 }
 
 function AlbumGrid({ albums, onOpen, onMenu }: { albums: Album[]; onOpen: (a: Album) => void; onMenu: (e: React.MouseEvent, a: Album) => void }) {
