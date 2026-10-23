@@ -760,3 +760,23 @@ h3,
   -webkit-user-drag: none;
   user-select: none;
 }
+
+/* Desktop app, not a web page: no text or image selection while dragging.
+   Text boxes keep normal selection so you can still edit and copy in them. */
+html,
+body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+img {
+  -webkit-user-drag: none;
+}
+::selection {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+}
