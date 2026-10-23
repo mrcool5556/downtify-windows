@@ -5,9 +5,9 @@ import { usePlayer, usePlayerProgress } from "../player/usePlayer";
 import { likeBus } from "../likeBus";
 import { DownloadButton } from "./DownloadButton";
 import { WindowControls } from "./WindowControls";
-import { MenuItem, useContextMenu } from "./ContextMenu";
+import { MiniStrip } from "./MiniStrip";
+import { useContextMenu } from "./ContextMenu";
 import { groupStyle, useLayout } from "../layout";
-import { trackMenu } from "../views/Library";
 import { OpacityBackgroundIcon, OpacityWindowIcon, PauseOutlineIcon, PinIcon, PlayOutlineIcon, RepeatIcon, RepeatOneIcon, ShuffleIcon, VolumeIcon } from "./Icons";
 
 interface Props {
@@ -23,6 +23,7 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
   const [coverOk, setCoverOk] = useState(true);
   const fadeTimer = useRef<number | undefined>(undefined);
   const ctx = useContextMenu();
+  const [strip, setStrip] = useState(false);
 
   // Solid while hovered, back to the chosen opacity a second after leaving.
   const [hovered, setHovered] = useState(false);
@@ -55,20 +56,21 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
   const layout = useLayout();
   const heavyKeys = groupStyle("play", layout, true) === "heavy" || groupStyle("skip", layout, true) === "heavy";
   const w = width - (heavyKeys ? 28 : 0);
-  const k = 0.8 + 0.2 * Math.max(0, Math.min(1, (w - 420) / 100));
+  const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
+  // 100% at 520px, 80% at 420px, then on down to 72% at the 300px minimum.
+  const k = w >= 420 ? 0.8 + 0.2 * clamp01((w - 420) / 100) : 0.72 + 0.08 * clamp01((w - 300) / 120);
   const hidden = {
     toggles: w < 420 || !layout.show.toggles,
-    volume: w < 395 || !layout.show.volume,
+    volume: !layout.show.volume,
     prev: w < 370,
     download: w < 345 || !layout.show.download,
     heart: !layout.show.heart,
   };
   // Narrow: play and next move into the right column beside the heart,
   // so the song name gets the middle. The heart itself never hides by width.
-  const compact = w < 400;
+  const compact = w < 420;
   const widthClasses = [
     w < 420 && "w-toggles",
-    w < 395 && "w-volume",
     w < 370 && "w-prev",
     w < 345 && "w-download",
     compact && "w-compact",
@@ -106,18 +108,6 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
 
   const env = { online, playlists: [], setNotice: () => {}, reloadPlaylists: () => {}, promptNewPlaylist: () => {}, currentPlaylist: undefined };
 
-  /** The song menu, topped with whatever the mini is too narrow (or set) to show. */
-  function miniMenu(): MenuItem[] {
-    const extra: MenuItem[] = [];
-    if (hidden.prev) extra.push({ label: "Previous", onClick: () => player.previous() });
-    if (hidden.toggles) {
-      extra.push({ label: "Shuffle", checked: p.shuffle, onClick: () => player.toggleShuffle() });
-      extra.push({ label: `Repeat: ${p.repeat === "off" ? "off" : p.repeat === "all" ? "all" : "one"}`, onClick: () => player.cycleRepeat() });
-    }
-    const base = current ? trackMenu([current], env, { playFirst: () => player.play(), addToPlaylist: async () => {} }) : [];
-    // trackMenu already offers Like and Download / Remove, so hidden heart and download stay reachable.
-    return extra.length ? [...extra, { separator: true }, ...base] : base;
-  }
 
   return (
     <div
@@ -129,19 +119,26 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
       style={{ "--mini-alpha": bgAlpha, "--mini-k": k } as React.CSSProperties}
     >
       {ctx.menu}
+      {strip && current && (
+        <MiniStrip track={current} online={online} shuffle={p.shuffle} repeat={p.repeat} onClose={() => setStrip(false)} onOpenFull={onRestoreFull} />
+      )}
 
       <div
         className="mini-main"
         data-tauri-drag-region
         onContextMenu={(e) => {
+          e.preventDefault();
           if ((e.target as HTMLElement).closest(".mini-track")) return;
-          if (current) ctx.open(e, miniMenu());
+          if (current) setStrip(true);
         }}
       >
         <div
           className="mini-track"
           data-tauri-drag-region
-          onContextMenu={(e) => current && ctx.open(e, miniMenu())}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            if (current) setStrip(true);
+          }}
         >
           {current && coverOk && current.has_cover ? (
             <img className="mini-art" src={coverUrl(current.id, 150)} alt="" key={current.id} onError={() => setCoverOk(false)} />

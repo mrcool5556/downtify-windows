@@ -418,7 +418,6 @@ h3,
   zoom: var(--mini-k, 1);
 }
 .mini.w-toggles .mini-modes,
-.mini.w-volume .mini-volume input,
 .mini.w-prev .k-prev,
 .mini.w-download .k-dl-wrap,
 .mini.w-heart .k-heart {
@@ -470,6 +469,106 @@ h3,
   gap: 2px;
   margin-right: 4px;
 }
-.mini.w-compact .mini-side-row:not(.chrome) {
-  zoom: 1;
+/* compact keys keep the shrunk size: zoom stays var(--mini-k) */
+
+
+/* ── Mini strip menu ── */
+.mini-strip {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 84px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 8px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  animation: stripIn 0.12s ease-out;
+}
+:root[data-mini] .mini-strip {
+  background: color-mix(in srgb, var(--bg-2) 96%, transparent);
+}
+@keyframes stripIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+.strip-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.strip-key {
+  min-width: 32px;
+  height: 30px;
+  font-size: 14px;
+}
+.strip-key svg {
+  width: 15px;
+  height: 15px;
+}
+.strip-close {
+  margin-left: auto;
+  font-size: 12px;
+}
+.strip-row2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 22px;
+  font-size: 12px;
+  overflow: hidden;
+}
+.strip-hint {
+  color: var(--fg-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+.strip-links {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.strip-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent);
+  font-size: 12px;
+  cursor: pointer;
+}
+.strip-link:hover:not(:disabled) {
+  text-decoration: underline;
+  border-color: transparent;
+}
+.strip-lists {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  white-space: nowrap;
+  flex: 1;
+  scrollbar-width: none;
+}
+.strip-link.chip {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 10px;
+  color: var(--fg);
+}
+.strip-link.chip:hover {
+  border-color: var(--accent);
+  text-decoration: none;
+}
+.strip-note {
+  color: var(--accent);
+}
+.mini {
+  position: relative;
 }
