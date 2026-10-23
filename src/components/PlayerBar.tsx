@@ -3,7 +3,7 @@ import { coverUrl, fmtDuration, playerApi } from "../api";
 import { usePlayer, usePlayerProgress } from "../player/usePlayer";
 import { likeBus } from "../likeBus";
 import { DownloadButton } from "./DownloadButton";
-import { MiniIcon, RepeatIcon, RepeatOneIcon, ShuffleIcon, VolumeIcon, NextIcon, PrevIcon } from "./Icons";
+import { MiniIcon, RepeatIcon, RepeatOneIcon, ShuffleIcon, VolumeIcon, NextIcon, PauseFillIcon, PlayFillIcon, PrevIcon } from "./Icons";
 import { useContextMenu } from "./ContextMenu";
 import { navBus } from "../navBus";
 import { trackMenu } from "../views/Library";
@@ -132,7 +132,7 @@ export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onRev
             <PrevIcon />
           </button>
           <button className="icon big k-play" onClick={() => player.toggle()} title="Play/Pause (Space)" disabled={!current && p.queue.length === 0}>
-            {p.playing ? "⏸" : "▶"}
+            {p.playing ? <PauseFillIcon /> : <PlayFillIcon />}
           </button>
           <button className="icon k-skip" onClick={() => player.next()} title="Next (Ctrl+Right)" disabled={!current}>
             <NextIcon />

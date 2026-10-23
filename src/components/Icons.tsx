@@ -87,3 +87,17 @@ export const NextIcon = () => (
     <path d="M4 3.8v8.4L10 8z" fill="currentColor" stroke="none" />
   </svg>
 );
+
+/** Filled play triangle, shifted right so it looks centred in a round key. */
+export const PlayFillIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 16 16" aria-hidden>
+    <path d="M5.6 3.2v9.6c0 .5.5.8.9.5l7-4.8c.4-.3.4-.8 0-1l-7-4.8c-.4-.3-.9 0-.9.5z" fill="currentColor" />
+  </svg>
+);
+
+export const PauseFillIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 16 16" aria-hidden>
+    <rect x="4" y="3" width="3" height="10" rx="1" fill="currentColor" />
+    <rect x="9" y="3" width="3" height="10" rx="1" fill="currentColor" />
+  </svg>
+);
