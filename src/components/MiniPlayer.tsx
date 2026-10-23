@@ -153,13 +153,15 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
           }}
         >
           {current && coverOk && current.has_cover ? (
-            <img className="mini-art" src={coverUrl(current.id, 150)} alt="" key={current.id} onError={() => setCoverOk(false)} />
+            <img className="mini-art" src={coverUrl(current.id, 150)} alt="" key={current.id} onError={() => setCoverOk(false)} draggable={false} data-tauri-drag-region />
           ) : (
-            <div className="mini-art placeholder">♫</div>
+            <div className="mini-art placeholder" data-tauri-drag-region>
+              ♫
+            </div>
           )}
           <div className="mini-meta" data-tauri-drag-region>
-            <div className="mini-title">{current ? current.title || current.file : "Nothing playing"}</div>
-            <div className="mini-sub">{current ? current.artist : "Open the full window to pick a song"}</div>
+            <div className="mini-title" data-tauri-drag-region>{current ? current.title || current.file : "Nothing playing"}</div>
+            <div className="mini-sub" data-tauri-drag-region>{current ? current.artist : "Open the full window to pick a song"}</div>
           </div>
         </div>
 

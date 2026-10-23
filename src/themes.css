@@ -752,3 +752,11 @@ h3,
 .mini-modes {
   align-items: center;
 }
+
+/* Mini: the cover and text are part of the drag area, never dragged themselves. */
+.mini-art,
+.mini-title,
+.mini-sub {
+  -webkit-user-drag: none;
+  user-select: none;
+}
