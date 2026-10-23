@@ -29,6 +29,18 @@ export function ThemePage({ settings, onSettings }: { settings: Settings; onSett
         <StyleChoice value={p.controlStyle} onChange={(v) => setLayout({ controlStyle: v })} />
       </section>
 
+      <section className="card">
+        <h2>Window</h2>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={settings.window_shadow}
+            onChange={(e) => invoke<Settings>("set_window_shadow", { mini: false, on: e.target.checked }).then(onSettings).catch(() => {})}
+          />
+          Shadow around the window
+        </label>
+      </section>
+
       <details className="card adv">
         <summary>
           <h2>Advanced</h2>

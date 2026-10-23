@@ -3,7 +3,7 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { openPath, openUrl } from "@tauri-apps/plugin-opener";
 import { invoke } from "@tauri-apps/api/core";
 import { Settings, Summary, WebStatus, api, fmtWhen, playerApi, playlistsApi } from "../api";
-import { DensityPicker, setLayout, useLayout } from "../layout";
+import { setLayout, useLayout } from "../layout";
 import { ThemePage } from "./ThemePage";
 import { downloadsApi } from "../downloads";
 import { checkForUpdates, fmtMb, installUpdate, useUpdates } from "../updates";
@@ -60,17 +60,7 @@ function General({ settings, onSettings, setError, setTab }: Sub & { setTab: (t:
   return (
     <>
       <section className="card">
-        <h2>Look</h2>
-        <div className="setting-row">
-          <span>Colours and button style</span>
-          <button className="small" onClick={() => setTab("theme")}>
-            Open Theme…
-          </button>
-        </div>
-        <div className="setting-row">
-          <span>Song lists</span>
-          <DensityPicker />
-        </div>
+        <h2>Lists</h2>
         <label className="check">
           <input type="checkbox" checked={layout.rowArt} onChange={(e) => setLayout({ rowArt: e.target.checked })} />
           Show cover art in song rows
@@ -106,19 +96,7 @@ function General({ settings, onSettings, setError, setTab }: Sub & { setTab: (t:
           />
           Start Downtify when Windows starts
         </label>
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={settings.window_shadow}
-            onChange={(e) =>
-              invoke<Settings>("set_window_shadow", { mini: false, on: e.target.checked })
-                .then(onSettings)
-                .catch((err) => setError(String(err)))
-            }
-          />
-          Shadow around the window
-        </label>
-        <p className="hint">Quit for real from the tray icon's menu.</p>
+
       </section>
     </>
   );
