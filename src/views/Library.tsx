@@ -358,8 +358,29 @@ export function Library({
     setDropTarget(null);
     const payload = readDrag(e);
     if (!payload || payload.ids.length === 0) return;
+    if (target.liked && target.mine) {
+      // Dropping on Liked Songs likes every song dropped.
+      if (!online) {
+        setNotice("Liking songs needs the server");
+        return;
+      }
+      let liked = 0;
+      for (const id of payload.ids) {
+        try {
+          const on = await playerApi.setLike(id, true);
+          likeBus.emit(id, on);
+          liked++;
+        } catch {
+          /* keep going */
+        }
+      }
+      setNotice(liked === payload.ids.length ? `Liked ${liked} song${liked === 1 ? "" : "s"}` : `Liked ${liked} of ${payload.ids.length} songs`);
+      reloadPlaylists();
+      if (scope.playlist?.liked) refreshLists();
+      return;
+    }
     if (!isEditable(target)) {
-      setNotice(target.liked ? "Use the heart to add to Liked Songs" : `"${target.name}" was imported and can't be edited`);
+      setNotice(`"${target.name}" was imported and can't be edited`);
       return;
     }
     const move = e.shiftKey && payload.fromPlaylist && payload.fromPlaylist !== target.name;
@@ -511,13 +532,13 @@ export function Library({
               {sec.items.map((p) => (
             <button
               key={p.name}
-              className={`pl ${scope.playlist?.name === p.name ? "active" : ""} ${dropTarget === p.name ? "drop" : ""} ${isEditable(p) ? "" : "locked"}`}
+              className={`pl ${scope.playlist?.name === p.name ? "active" : ""} ${dropTarget === p.name ? "drop" : ""} ${isEditable(p) || (p.liked && p.mine) ? "" : "locked"}`}
               onClick={() => openPlaylist(p)}
               onContextMenu={(e) => ctx.open(e, playlistMenu(p))}
               onDragOver={(e) => {
                 if (e.dataTransfer.types.includes(DRAG_MIME)) {
                   e.preventDefault();
-                  e.dataTransfer.dropEffect = isEditable(p) ? (e.shiftKey ? "move" : "copy") : "none";
+                  e.dataTransfer.dropEffect = p.liked && p.mine ? "copy" : isEditable(p) ? (e.shiftKey ? "move" : "copy") : "none";
                   if (dropTarget !== p.name) setDropTarget(p.name);
                 }
               }}
