@@ -590,7 +590,7 @@ h3,
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  padding: 5px;
+  padding: 3.75px;
   background: var(--lip);
   -webkit-mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
   mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
