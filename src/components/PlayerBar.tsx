@@ -3,7 +3,7 @@ import { coverUrl, fmtDuration, playerApi } from "../api";
 import { usePlayer, usePlayerProgress } from "../player/usePlayer";
 import { likeBus } from "../likeBus";
 import { DownloadButton } from "./DownloadButton";
-import { MiniIcon, RepeatIcon, RepeatOneIcon, ShuffleIcon, VolumeIcon } from "./Icons";
+import { MiniIcon, RepeatIcon, RepeatOneIcon, ShuffleIcon, VolumeIcon, NextIcon, PrevIcon } from "./Icons";
 import { useContextMenu } from "./ContextMenu";
 import { navBus } from "../navBus";
 import { trackMenu } from "../views/Library";
@@ -129,13 +129,13 @@ export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onRev
             <ShuffleIcon />
           </button>
           <button className="icon k-skip k-prev" onClick={() => player.previous()} title="Previous (Ctrl+Left)" disabled={!current}>
-            ⏮
+            <PrevIcon />
           </button>
           <button className="icon big k-play" onClick={() => player.toggle()} title="Play/Pause (Space)" disabled={!current && p.queue.length === 0}>
             {p.playing ? "⏸" : "▶"}
           </button>
           <button className="icon k-skip" onClick={() => player.next()} title="Next (Ctrl+Right)" disabled={!current}>
-            ⏭
+            <NextIcon />
           </button>
           <button className={`icon k-toggle ${p.repeat !== "off" ? "on" : ""}`} onClick={() => player.cycleRepeat()} title={`Repeat: ${p.repeat}`}>
             {p.repeat === "one" ? <RepeatOneIcon /> : <RepeatIcon />}

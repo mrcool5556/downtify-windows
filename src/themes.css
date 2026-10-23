@@ -712,3 +712,43 @@ h3,
 :root[data-rows="highlight"][data-style="heavy"] .sidebar-foot .nav.active {
   box-shadow: inset 3px 0 0 var(--accent), var(--inset);
 }
+
+/* Every player key centres its icon exactly, in any style and shape. */
+.k-play,
+.k-skip,
+.k-toggle,
+.k-util,
+.k-status.icon,
+.k-status button.icon,
+.strip-key {
+  display: inline-grid !important;
+  place-items: center;
+  padding: 0 !important;
+  line-height: 0;
+}
+.k-skip svg,
+.k-toggle svg,
+.k-util svg,
+.strip-key svg {
+  display: block;
+}
+:root[data-s-skip="heavy"] .k-skip,
+:root[data-s-toggles="heavy"] .k-toggle,
+:root[data-style="heavy"] .k-util {
+  width: 32px;
+  height: 28px;
+  min-width: 0;
+  min-height: 0;
+}
+/* Round keys are true circles. */
+:root[data-shape="round"][data-s-skip="heavy"] .k-skip,
+:root[data-shape="round"][data-s-toggles="heavy"] .k-toggle,
+:root[data-shape="round"][data-style="heavy"] .k-util {
+  width: 30px;
+  height: 30px;
+}
+.pb-controls,
+.mini-controls,
+.mini-modes {
+  align-items: center;
+}

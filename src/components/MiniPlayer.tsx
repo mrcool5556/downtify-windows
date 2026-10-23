@@ -9,7 +9,7 @@ import { WindowControls } from "./WindowControls";
 import { MiniStrip } from "./MiniStrip";
 import { useContextMenu } from "./ContextMenu";
 import { groupStyle, useLayout } from "../layout";
-import { OpacityBackgroundIcon, OpacityWindowIcon, PauseOutlineIcon, PinIcon, PlayOutlineIcon, RepeatIcon, RepeatOneIcon, ShuffleIcon, VolumeIcon } from "./Icons";
+import { OpacityBackgroundIcon, OpacityWindowIcon, PauseOutlineIcon, PinIcon, PlayOutlineIcon, RepeatIcon, RepeatOneIcon, ShuffleIcon, VolumeIcon, NextIcon, PrevIcon } from "./Icons";
 
 interface Props {
   settings: Settings;
@@ -84,13 +84,13 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
   const controls = (
     <div className="mini-controls">
       <button className="icon k-skip k-prev" onClick={() => player.previous()} disabled={!current} title="Previous">
-        ⏮
+        <PrevIcon />
       </button>
       <button className="icon big mini-play k-play" onClick={() => player.toggle()} disabled={!current && p.queue.length === 0} title="Play / pause">
         {p.playing ? <PauseOutlineIcon /> : <PlayOutlineIcon />}
       </button>
       <button className="icon k-skip" onClick={() => player.next()} disabled={!current} title="Next">
-        ⏭
+        <NextIcon />
       </button>
     </div>
   );

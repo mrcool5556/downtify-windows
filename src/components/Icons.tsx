@@ -73,3 +73,17 @@ export const PauseOutlineIcon = () => (
     <rect x="9" y="3.5" width="3" height="9" rx="0.8" strokeWidth={1.4} />
   </svg>
 );
+
+export const PrevIcon = () => (
+  <svg {...base} aria-hidden>
+    <path d="M4.5 3.5v9" strokeWidth={1.8} />
+    <path d="M12 3.8v8.4L6 8z" fill="currentColor" stroke="none" />
+  </svg>
+);
+
+export const NextIcon = () => (
+  <svg {...base} aria-hidden>
+    <path d="M11.5 3.5v9" strokeWidth={1.8} />
+    <path d="M4 3.8v8.4L10 8z" fill="currentColor" stroke="none" />
+  </svg>
+);

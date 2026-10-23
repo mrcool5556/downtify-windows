@@ -4,7 +4,7 @@ import { player } from "../player/store";
 import { likeBus } from "../likeBus";
 import { downloadsApi, useDownload } from "../downloads";
 import { navBus } from "../navBus";
-import { RepeatIcon, RepeatOneIcon, ShuffleIcon } from "./Icons";
+import { PrevIcon, RepeatIcon, RepeatOneIcon, ShuffleIcon } from "./Icons";
 
 /**
  * The mini player's own right-click menu: a strip of themed keys that fits
@@ -103,7 +103,7 @@ export function MiniStrip({
   return (
     <div className="mini-strip" ref={ref} onContextMenu={(e) => e.preventDefault()} role="menu" aria-label="Song actions">
       <div className="strip-row">
-        {key("Previous", () => act(() => player.previous()), "⏮")}
+        {key("Previous", () => act(() => player.previous()), <PrevIcon />)}
         {key("Shuffle", () => act(() => player.toggleShuffle(), true), <ShuffleIcon />, { on: shuffle })}
         {key(`Repeat: ${repeat}`, () => act(() => player.cycleRepeat(), true), repeat === "one" ? <RepeatOneIcon /> : <RepeatIcon />, { on: repeat !== "off" })}
         {key(
