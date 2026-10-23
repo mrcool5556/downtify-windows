@@ -61,17 +61,34 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
     volume: w < 395 || !layout.show.volume,
     prev: w < 370,
     download: w < 345 || !layout.show.download,
-    heart: w < 325 || !layout.show.heart,
+    heart: !layout.show.heart,
   };
+  // Narrow: play and next move into the right column beside the heart,
+  // so the song name gets the middle. The heart itself never hides by width.
+  const compact = w < 400;
   const widthClasses = [
     w < 420 && "w-toggles",
     w < 395 && "w-volume",
     w < 370 && "w-prev",
     w < 345 && "w-download",
-    w < 325 && "w-heart",
+    compact && "w-compact",
   ]
     .filter(Boolean)
     .join(" ");
+
+  const controls = (
+    <div className="mini-controls">
+      <button className="icon k-skip k-prev" onClick={() => player.previous()} disabled={!current} title="Previous">
+        ⏮
+      </button>
+      <button className="icon big mini-play k-play" onClick={() => player.toggle()} disabled={!current && p.queue.length === 0} title="Play / pause">
+        {p.playing ? <PauseOutlineIcon /> : <PlayOutlineIcon />}
+      </button>
+      <button className="icon k-skip" onClick={() => player.next()} disabled={!current} title="Next">
+        ⏭
+      </button>
+    </div>
+  );
 
   const upcoming = p.order.slice(p.cursor + 1, p.cursor + 6).map((qi) => ({ qi, t: p.queue[qi] }));
   const pct = p.duration ? (p.position / p.duration) * 100 : 0;
@@ -138,17 +155,7 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
         </div>
 
         <div className="mini-center" data-tauri-drag-region>
-          <div className="mini-controls">
-            <button className="icon k-skip k-prev" onClick={() => player.previous()} disabled={!current} title="Previous">
-              ⏮
-            </button>
-            <button className="icon big mini-play k-play" onClick={() => player.toggle()} disabled={!current && p.queue.length === 0} title="Play / pause">
-              {p.playing ? <PauseOutlineIcon /> : <PlayOutlineIcon />}
-            </button>
-            <button className="icon k-skip" onClick={() => player.next()} disabled={!current} title="Next">
-              ⏭
-            </button>
-          </div>
+          {!compact && controls}
           <div className="mini-modes">
             <button className={`icon k-toggle ${p.shuffle ? "on" : ""}`} onClick={() => player.toggleShuffle()} title="Shuffle">
               <ShuffleIcon />
@@ -171,6 +178,7 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
             <WindowControls onRestoreFull={onRestoreFull} />
           </div>
           <div className="mini-side-row">
+            {compact && controls}
             {current ? (
               <>
                 <button className={`icon heart k-status k-heart ${current.liked ? "on" : ""}`} onClick={toggleLike} disabled={!online} title={current.liked ? "Unlike" : "Like"}>

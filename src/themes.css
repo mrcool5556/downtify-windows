@@ -458,3 +458,18 @@ h3,
     linear-gradient(180deg, color-mix(in srgb, var(--accent) 70%, #fff 30%), var(--accent)) padding-box,
     var(--lip) border-box;
 }
+
+/* Compact mini: no middle column; play/next sit with the heart on the right. */
+.mini.w-compact .mini-center {
+  display: none;
+}
+.mini.w-compact .mini-main {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.mini.w-compact .mini-side-row .mini-controls {
+  gap: 2px;
+  margin-right: 4px;
+}
+.mini.w-compact .mini-side-row:not(.chrome) {
+  zoom: 1;
+}
