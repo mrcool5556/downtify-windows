@@ -1235,3 +1235,9 @@ pub fn set_window_shadow(app: tauri::AppHandle, state: State<AppState>, mini: bo
     }
     Ok(view(&snapshot))
 }
+
+/// The player tells the tray what is playing so its menu matches.
+#[tauri::command]
+pub fn update_tray(app: tauri::AppHandle, state: crate::tray::TrayState) {
+    crate::tray::update(&app, &state);
+}

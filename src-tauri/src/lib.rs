@@ -155,6 +155,7 @@ pub fn run() {
             commands::check_updates,
             commands::install_update,
             commands::set_tray_tooltip,
+            commands::update_tray,
             commands::set_mini,
             commands::set_mini_pinned,
             commands::set_mini_opacity,

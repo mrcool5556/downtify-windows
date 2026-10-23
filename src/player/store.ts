@@ -497,6 +497,11 @@ class PlayerStore {
     this.scheduleSave();
   }
 
+  setRepeat(r: Repeat) {
+    this.set({ repeat: r });
+    this.scheduleSave();
+  }
+
   cycleRepeat() {
     const next: Repeat = this.snap.repeat === "off" ? "all" : this.snap.repeat === "all" ? "one" : "off";
     this.set({ repeat: next });

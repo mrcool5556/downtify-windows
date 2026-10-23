@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { api, fmtAgo, fmtWhen, playerApi, Settings, ServerStatus, Summary } from "./api";
 import { Setup } from "./views/Setup";
 import { Library } from "./views/Library";
@@ -30,7 +31,7 @@ export default function App() {
   const [notice, setNotice] = useState<string>("");
   const [libraryVersion, setLibraryVersion] = useState(0);
   const [shortcuts, setShortcuts] = useState(false);
-  const { queueOpen, current } = usePlayer();
+  const { queueOpen, current, playing, shuffle, repeat } = usePlayer();
   const { view, canBack, canForward } = useNav();
   const layout = useLayout();
   const searchRef = useRef<HTMLInputElement>(null);
@@ -237,6 +238,44 @@ export default function App() {
     document.documentElement.toggleAttribute("data-mini", !!settings?.mini);
     setMiniActive(!!settings?.mini);
   }, [settings?.mini]);
+
+  // The tray menu mirrors the player.
+  useEffect(() => {
+    invoke("update_tray", {
+      state: {
+        title: current?.title ?? "",
+        artist: current?.artist ?? "",
+        has_track: !!current,
+        playing,
+        liked: !!current?.liked,
+        shuffle,
+        repeat,
+        mini: !!settings?.mini,
+        online,
+      },
+    }).catch(() => {});
+  }, [current?.id, current?.title, current?.artist, current?.liked, playing, shuffle, repeat, settings?.mini, online]);
+
+  // Tray actions that aren't plain playback keys.
+  useEffect(() => {
+    let un: (() => void) | undefined;
+    listen<string>("tray-action", (e) => {
+      const a = e.payload;
+      const t = player.getSnapshot().current;
+      if (a === "like" && t) playerApi.setLike(t.id, !t.liked).then((liked) => likeBus.emit(t.id, liked)).catch(() => {});
+      else if (a === "shuffle") player.toggleShuffle();
+      else if (a === "repeat-off") player.setRepeat("off");
+      else if (a === "repeat-all") player.setRepeat("all");
+      else if (a === "repeat-one") player.setRepeat("one");
+      else if (a === "mini") setMini(true);
+      else if (a === "full") setMini(false);
+      else if (a === "settings") {
+        setMini(false);
+        nav.push({ section: "settings", scope: {}, search: "", tab: "general" });
+      }
+    }).then((u) => (un = u));
+    return () => un?.();
+  }, [setMini]);
 
   // Window title and tray tooltip follow the song.
   useEffect(() => {
