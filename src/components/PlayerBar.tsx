@@ -155,9 +155,11 @@ export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onRev
           />
           <span className="pb-time">{fmtDuration(p.duration)}</span>
         </div>
-        {p.error && <div className="pb-error">{p.error}</div>}
-        {barNotice && !p.error && <div className="pb-loading">{barNotice}</div>}
-        {p.loading && !p.error && <div className="pb-loading">Loading…</div>}
+        {(p.error || barNotice || p.loading) && (
+          <div className={`pb-status ${p.error ? "err" : ""}`} role="status">
+            {p.error || barNotice || "Loading…"}
+          </div>
+        )}
       </div>
 
       <div className="pb-right">

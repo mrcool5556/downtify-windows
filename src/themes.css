@@ -830,3 +830,29 @@ img {
   width: 26px;
   height: 26px;
 }
+
+/* Player bar messages float over the seek row, so the bar never changes height. */
+.pb-center {
+  position: relative;
+}
+.pb-status {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  max-width: 90%;
+  padding: 1px 10px;
+  border-radius: 999px;
+  background: var(--bg-3);
+  color: var(--fg-2);
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+.pb-status.err {
+  color: #ffb4b6;
+}
