@@ -10,9 +10,16 @@ use crate::AppState;
 
 pub const MINI_HEIGHT: f64 = 102.0;
 pub const MINI_DRAWER: f64 = 168.0;
+/// The drawer can be dragged open up to this total height.
+pub const MINI_MAX_HEIGHT: f64 = 900.0;
 
+/// The mini's height: what you last left it at (bar only, or bar plus a
+/// drawer of any size), within the allowed range.
 pub fn mini_height(s: &Settings) -> f64 {
-    if s.mini_expanded {
+    let saved = s.mini_bounds.map(|b| b.h).unwrap_or(0.0);
+    if saved >= MINI_HEIGHT {
+        saved.clamp(MINI_HEIGHT, MINI_MAX_HEIGHT)
+    } else if s.mini_expanded {
         MINI_HEIGHT + MINI_DRAWER
     } else {
         MINI_HEIGHT
@@ -96,8 +103,8 @@ pub fn apply(app: &AppHandle, s: &Settings) {
         let width = b.map(|b| b.w).unwrap_or(520.0).clamp(MINI_MIN_WIDTH, MINI_MAX_WIDTH);
         let h = mini_height(s);
         let _ = win.unmaximize();
-        let _ = win.set_min_size(Some(LogicalSize::new(MINI_MIN_WIDTH, h)));
-        let _ = win.set_max_size(Some(LogicalSize::new(MINI_MAX_WIDTH, h)));
+        let _ = win.set_min_size(Some(LogicalSize::new(MINI_MIN_WIDTH, MINI_HEIGHT)));
+        let _ = win.set_max_size(Some(LogicalSize::new(MINI_MAX_WIDTH, MINI_MAX_HEIGHT)));
         let _ = win.set_size(LogicalSize::new(width, h));
         match b {
             Some(b) => {
@@ -185,6 +192,8 @@ pub fn resize_mini_height(win: &WebviewWindow, logical_h: f64) {
     let _ = win.set_position(PhysicalPosition::new(pos.x, pos.y));
     let min_w = (MINI_MIN_WIDTH * scale).round() as u32;
     let max_w = (MINI_MAX_WIDTH * scale).round() as u32;
-    let _ = win.set_min_size(Some(PhysicalSize::new(min_w, h)));
-    let _ = win.set_max_size(Some(PhysicalSize::new(max_w, h)));
+    let min_h = (MINI_HEIGHT * scale).round() as u32;
+    let max_h = (MINI_MAX_HEIGHT * scale).round() as u32;
+    let _ = win.set_min_size(Some(PhysicalSize::new(min_w, min_h)));
+    let _ = win.set_max_size(Some(PhysicalSize::new(max_w, max_h)));
 }

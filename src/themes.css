@@ -612,3 +612,14 @@ h3,
   transform: translateY(2px);
   box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.5);
 }
+
+
+/* The drawer handle is a grip: drag to size up next, click to open or close. */
+.mini-handle {
+  cursor: ns-resize;
+  touch-action: none;
+  flex-shrink: 0;
+}
+.mini-drawer {
+  min-height: 0;
+}

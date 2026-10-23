@@ -1196,3 +1196,21 @@ pub async fn install_update(app: tauri::AppHandle, release: Value) -> Result<(),
     let r: crate::updater::Release = serde_json::from_value(release).map_err(|e| e.to_string())?;
     crate::updater::install(app, r).await
 }
+
+/// Open or close the mini's drawer to an exact height (the handle's click).
+#[tauri::command]
+pub fn set_mini_height(app: tauri::AppHandle, state: State<AppState>, height: f64) -> Result<SettingsView, String> {
+    let h = height.clamp(crate::window_mode::MINI_HEIGHT, crate::window_mode::MINI_MAX_HEIGHT);
+    let snapshot = {
+        let mut s = state.settings.lock().map_err(|e| e.to_string())?;
+        s.mini_expanded = h > crate::window_mode::MINI_HEIGHT + 20.0;
+        settings::save(&state.settings_path, &s)?;
+        s.clone()
+    };
+    if snapshot.mini {
+        if let Some(win) = app.get_webview_window("main") {
+            crate::window_mode::resize_mini_height(&win, h);
+        }
+    }
+    Ok(view(&snapshot))
+}

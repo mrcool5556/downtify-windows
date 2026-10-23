@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Settings, coverUrl, fmtDuration, playerApi } from "../api";
 import { usePlayer, usePlayerProgress } from "../player/usePlayer";
 import { likeBus } from "../likeBus";
@@ -24,6 +25,7 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
   const fadeTimer = useRef<number | undefined>(undefined);
   const ctx = useContextMenu();
   const [strip, setStrip] = useState(false);
+  const handleDrag = useRef<{ y: number; dragging: boolean } | null>(null);
 
   // Solid while hovered, back to the chosen opacity a second after leaving.
   const [hovered, setHovered] = useState(false);
@@ -93,9 +95,18 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
     </div>
   );
 
-  const upcoming = p.order.slice(p.cursor + 1, p.cursor + 6).map((qi) => ({ qi, t: p.queue[qi] }));
+  // As many upcoming songs as a dragged-open drawer can show (it scrolls past that).
+  const upcoming = p.order.slice(p.cursor + 1, p.cursor + 101).map((qi) => ({ qi, t: p.queue[qi] }));
   const pct = p.duration ? (p.position / p.duration) * 100 : 0;
-  const expanded = settings.mini_expanded;
+  // The drawer is open whenever the window is taller than the bar.
+  const MINI_BAR = 102;
+  const [winH, setWinH] = useState(window.innerHeight);
+  useEffect(() => {
+    const on = () => setWinH(window.innerHeight);
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, []);
+  const expanded = winH > MINI_BAR + 30;
 
   async function toggleLike() {
     if (!current || !online) return;
@@ -265,8 +276,47 @@ export function MiniPlayer({ settings, online, onSettings, onRestoreFull }: Prop
 
       <button
         className="mini-handle"
-        onClick={() => invoke<Settings>("set_mini_expanded", { on: !expanded }).then(onSettings).catch(() => {})}
-        title={expanded ? "Hide up next and opacity" : "Show up next and opacity"}
+        onPointerDown={(e) => {
+          if (e.button !== 0) return;
+          // Keep receiving moves after the pointer leaves the thin handle.
+          e.currentTarget.setPointerCapture(e.pointerId);
+          handleDrag.current = { y: e.clientY, dragging: false };
+        }}
+        onPointerMove={(e) => {
+          const d = handleDrag.current;
+          if (!d || d.dragging || Math.abs(e.clientY - d.y) < 4) return;
+          d.dragging = true;
+          // Hand the rest of the drag to Windows: smooth, native resizing from the bottom edge.
+          e.currentTarget.releasePointerCapture(e.pointerId);
+          getCurrentWindow()
+            .startResizeDragging("South")
+            .catch((err) => console.warn("resize drag refused", err));
+        }}
+        onPointerUp={() => {
+          const d = handleDrag.current;
+          handleDrag.current = null;
+          if (!d || d.dragging) return;
+          // A plain click: close, or reopen to the height you last dragged to.
+          if (expanded) {
+            try {
+              localStorage.setItem("downtify.miniOpenH", String(window.innerHeight));
+            } catch {
+              /* fine */
+            }
+            invoke<Settings>("set_mini_height", { height: MINI_BAR }).then(onSettings).catch(() => {});
+          } else {
+            let h = MINI_BAR + 168;
+            try {
+              const saved = Number(localStorage.getItem("downtify.miniOpenH"));
+              if (saved > MINI_BAR + 30) h = saved;
+            } catch {
+              /* fine */
+            }
+            invoke<Settings>("set_mini_height", { height: h }).then(onSettings).catch(() => {});
+          }
+        }}
+        onPointerCancel={() => (handleDrag.current = null)}
+        title={expanded ? "Drag to resize up next, click to close" : "Drag down to open up next, or click"}
       >
         <span className="mini-handle-bar" />
         <span className="mini-handle-arrow">{expanded ? "⌃" : "⌄"}</span>
