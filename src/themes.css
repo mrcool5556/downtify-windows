@@ -948,3 +948,17 @@ table.tracks.online td.c-artist {
     opacity: 0.6;
   }
 }
+
+/* Song table: click a header to sort. */
+table.tracks th.sortable {
+  cursor: pointer;
+}
+table.tracks th.sortable:hover,
+table.tracks th.sorted {
+  color: var(--fg);
+}
+.sort-arrow {
+  margin: 0 4px;
+  font-size: 0.7em;
+  color: var(--accent);
+}

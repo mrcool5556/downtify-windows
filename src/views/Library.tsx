@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Album,
   Artist,
@@ -786,7 +786,7 @@ export function Library({
                 tracks={local}
                 online={online}
                 showAlbum
-                onPlay={(i) => player.playList(local, i, { section: "downloads", scope: {}, search: "", localOnly: true })}
+                onPlay={(i, list) => player.playList(list, i, { section: "downloads", scope: {}, search: "", localOnly: true })}
                 env={{ ...env, currentPlaylist: undefined }}
                 openMenu={ctx.open}
                 addToPlaylist={addToPlaylist}
@@ -821,7 +821,7 @@ export function Library({
             tracks={tracks}
             online={online}
             showAlbum={!scope.album}
-            onPlay={(i) => player.playList(tracks, i, playContext)}
+            onPlay={(i, list) => player.playList(list, i, playContext)}
             env={env}
             openMenu={ctx.open}
             addToPlaylist={addToPlaylist}
@@ -1252,7 +1252,7 @@ function SearchResults({
           <h3>
             Songs <small>{songs.length >= 300 ? "300+" : songs.length}</small>
           </h3>
-          <TrackTable tracks={songs} online={online} showAlbum onPlay={(i) => player.playList(songs, i, sctx)} env={{ ...env, currentPlaylist: undefined }} openMenu={openMenu} addToPlaylist={addToPlaylist} />
+          <TrackTable tracks={songs} online={online} showAlbum onPlay={(i, list) => player.playList(list, i, sctx)} env={{ ...env, currentPlaylist: undefined }} openMenu={openMenu} addToPlaylist={addToPlaylist} />
         </>
       )}
       {albums.length > 0 && (
@@ -1364,7 +1364,7 @@ function Home({
       </div>
 
       <h3>Recently added songs</h3>
-      <TrackTable tracks={recentSongs} online={online} showAlbum onPlay={(i) => player.playList(recentSongs, i, hctx("recent-songs"))} compact env={homeEnv} openMenu={openMenu} addToPlaylist={addToPlaylist} />
+      <TrackTable tracks={recentSongs} online={online} showAlbum onPlay={(i, list) => player.playList(list, i, hctx("recent-songs"))} compact env={homeEnv} openMenu={openMenu} addToPlaylist={addToPlaylist} />
 
 
     </div>
@@ -1409,7 +1409,7 @@ function ArtistPage({
       <h3>
         Songs <small>{songs.length}</small>
       </h3>
-      <TrackTable tracks={songs} online={online} showAlbum onPlay={(i) => player.playList(songs, i, actx)} env={{ ...env, currentPlaylist: undefined }} openMenu={openMenu} addToPlaylist={addToPlaylist} />
+      <TrackTable tracks={songs} online={online} showAlbum onPlay={(i, list) => player.playList(list, i, actx)} env={{ ...env, currentPlaylist: undefined }} openMenu={openMenu} addToPlaylist={addToPlaylist} />
     </div>
   );
 }
@@ -1538,7 +1538,8 @@ function startDrag(e: React.DragEvent, tracks: Track[], fromPlaylist?: string) {
 interface ListProps {
   tracks: Track[];
   online: boolean;
-  onPlay: (index: number) => void;
+  /** Index into `list`, the songs in the order shown (sorted or not). */
+  onPlay: (index: number, list: Track[]) => void;
   env: MenuEnv;
   openMenu: (e: React.MouseEvent, items: MenuItem[]) => void;
   addToPlaylist: (name: string, ids: string[]) => Promise<void>;
@@ -1560,8 +1561,8 @@ function TrackGrid({ tracks, online, onPlay, env, openMenu, addToPlaylist, remov
             data-track-id={t.id}
             className={`tile ${isCurrent ? "current" : ""} ${playable ? "" : "unplayable"} ${sel.selected.has(t.id) ? "selected" : ""}`}
             onClick={(e) => sel.click(e, i)}
-            onDoubleClick={() => playable && (isCurrent ? player.toggle() : onPlay(i))}
-            onContextMenu={(e) => openMenu(e, trackMenu(sel.forMenu(i), env, { playFirst: () => onPlay(i), addToPlaylist, removeFromPlaylist }))}
+            onDoubleClick={() => playable && (isCurrent ? player.toggle() : onPlay(i, tracks))}
+            onContextMenu={(e) => openMenu(e, trackMenu(sel.forMenu(i), env, { playFirst: () => onPlay(i, tracks), addToPlaylist, removeFromPlaylist }))}
             draggable
             onDragStart={(e) => startDrag(e, sel.selected.has(t.id) ? tracks.filter((x) => sel.selected.has(x.id)) : [t], env.currentPlaylist?.name)}
             title="Double-click to play · right-click for more"
@@ -1574,7 +1575,7 @@ function TrackGrid({ tracks, online, onPlay, env, openMenu, addToPlaylist, remov
                   e.stopPropagation();
                   if (!playable) return;
                   if (isCurrent) player.toggle();
-                  else onPlay(i);
+                  else onPlay(i, tracks);
                 }}
               >
                 {isCurrent && playing ? "⏸" : "▶"}
@@ -1599,9 +1600,38 @@ function TrackGrid({ tracks, online, onPlay, env, openMenu, addToPlaylist, remov
   );
 }
 
-function TrackTable({ tracks, online, showAlbum, onPlay, compact, env, openMenu, addToPlaylist, removeFromPlaylist }: ListProps & { showAlbum: boolean; compact?: boolean }) {
+type SortCol = "title" | "artist" | "album" | "duration";
+const SORT_LABEL: Record<SortCol, string> = { title: "title", artist: "artist", album: "album", duration: "length" };
+const collator = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
+
+function sortTracks(tracks: Track[], col: SortCol, desc: boolean): Track[] {
+  const key = (t: Track) => (col === "title" ? t.title || t.file : col === "artist" ? t.artist : t.album);
+  const out = [...tracks].sort((a, b) => {
+    const d = col === "duration" ? a.duration - b.duration : collator.compare(key(a), key(b));
+    // Ties keep a sensible order: artist, then album, then track number.
+    return d || collator.compare(a.artist, b.artist) || collator.compare(a.album, b.album) || a.track_number - b.track_number;
+  });
+  return desc ? out.reverse() : out;
+}
+
+function TrackTable({ tracks: given, online, showAlbum, onPlay: playAt, compact, env, openMenu, addToPlaylist, removeFromPlaylist }: ListProps & { showAlbum: boolean; compact?: boolean }) {
   const { player, current, playing } = usePlayer();
+  // Click a header: A to Z, Z to A, then back to the list's own order.
+  const [sort, setSort] = useState<{ col: SortCol; desc: boolean } | null>(null);
+  const tracks = useMemo(() => (sort ? sortTracks(given, sort.col, sort.desc) : given), [given, sort]);
+  const onPlay = (i: number) => playAt(i, tracks);
   const sel = useSelection(tracks);
+  function sortBy(col: SortCol, e: React.MouseEvent) {
+    if ((e.target as HTMLElement).closest(".col-resizer")) return;
+    setSort((s) => (!s || s.col !== col ? { col, desc: false } : !s.desc ? { col, desc: true } : null));
+  }
+  const sortable = (col: SortCol) => ({
+    onClick: (e: React.MouseEvent) => sortBy(col, e),
+    className: `sortable ${sort?.col === col ? "sorted" : ""}`,
+    "aria-sort": (sort?.col === col ? (sort.desc ? "descending" : "ascending") : "none") as React.AriaAttributes["aria-sort"],
+    title: sort?.col === col ? (sort.desc ? "Sorted Z to A. Click for the original order" : "Sorted A to Z. Click for Z to A") : `Sort by ${SORT_LABEL[col]}`,
+  });
+  const arrow = (col: SortCol) => (sort?.col === col ? <span className="sort-arrow">{sort.desc ? "▼" : "▲"}</span> : null);
   const widths = useCols();
   // A finished drag can leave the browser holding a stale row node; a fresh
   // tbody after every drag end keeps what you see equal to the data.
@@ -1628,18 +1658,24 @@ function TrackTable({ tracks, online, showAlbum, onPlay, compact, env, openMenu,
           <tr>
             <th className="c-play"></th>
             <th className="c-art"></th>
-            <th className="c-title">
-              Title
+            <th {...sortable("title")} className={`c-title ${sortable("title").className}`}>
+              Title{arrow("title")}
               <ColResizer col="title" />
             </th>
-            <th className="c-artist">
-              Artist
+            <th {...sortable("artist")} className={`c-artist ${sortable("artist").className}`}>
+              Artist{arrow("artist")}
               <ColResizer col="artist" />
             </th>
-            {showAlbum && <th className="c-album">Album</th>}
+            {showAlbum && (
+              <th {...sortable("album")} className={`c-album ${sortable("album").className}`}>
+                Album{arrow("album")}
+              </th>
+            )}
             <th className="c-like"></th>
             <th className="c-dl"></th>
-            <th className="c-dur">Time</th>
+            <th {...sortable("duration")} className={`c-dur ${sortable("duration").className}`}>
+              {arrow("duration")}Time
+            </th>
           </tr>
         </thead>
       )}
