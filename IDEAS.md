@@ -22,3 +22,5 @@ Passing ideas, parked with enough detail to pick up later. Newest first.
 3. This app: a toggle on the playlist page, next to "Keep synced to this PC".
 
 **Routes:** upstream issue henriquesebastiao/downtify#465 (filed 2026-10-20), or run a small fork of the server container.
+
+- **Drag to reorder songs in a playlist** (2026-10-24). The server has no reorder endpoint (add/remove only, adds go to the end). Parked: ask upstream for a "reorder" option, maybe as a comment on henriquesebastiao/downtify#488, then build drag-to-reorder on it. A client-only workaround (remove the tail, re-add in order) works but leaves a playlist short if the second call fails.
