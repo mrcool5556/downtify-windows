@@ -5,6 +5,11 @@ A Windows desktop client for a self-hosted [Downtify](https://github.com/henriqu
 Built with Tauri 2, React and Rust. Early and under active development; expect rough edges. Issues and ideas are welcome.
 
 <p align="center">
+  <img src="docs/screenshots/tour.gif" alt="A 30-second tour: the eight colour themes, Modern and Heavy controls, Discover with Like this and Start radio, sorting a playlist, and the mini player fading over the desktop" width="860">
+</p>
+<p align="center"><sub>A quick tour: themes, Heavy controls, Discover, sorting and the mini player.</sub></p>
+
+<p align="center">
   <img src="docs/screenshots/full-window.png" alt="The full window: Home with recently added albums and songs, playlists in the sidebar, player bar at the bottom" width="860">
 </p>
 <p align="center">
