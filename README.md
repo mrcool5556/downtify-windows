@@ -13,9 +13,15 @@ Built with Tauri 2, React and Rust. Early and under active development; expect r
   <img src="docs/screenshots/mini-drawer-faded.png" alt="Mini player with the up-next drawer open, faded over the desktop" width="420">
 </p>
 <p align="center"><sub>The full window, and the mini player (Ctrl+M) solid and faded over the desktop.</sub></p>
+<p align="center">
+  <img src="docs/screenshots/like-this.png" alt="Discover: new artists for you, with the Like this panel listing songs similar to the one playing" width="860">
+</p>
+<p align="center"><sub>Discover, with "Like this" open: songs similar to the one playing, and Start radio.</sub></p>
 
 ## What it does
 
+- **Discover** new artists, albums, playlists and charts from your server's suggestions; **Like this** and **Start radio** play songs similar to the current one, and the heart on a song you don't have saves it to the server and likes it.
+- **Sort** any song list by clicking Title, Artist, Album or Time.
 - **Pairs** with your Downtify server using the same pairing code flow as the Android app. The device token lives in Windows Credential Manager.
 - **Syncs** your songs, albums, artists, playlists and likes into a local SQLite index using the server's delta-sync API, so re-syncs are cheap.
 - **Plays** your music: local file first, otherwise streamed from the server (original quality, or Opus 160 kbps when away from home). Player bar with seek, volume, shuffle, repeat, queue, likes, and Windows media keys.
