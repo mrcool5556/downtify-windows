@@ -1549,6 +1549,7 @@ interface ListProps {
 function TrackGrid({ tracks, online, onPlay, env, openMenu, addToPlaylist, removeFromPlaylist }: ListProps) {
   const { current, playing, player } = usePlayer();
   const sel = useSelection(tracks);
+  const keys = useMemo(() => rowKeys(tracks), [tracks]);
   if (tracks.length === 0) return <div className="empty">Nothing here.</div>;
   return (
     <div className="grid songs">
@@ -1557,7 +1558,7 @@ function TrackGrid({ tracks, online, onPlay, env, openMenu, addToPlaylist, remov
         const playable = !!t.local_path || online;
         return (
           <button
-            key={t.id}
+            key={keys[i]}
             data-track-id={t.id}
             className={`tile ${isCurrent ? "current" : ""} ${playable ? "" : "unplayable"} ${sel.selected.has(t.id) ? "selected" : ""}`}
             onClick={(e) => sel.click(e, i)}
@@ -1604,9 +1605,19 @@ type SortCol = "title" | "artist" | "album" | "duration";
 const SORT_LABEL: Record<SortCol, string> = { title: "title", artist: "artist", album: "album", duration: "length" };
 const collator = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
 
-function sortTracks(tracks: Track[], col: SortCol, desc: boolean): Track[] {
+/** Row keys that stay unique when a list holds the same song twice. */
+function rowKeys(tracks: Track[]): string[] {
+  const seen = new Map<string, number>();
+  return tracks.map((t) => {
+    const n = (seen.get(t.id) ?? 0) + 1;
+    seen.set(t.id, n);
+    return n > 1 ? `${t.id}#${n}` : t.id;
+  });
+}
+
+function sortTracks(rows: { t: Track; key: string }[], col: SortCol, desc: boolean) {
   const key = (t: Track) => (col === "title" ? t.title || t.file : col === "artist" ? t.artist : t.album);
-  const out = [...tracks].sort((a, b) => {
+  const out = [...rows].sort(({ t: a }, { t: b }) => {
     const d = col === "duration" ? a.duration - b.duration : collator.compare(key(a), key(b));
     // Ties keep a sensible order: artist, then album, then track number.
     return d || collator.compare(a.artist, b.artist) || collator.compare(a.album, b.album) || a.track_number - b.track_number;
@@ -1618,7 +1629,12 @@ function TrackTable({ tracks: given, online, showAlbum, onPlay: playAt, compact,
   const { player, current, playing } = usePlayer();
   // Click a header: A to Z, Z to A, then back to the list's own order.
   const [sort, setSort] = useState<{ col: SortCol; desc: boolean } | null>(null);
-  const tracks = useMemo(() => (sort ? sortTracks(given, sort.col, sort.desc) : given), [given, sort]);
+  const rows = useMemo(() => {
+    const keys = rowKeys(given);
+    const all = given.map((t, i) => ({ t, key: keys[i] }));
+    return sort ? sortTracks(all, sort.col, sort.desc) : all;
+  }, [given, sort]);
+  const tracks = useMemo(() => rows.map((r) => r.t), [rows]);
   const onPlay = (i: number) => playAt(i, tracks);
   const sel = useSelection(tracks);
   function sortBy(col: SortCol, e: React.MouseEvent) {
@@ -1685,7 +1701,7 @@ function TrackTable({ tracks: given, online, showAlbum, onPlay: playAt, compact,
           const playable = !!t.local_path || online;
           return (
             <tr
-              key={t.id}
+              key={rows[i].key}
               className={`${t.local_path ? "local" : "remote"} ${isCurrent ? "current" : ""} ${sel.selected.has(t.id) ? "selected" : ""} ${playable ? "" : "unplayable"}`}
               data-track-id={t.id}
               onClick={(e) => sel.click(e, i)}

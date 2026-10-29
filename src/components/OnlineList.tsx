@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Track, fmtDuration } from "../api";
+import { Track, coverUrl, fmtDuration } from "../api";
 import { usePlayer } from "../player/usePlayer";
 import { OnlineSong, findInLibrary, libraryIndex, requestDownload, songArtist, toTrack, videoIdOf } from "../discover";
 import { MenuItem } from "./ContextMenu";
@@ -85,7 +85,9 @@ export function OnlineList({
                   {isCurrent && playing ? "⏸" : "▶"}
                 </button>
               </td>
-              <td className="c-art">{s.cover_url ? <img className="row-art" src={s.cover_url} alt="" loading="lazy" /> : <div className="row-art">♫</div>}</td>
+              <td className="c-art">
+                <OnlineArt src={inLib ? (t.has_cover ? coverUrl(t.id, 150) : "") : s.cover_url || ""} />
+              </td>
               <td className="c-title">
                 {s.name}
                 {inLib ? <span className="badge-in">in library</span> : !full ? <span className="badge-pre">preview</span> : null}
@@ -117,4 +119,12 @@ export function OnlineList({
       </tbody>
     </table>
   );
+}
+
+/** A cover that falls back to the note when the link is missing or dead. */
+function OnlineArt({ src }: { src: string }) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [src]);
+  if (!src || failed) return <div className="row-art">♫</div>;
+  return <img className="row-art" src={src} alt="" loading="lazy" onError={() => setFailed(true)} />;
 }
