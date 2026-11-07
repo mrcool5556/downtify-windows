@@ -10,6 +10,8 @@
     "dialog:default",
     "opener:default",
     "autostart:default",
+    "clipboard-manager:allow-read-text",
+    "clipboard-manager:allow-write-text",
     "core:window:allow-start-dragging",
     "core:window:allow-minimize",
     "core:window:allow-toggle-maximize",

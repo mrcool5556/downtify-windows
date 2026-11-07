@@ -64,7 +64,7 @@ function Menu({ x, y, items, onClose }: OpenState & { onClose: () => void }) {
   }, [onClose]);
 
   return (
-    <div ref={ref} className="ctx" style={pos} onContextMenu={(e) => e.preventDefault()}>
+    <div ref={ref} className="ctx" style={pos} onContextMenu={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()}>
       <MenuList items={items} onClose={onClose} />
     </div>
   );
