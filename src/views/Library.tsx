@@ -1541,6 +1541,19 @@ function useSelection(tracks: Track[], keys: string[]) {
       return next.size === s.size ? s : next;
     });
   }, [keys]);
+  // Ctrl+A selects every song in the list (but not while typing in a box).
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (!e.ctrlKey || e.altKey || e.shiftKey || e.key.toLowerCase() !== "a") return;
+      const el = document.activeElement as HTMLElement | null;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable)) return;
+      e.preventDefault();
+      setSelected(new Set(keys));
+      anchor.current = keys.length ? 0 : -1;
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [keys]);
   const isSelected = (index: number) => selected.has(keys[index]);
   /** The rows a drag or menu on `index` acts on: the selection if it holds the row. */
   function rowsFor(index: number): number[] {
