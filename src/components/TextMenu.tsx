@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { useContextMenu } from "./ContextMenu";
+import { MenuItem, useContextMenu } from "./ContextMenu";
+import { suggestFromLibrary, warmLibrarySpell, wordAt } from "../librarySpell";
 
 // Tauri's clipboard plugin, so Paste never shows the browser's
 // "allow clipboard access?" prompt.
@@ -32,19 +33,39 @@ function selectedText(f: Field): string {
 /**
  * The app's own Cut / Copy / Paste / Select all menu for text boxes, in place
  * of the browser's. Edits go through execCommand so React sees them and
- * Ctrl+Z still undoes them.
+ * Ctrl+Z still undoes them. A word your library doesn't know gets
+ * "did you mean" fixes from your song, artist and album names.
  */
 export function TextMenu() {
   const ctx = useContextMenu();
   useEffect(() => {
-    function onMenu(e: MouseEvent) {
+    async function onMenu(e: MouseEvent) {
       const f = fieldAt(e.target);
       if (!f || f.disabled) return;
+      e.preventDefault();
+      const at = { clientX: e.clientX, clientY: e.clientY, preventDefault() {}, stopPropagation() {} };
       if (document.activeElement !== f) f.focus();
       const picked = selectedText(f);
       const editable = !f.readOnly;
       const isPassword = f instanceof HTMLInputElement && f.type === "password";
-      ctx.open(e, [
+      // The word under the caret (or the one selected word) and fixes for it.
+      let fixes: MenuItem[] = [];
+      const caret = f.selectionStart ?? f.value.length;
+      const target = editable && !isPassword && f.type !== "number" ? wordAt(f.value, caret) : null;
+      if (target && (!picked || picked === target.word)) {
+        const words = await suggestFromLibrary(target.word).catch(() => []);
+        fixes = words.map((w) => ({
+          label: w,
+          onClick: () => {
+            f.focus();
+            f.setSelectionRange(target.start, target.end);
+            document.execCommand("insertText", false, w);
+          },
+        }));
+        if (fixes.length) fixes.push({ separator: true });
+      }
+      ctx.open(at, [
+        ...fixes,
         {
           label: "Cut",
           hint: "Ctrl+X",
@@ -83,8 +104,13 @@ export function TextMenu() {
         },
       ]);
     }
+    const onFocus = (e: FocusEvent) => fieldAt(e.target) && warmLibrarySpell();
     window.addEventListener("contextmenu", onMenu);
-    return () => window.removeEventListener("contextmenu", onMenu);
+    window.addEventListener("focusin", onFocus);
+    return () => {
+      window.removeEventListener("contextmenu", onMenu);
+      window.removeEventListener("focusin", onFocus);
+    };
   }, [ctx.open]);
   return ctx.menu;
 }
