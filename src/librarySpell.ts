@@ -79,7 +79,7 @@ export async function suggestFromLibrary(word: string, limit = 5): Promise<strin
   if (k.length < 3 || /^\d+$/.test(k)) return [];
   const { words } = await vocab();
   if (words.has(k)) return [];
-  const max = k.length <= 4 ? 1 : k.length <= 8 ? 2 : 3;
+  const max = k.length <= 4 ? 1 : k.length <= 6 ? 2 : 3;
   const hits: { shown: string; d: number; count: number }[] = [];
   for (const [w, v] of words) {
     if (w.length < 3) continue;
