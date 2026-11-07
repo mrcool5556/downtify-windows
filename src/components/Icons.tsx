@@ -122,10 +122,11 @@ export const DiscoverIcon = () => (
   </svg>
 );
 
-/** Microphone, for the lyrics page. */
+/** Lines of text with a music note, for the lyrics page. */
 export const LyricsIcon = () => (
   <svg {...base} aria-hidden>
-    <rect x="6" y="1.8" width="4" height="7.4" rx="2" fill="currentColor" stroke="none" />
-    <path d="M3.8 7.4a4.2 4.2 0 0 0 8.4 0M8 11.6v2.6M5.8 14.2h4.4" />
+    <path d="M1.8 4h7.4M1.8 7.5h7.4M1.8 11h4.6" />
+    <path d="M12.6 11.6V3.2l2.2 1" />
+    <ellipse cx="11.2" cy="11.8" rx="1.7" ry="1.4" fill="currentColor" stroke="none" />
   </svg>
 );
