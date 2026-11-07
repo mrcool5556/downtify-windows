@@ -1589,7 +1589,7 @@ function useSelection(tracks: Track[], keys: string[]) {
   return { isSelected, rowsFor, click, forMenu };
 }
 
-function startDrag(e: React.DragEvent, tracks: Track[], fromPlaylist?: string, entries?: PlaylistEntry[]) {
+export function startDrag(e: React.DragEvent, tracks: Track[], fromPlaylist?: string, entries?: PlaylistEntry[]) {
   const payload: DragPayload = { ids: tracks.map((t) => t.id), fromPlaylist, entries };
   e.dataTransfer.setData(DRAG_MIME, JSON.stringify(payload));
   e.dataTransfer.effectAllowed = "copyMove";

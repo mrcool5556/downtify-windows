@@ -7,7 +7,7 @@ import { saveAndLike, usePendingLike } from "../saveLike";
 import { MiniIcon, RepeatIcon, RepeatOneIcon, ShuffleIcon, VolumeIcon, DiscoverIcon, NextIcon, PauseFillIcon, PlayFillIcon, PrevIcon } from "./Icons";
 import { useContextMenu } from "./ContextMenu";
 import { navBus } from "../navBus";
-import { trackMenu } from "../views/Library";
+import { startDrag, trackMenu } from "../views/Library";
 import { useEffect, useState as useState2 } from "react";
 import { api, PlaylistSummary, playlistsApi } from "../api";
 
@@ -69,7 +69,12 @@ export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onRev
   return (
     <footer className="playerbar">
       {ctx.menu}
-      <div className="pb-track" onContextMenu={(e) => current && ctx.open(e, trackMenu([current], env, { playFirst: () => player.play(), addToPlaylist }))}>
+      <div
+        className="pb-track"
+        draggable={!!current && !current.online}
+        onDragStart={(e) => current && !current.online && startDrag(e, [current])}
+        title={current && !current.online ? "Drag onto a playlist to add it" : undefined}
+        onContextMenu={(e) => current && ctx.open(e, trackMenu([current], env, { playFirst: () => player.play(), addToPlaylist }))}>
         {current ? (
           <>
             {coverOk && current.has_cover ? (
