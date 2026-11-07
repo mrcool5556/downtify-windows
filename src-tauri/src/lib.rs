@@ -140,6 +140,7 @@ pub fn run() {
             commands::create_playlist,
             commands::edit_playlist_tracks,
             commands::reorder_playlist,
+            commands::get_lyrics,
             commands::rename_playlist,
             commands::delete_playlist,
             commands::refresh_playlists,

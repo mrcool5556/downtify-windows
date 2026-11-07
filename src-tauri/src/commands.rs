@@ -1373,3 +1373,39 @@ pub async fn discover_api(state: State<'_, AppState>, method: String, path: Stri
         .await
         .map_err(String::from)
 }
+
+#[derive(Serialize)]
+pub struct LyricsResult {
+    synced: String,
+    plain: String,
+    /// "server", "lrclib", or "" when nothing was found.
+    source: &'static str,
+}
+
+/// Lyrics for a song: the server's saved copy first (no traffic to LRCLIB),
+/// then LRCLIB directly when the server has none or the song is only streamed.
+#[tauri::command]
+pub async fn get_lyrics(
+    state: State<'_, AppState>,
+    id: Option<String>,
+    title: String,
+    artist: String,
+    album: String,
+    duration: f64,
+) -> Result<LyricsResult, String> {
+    if let Some(id) = id.filter(|i| !i.is_empty()) {
+        if let Ok(client) = client_for(&state) {
+            if let Ok(l) = client.lyrics(&id).await {
+                if !l.is_empty() {
+                    return Ok(LyricsResult { synced: l.synced, plain: l.plain, source: "server" });
+                }
+            }
+        }
+    }
+    if title.trim().is_empty() {
+        return Ok(LyricsResult { synced: String::new(), plain: String::new(), source: "" });
+    }
+    let l = server::lrclib(&title, &artist, &album, duration).await?;
+    let source = if l.is_empty() { "" } else { "lrclib" };
+    Ok(LyricsResult { synced: l.synced, plain: l.plain, source })
+}

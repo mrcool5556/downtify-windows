@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { LyricsView } from "../components/LyricsView";
 import {
   Album,
   Artist,
@@ -109,7 +110,7 @@ export function Library({
   const [sharing, setSharing] = useState<PlaylistSummary | null>(null);
   const [publicOpen, setPublicOpen] = useState(false);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
-  const { player, revealNonce, context, current } = usePlayer();
+  const { player, revealNonce, context, current, lyricsOpen } = usePlayer();
   const [revealPending, setRevealPending] = useState(false);
   const layout = useLayout();
   const ctx = useContextMenu();
@@ -672,6 +673,8 @@ export function Library({
         </div>
       </aside>
 
+      <div className="pane-wrap">
+      {lyricsOpen && <LyricsView />}
       <section className="pane">
         <div className="pane-head">
           {scope.album || scope.artist || scope.playlist ? (
@@ -930,6 +933,7 @@ export function Library({
           </div>
         )}
       </section>
+      </div>
     </div>
   );
 }

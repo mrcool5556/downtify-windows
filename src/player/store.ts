@@ -40,6 +40,8 @@ export interface PlayerSnapshot {
   repeat: Repeat;
   error: string;
   queueOpen: boolean;
+  /** The lyrics page is showing over the song list. */
+  lyricsOpen: boolean;
   /** Which tab of the side panel is showing. */
   panelTab: "queue" | "recent" | "like";
   /** Radio: keep adding songs like the current one as the queue runs out. */
@@ -88,6 +90,7 @@ class PlayerStore {
     repeat: "off",
     error: "",
     queueOpen: false,
+    lyricsOpen: false,
     panelTab: "queue",
     radio: false,
     context: null,
@@ -578,6 +581,10 @@ class PlayerStore {
 
   setQueueOpen(open: boolean) {
     this.set({ queueOpen: open });
+  }
+
+  setLyricsOpen(open: boolean) {
+    this.set({ lyricsOpen: open });
   }
 
   /** Called by the UI after a like changed anywhere, to keep the queue in step. */

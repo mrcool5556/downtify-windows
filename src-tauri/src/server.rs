@@ -398,8 +398,81 @@ impl Client {
         Ok(l.track_ids)
     }
 
+    /// The lyrics the server saved for a track: `{synced, plain}`, either may be empty.
+    pub async fn lyrics(&self, id: &str) -> Result<Lyrics, ApiError> {
+        self.get_json(&format!("/api/v1/tracks/{id}/lyrics")).await
+    }
+
     /// Cheap "am I still paired?" check; also tells us the server is up.
     pub async fn auth_status(&self) -> Result<Value, ApiError> {
         self.get_json("/api/auth/status").await
     }
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub struct Lyrics {
+    #[serde(default)]
+    pub synced: String,
+    #[serde(default)]
+    pub plain: String,
+}
+
+impl Lyrics {
+    pub fn is_empty(&self) -> bool {
+        self.synced.trim().is_empty() && self.plain.trim().is_empty()
+    }
+}
+
+#[derive(Deserialize)]
+struct LrclibHit {
+    #[serde(default, rename = "syncedLyrics")]
+    synced: Option<String>,
+    #[serde(default, rename = "plainLyrics")]
+    plain: Option<String>,
+    #[serde(default)]
+    duration: Option<f64>,
+}
+
+/// Look a song up on LRCLIB (https://lrclib.net, free, no key), the same
+/// service the Downtify server uses. Exact match first, then a search whose
+/// best hit must be within a few seconds of the song's length.
+pub async fn lrclib(title: &str, artist: &str, album: &str, duration: f64) -> Result<Lyrics, String> {
+    let http = http(Duration::from_secs(15))?;
+    let to_lyrics = |h: LrclibHit| Lyrics {
+        synced: h.synced.unwrap_or_default(),
+        plain: h.plain.unwrap_or_default(),
+    };
+    let mut q: Vec<(&str, String)> = vec![("track_name", title.to_string()), ("artist_name", artist.to_string())];
+    if !album.is_empty() {
+        q.push(("album_name", album.to_string()));
+    }
+    if duration > 0.0 {
+        q.push(("duration", format!("{}", duration.round() as i64)));
+    }
+    let resp = http.get("https://lrclib.net/api/get").query(&q).send().await.map_err(|e| e.to_string())?;
+    if resp.status().is_success() {
+        if let Ok(hit) = resp.json::<LrclibHit>().await {
+            let l = to_lyrics(hit);
+            if !l.is_empty() {
+                return Ok(l);
+            }
+        }
+    }
+    let resp = http
+        .get("https://lrclib.net/api/search")
+        .query(&[("track_name", title), ("artist_name", artist)])
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    if !resp.status().is_success() {
+        return Ok(Lyrics::default());
+    }
+    let hits: Vec<LrclibHit> = resp.json().await.unwrap_or_default();
+    let close = |h: &LrclibHit| duration <= 0.0 || h.duration.map_or(false, |d| (d - duration).abs() <= 4.0);
+    let has_synced = |h: &LrclibHit| h.synced.as_deref().map_or(false, |s| !s.trim().is_empty());
+    let best = hits
+        .iter()
+        .position(|h| close(h) && has_synced(h))
+        .or_else(|| hits.iter().position(|h| close(h)));
+    Ok(best.map(|i| to_lyrics(hits.into_iter().nth(i).unwrap())).unwrap_or_default())
 }

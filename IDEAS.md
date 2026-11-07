@@ -2,6 +2,12 @@
 
 Passing ideas, parked with enough detail to pick up later. Newest first.
 
+## Lyrics page (2026-11-07) — DONE (mic button in the player bar)
+
+**Want:** a lyrics view that sits over the main list (playlist area), opened from a button in the player bar to the right of the song time.
+
+**Source:** the server already fetches lyrics at download time (LRCLIB, then NetEase) and serves them at `GET /lyrics?file=…` → `{synced, plain}` (upstream `frontend/src/model/lyrics.js`, `downtify/lyrics.py`). Streamed songs that are not in the library have no file, so they would need a direct LRCLIB lookup from the app.
+
 ## Editable imported playlists (2026-10-20) — DONE upstream in 3.7.0 as "Detach from source"
 
 **Want:** add, remove and reorder songs on a playlist that was imported from a Spotify or YouTube Music link.

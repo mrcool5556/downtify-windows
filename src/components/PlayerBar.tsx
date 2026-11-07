@@ -4,7 +4,7 @@ import { usePlayer, usePlayerProgress } from "../player/usePlayer";
 import { likeBus } from "../likeBus";
 import { DownloadButton } from "./DownloadButton";
 import { saveAndLike, usePendingLike } from "../saveLike";
-import { MiniIcon, RepeatIcon, RepeatOneIcon, ShuffleIcon, VolumeIcon, DiscoverIcon, NextIcon, PauseFillIcon, PlayFillIcon, PrevIcon } from "./Icons";
+import { MiniIcon, LyricsIcon, RepeatIcon, RepeatOneIcon, ShuffleIcon, VolumeIcon, DiscoverIcon, NextIcon, PauseFillIcon, PlayFillIcon, PrevIcon } from "./Icons";
 import { useContextMenu } from "./ContextMenu";
 import { navBus } from "../navBus";
 import { startDrag, trackMenu } from "../views/Library";
@@ -185,6 +185,13 @@ export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onRev
           />
           <span className="pb-time">{fmtDuration(p.duration)}</span>
         </div>
+        <button
+          className={`icon k-util pb-lyrics ${p.lyricsOpen ? "on" : ""}`}
+          onClick={() => player.setLyricsOpen(!p.lyricsOpen)}
+          title={p.lyricsOpen ? "Hide lyrics" : "Lyrics"}
+        >
+          <LyricsIcon />
+        </button>
         {(p.error || barNotice || p.loading) && (
           <div className={`pb-status ${p.error ? "err" : ""}`} role="status">
             {p.error || barNotice || "Loading…"}
