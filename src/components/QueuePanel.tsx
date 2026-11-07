@@ -46,7 +46,7 @@ export function QueuePanel({ online }: { online: boolean }) {
     try {
       const r = await playlistsApi.editTracks(name, ids, []);
       setPlaylists(r.playlists);
-      setNotice(`Added ${r.added} to "${name}"`);
+      setNotice(`Added ${r.added} to "${name}"${r.already?.length ? ` (${r.already.length} already there)` : ""}`);
     } catch (e) {
       setNotice(String(e));
     }

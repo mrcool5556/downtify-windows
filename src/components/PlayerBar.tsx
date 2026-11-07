@@ -40,7 +40,7 @@ export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onRev
     try {
       const r = await playlistsApi.editTracks(name, ids, []);
       setPlaylists(r.playlists);
-      setBarNotice(`Added to "${name}"`);
+      setBarNotice(r.added ? `Added to "${name}"` : `Already in "${name}"`);
     } catch (e) {
       setBarNotice(String(e));
     }

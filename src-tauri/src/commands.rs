@@ -761,6 +761,15 @@ pub struct EditResult {
     pub added: i64,
     pub removed: i64,
     pub skipped: usize,
+    /// Songs not added because the playlist already has them (3.10+).
+    pub already: Vec<String>,
+}
+
+/// One copy of a song in a playlist: its `occurrence`-th copy, from 0.
+#[derive(Deserialize)]
+pub struct EntryRef {
+    pub id: String,
+    pub occurrence: u32,
 }
 
 /// Add/remove tracks by id. The server wants file paths, so ids are
@@ -774,10 +783,12 @@ pub async fn edit_playlist_tracks(
     name: String,
     add: Vec<String>,
     remove: Vec<String>,
+    remove_entries: Option<Vec<EntryRef>>,
+    allow_duplicates: Option<bool>,
 ) -> Result<EditResult, String> {
     let session = web_session()?;
     let client = client_for(&state)?;
-    let (add_files, remove_files, skipped) = {
+    let (add_files, remove_files, entry_files, skipped) = {
         let conn = state.db.lock().map_err(|e| e.to_string())?;
         let mut skipped = 0;
         let mut to_files = |ids: &[String]| -> Result<Vec<String>, String> {
@@ -796,26 +807,40 @@ pub async fn edit_playlist_tracks(
         };
         let a = to_files(&add)?;
         let r = to_files(&remove)?;
-        (a, r, skipped)
+        let mut entries = Vec::new();
+        for e in remove_entries.unwrap_or_default() {
+            if let Some(f) = to_files(std::slice::from_ref(&e.id))?.pop() {
+                entries.push(serde_json::json!({ "file": f, "occurrence": e.occurrence }));
+            }
+        }
+        (a, r, entries, skipped)
     };
     let v = client
         .web_json(
             &session,
             reqwest::Method::POST,
             "/api/library/playlists/tracks",
-            Some(&serde_json::json!({ "name": name, "add": add_files, "remove": remove_files })),
+            Some(&serde_json::json!({
+                "name": name,
+                "add": add_files,
+                "remove": remove_files,
+                "remove_entries": entry_files,
+                "allow_duplicates": allow_duplicates.unwrap_or(false),
+            })),
         )
         .await
         .map_err(web_err)?;
     // Instant local update from the reply's file list.
-    let playlists = {
+    let str_list = |key: &str| -> Vec<String> {
+        v.get(key).and_then(|f| f.as_array()).map(|a| a.iter().filter_map(|f| f.as_str().map(|s| s.to_string())).collect()).unwrap_or_default()
+    };
+    let (playlists, already) = {
         let conn = state.db.lock().map_err(|e| e.to_string())?;
-        if let Some(files) = v.get("files").and_then(|f| f.as_array()) {
-            let paths: Vec<String> = files.iter().filter_map(|f| f.as_str().map(|s| s.to_string())).collect();
-            let ids = db::ids_for_files(&conn, &paths)?;
+        if v.get("files").is_some() {
+            let ids = db::ids_for_files(&conn, &str_list("files"))?;
             db::set_playlist_tracks(&conn, &name, &ids)?;
         }
-        db::list_playlists(&conn)?
+        (db::list_playlists(&conn)?, db::ids_for_files(&conn, &str_list("already"))?)
     };
     // Background: the authoritative re-read (also catches renames etc.).
     let app2 = app.clone();
@@ -832,6 +857,7 @@ pub async fn edit_playlist_tracks(
         added: v.get("added").and_then(|x| x.as_i64()).unwrap_or(0),
         removed: v.get("removed").and_then(|x| x.as_i64()).unwrap_or(0),
         skipped,
+        already,
     })
 }
 

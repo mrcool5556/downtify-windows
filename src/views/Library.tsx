@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Album,
   Artist,
+  PlaylistEntry,
   PlaylistSummary,
   Summary,
   Track,
@@ -58,6 +59,8 @@ const DRAG_MIME = "application/x-downtify-tracks";
 interface DragPayload {
   ids: string[];
   fromPlaylist?: string;
+  /** Which copies were dragged, when the list is a playlist. */
+  entries?: PlaylistEntry[];
 }
 
 /** Shared bits every menu builder needs. */
@@ -100,6 +103,8 @@ export function Library({
   const [newPlaylist, setNewPlaylist] = useState<{ open: boolean; name: string; thenAdd?: string[] } | null>(null);
   const [renaming, setRenaming] = useState<{ name: string; value: string } | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  // Dropped songs the playlist already had: ask before adding them again.
+  const [dupAsk, setDupAsk] = useState<{ name: string; ids: string[]; added: number } | null>(null);
   const [detaching, setDetaching] = useState<string | null>(null);
   const [sharing, setSharing] = useState<PlaylistSummary | null>(null);
   const [publicOpen, setPublicOpen] = useState(false);
@@ -352,20 +357,24 @@ export function Library({
     }
   }
 
-  async function addToPlaylist(name: string, ids: string[]) {
+  async function addToPlaylist(name: string, ids: string[], allowDuplicates = false) {
     try {
-      const r = await playlistsApi.editTracks(name, ids, []);
+      const r = await playlistsApi.editTracks(name, ids, [], { allowDuplicates });
       reloadPlaylists(r.playlists);
       if (scope.playlist?.name === name) refreshLists();
-      setNotice(`Added ${r.added} to "${name}"${r.skipped ? ` (${r.skipped} skipped: not on the server)` : ""}${r.added === 0 && !r.skipped ? " (already there)" : ""}`);
+      const skipped = r.skipped ? ` (${r.skipped} skipped: not on the server)` : "";
+      // Some were there already: ask before adding them a second time (the
+      // question says how many went in, so no separate note).
+      if (r.already?.length && !allowDuplicates) setDupAsk({ name, ids: r.already, added: r.added });
+      else setNotice(`Added ${r.added} to "${name}"${skipped}`);
     } catch (e) {
       setNotice(String(e));
     }
   }
 
-  async function removeFromPlaylist(name: string, ids: string[]) {
+  async function removeFromPlaylist(name: string, ids: string[], entries?: PlaylistEntry[]) {
     try {
-      const r = await playlistsApi.editTracks(name, [], ids);
+      const r = entries?.length ? await playlistsApi.editTracks(name, [], [], { removeEntries: entries }) : await playlistsApi.editTracks(name, [], ids);
       reloadPlaylists(r.playlists);
       if (scope.playlist?.name === name) refreshLists();
       setNotice(`Removed ${r.removed} from "${name}"`);
@@ -430,7 +439,7 @@ export function Library({
     await addToPlaylist(target.name, payload.ids);
     if (move) {
       const src = playlists.find((p) => p.name === payload.fromPlaylist);
-      if (src && isEditable(src)) await removeFromPlaylist(src.name, payload.ids);
+      if (src && isEditable(src)) await removeFromPlaylist(src.name, payload.ids, payload.entries);
       else setNotice(`Copied. "${payload.fromPlaylist}" can't be edited, so nothing was removed from it`);
     }
   }
@@ -724,6 +733,29 @@ export function Library({
         {error && <div className="error">{error}</div>}
         {notice && <div className="toast">{notice}</div>}
 
+        {dupAsk && (
+          <div className="confirm-box">
+            <b>
+              {dupAsk.ids.length === 1 ? "1 song is" : `${dupAsk.ids.length} songs are`} already in "{dupAsk.name}"
+            </b>
+            <p>{dupAsk.added ? `The other ${dupAsk.added} ${dupAsk.added === 1 ? "was" : "were"} added. ` : ""}Add {dupAsk.ids.length === 1 ? "it" : "them"} again as well?</p>
+            <div className="row">
+              <button
+                onClick={() => {
+                  const ask = dupAsk;
+                  setDupAsk(null);
+                  addToPlaylist(ask.name, ask.ids, true);
+                }}
+              >
+                Add duplicates
+              </button>
+              <button className="ghost" onClick={() => setDupAsk(null)}>
+                Don't add duplicates
+              </button>
+            </div>
+          </div>
+        )}
+
         {deleting && (
           <div className="confirm-box">
             <b>Delete "{deleting}" on the server?</b>
@@ -928,7 +960,7 @@ export function trackMenu(
   opts: {
     playFirst?: () => void;
     addToPlaylist: (name: string, ids: string[]) => Promise<void>;
-    removeFromPlaylist?: (name: string, ids: string[]) => Promise<void>;
+    removeFromPlaylist?: (name: string, ids: string[], entries?: PlaylistEntry[]) => Promise<void>;
     extra?: MenuItem[];
   },
 ): MenuItem[] {
@@ -1544,8 +1576,8 @@ function useSelection(tracks: Track[], keys: string[]) {
   return { isSelected, rowsFor, click, forMenu };
 }
 
-function startDrag(e: React.DragEvent, tracks: Track[], fromPlaylist?: string) {
-  const payload: DragPayload = { ids: tracks.map((t) => t.id), fromPlaylist };
+function startDrag(e: React.DragEvent, tracks: Track[], fromPlaylist?: string, entries?: PlaylistEntry[]) {
+  const payload: DragPayload = { ids: tracks.map((t) => t.id), fromPlaylist, entries };
   e.dataTransfer.setData(DRAG_MIME, JSON.stringify(payload));
   e.dataTransfer.effectAllowed = "copyMove";
   const ghost = document.createElement("div");
@@ -1564,7 +1596,8 @@ interface ListProps {
   env: MenuEnv;
   openMenu: (e: React.MouseEvent, items: MenuItem[]) => void;
   addToPlaylist: (name: string, ids: string[]) => Promise<void>;
-  removeFromPlaylist?: (name: string, ids: string[]) => Promise<void>;
+  /** `entries` names the copies to take out; without it every copy goes. */
+  removeFromPlaylist?: (name: string, ids: string[], entries?: PlaylistEntry[]) => Promise<void>;
 }
 
 function TrackGrid({ tracks, online, onPlay, env, openMenu, addToPlaylist, removeFromPlaylist }: ListProps) {
@@ -1622,8 +1655,8 @@ function TrackGrid({ tracks, online, onPlay, env, openMenu, addToPlaylist, remov
   );
 }
 
-type SortCol = "title" | "artist" | "album" | "duration";
-const SORT_LABEL: Record<SortCol, string> = { title: "title", artist: "artist", album: "album", duration: "length" };
+type SortCol = "title" | "artist" | "album" | "duration" | "pos";
+const SORT_LABEL: Record<SortCol, string> = { title: "title", artist: "artist", album: "album", duration: "length", pos: "place" };
 const collator = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
 
 /** Row keys that stay unique when a list holds the same song twice. */
@@ -1636,7 +1669,8 @@ function rowKeys(tracks: Track[]): string[] {
   });
 }
 
-function sortTracks<R extends { t: Track }>(rows: R[], col: SortCol, desc: boolean): R[] {
+function sortTracks<R extends { t: Track; pos: number }>(rows: R[], col: SortCol, desc: boolean): R[] {
+  if (col === "pos") return desc ? [...rows].reverse() : rows;
   const key = (t: Track) => (col === "title" ? t.title || t.file : col === "artist" ? t.artist : t.album);
   const out = [...rows].sort(({ t: a }, { t: b }) => {
     const d = col === "duration" ? a.duration - b.duration : collator.compare(key(a), key(b));
@@ -1671,13 +1705,22 @@ function TrackTable({
   const [sort, setSort] = useState<{ col: SortCol; desc: boolean } | null>(null);
   const rows = useMemo(() => {
     const keys = rowKeys(given);
-    const all = given.map((t, i) => ({ t, key: keys[i], pos: i }));
+    const seen = new Map<string, number>();
+    const all = given.map((t, i) => {
+      const occurrence = seen.get(t.id) ?? 0;
+      seen.set(t.id, occurrence + 1);
+      return { t, key: keys[i], pos: i, occurrence };
+    });
     return sort ? sortTracks(all, sort.col, sort.desc) : all;
   }, [given, sort]);
   const tracks = useMemo(() => rows.map((r) => r.t), [rows]);
   const rowKeyList = useMemo(() => rows.map((r) => r.key), [rows]);
   const onPlay = (i: number) => playAt(i, tracks);
   const sel = useSelection(tracks, rowKeyList);
+  /** Which copies the rows at these places are, for one-copy removal. */
+  const entriesFor = (idx: number[]): PlaylistEntry[] => idx.map((x) => ({ id: rows[x].t.id, occurrence: rows[x].occurrence }));
+  const removeRows = (idx: number[]) =>
+    removeFromPlaylist && numbered ? (name: string, ids: string[]) => removeFromPlaylist(name, ids, entriesFor(idx)) : removeFromPlaylist;
   // Dragging rows into a new place: only in the list's own order (not sorted).
   const canReorder = !!onReorder && !sort;
   const dragging = useRef<number[] | null>(null);
@@ -1742,9 +1785,25 @@ function TrackTable({
       {!compact && (
         <thead>
           <tr>
-            <th className="c-play" title={numbered ? (canReorder ? "Place in the playlist. Drag songs to move them" : "Place in the playlist") : undefined}>
-              {numbered ? "#" : ""}
-            </th>
+            {numbered ? (
+              <th
+                className={`c-play sortable ${sort?.col === "pos" ? "sorted" : ""}`}
+                onClick={() => setSort((s) => (s?.col === "pos" ? null : s ? null : { col: "pos", desc: true }))}
+                title={
+                  sort?.col === "pos"
+                    ? "Last to first. Click for first to last"
+                    : sort
+                      ? "Back to the playlist's order"
+                      : canReorder
+                        ? "Place in the playlist. Drag songs to move them; click for last to first"
+                        : "Place in the playlist. Click for last to first"
+                }
+              >
+                #{sort?.col === "pos" ? <span className="sort-arrow">▼</span> : null}
+              </th>
+            ) : (
+              <th className="c-play"></th>
+            )}
             <th className="c-art"></th>
             <th {...sortable("title")} className={`c-title ${sortable("title").className}`}>
               Title{arrow("title")}
@@ -1779,12 +1838,15 @@ function TrackTable({
               data-track-id={t.id}
               onClick={(e) => sel.click(e, i)}
               onDoubleClick={() => playable && onPlay(i)}
-              onContextMenu={(e) => openMenu(e, trackMenu(sel.forMenu(i), env, { playFirst: () => onPlay(i), addToPlaylist, removeFromPlaylist }))}
+              onContextMenu={(e) => {
+                const picked = sel.rowsFor(i);
+                openMenu(e, trackMenu(sel.forMenu(i), env, { playFirst: () => onPlay(i), addToPlaylist, removeFromPlaylist: removeRows(picked) }));
+              }}
               draggable
               onDragStart={(e) => {
                 const picked = sel.rowsFor(i);
                 dragging.current = picked.map((x) => rows[x].pos);
-                startDrag(e, picked.map((x) => tracks[x]), env.currentPlaylist?.name);
+                startDrag(e, picked.map((x) => tracks[x]), env.currentPlaylist?.name, numbered ? entriesFor(picked) : undefined);
               }}
               onDragOver={(e) => reorderOver(e, i)}
               onDrop={(e) => reorderDrop(e, i)}

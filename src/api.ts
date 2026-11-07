@@ -212,6 +212,14 @@ export interface EditResult {
   added: number;
   removed: number;
   skipped: number;
+  /** Songs left out because the playlist already has them. */
+  already: string[];
+}
+
+/** One copy of a song in a playlist: its `occurrence`-th copy, from 0. */
+export interface PlaylistEntry {
+  id: string;
+  occurrence: number;
 }
 
 export const playlistsApi = {
@@ -220,7 +228,8 @@ export const playlistsApi = {
   webStatus: () => invoke<WebStatus>("web_status"),
   refresh: () => invoke<PlaylistSummary[]>("refresh_playlists"),
   create: (name: string) => invoke<PlaylistSummary[]>("create_playlist", { name }),
-  editTracks: (name: string, add: string[], remove: string[]) => invoke<EditResult>("edit_playlist_tracks", { name, add, remove }),
+  editTracks: (name: string, add: string[], remove: string[], opts: { removeEntries?: PlaylistEntry[]; allowDuplicates?: boolean } = {}) =>
+    invoke<EditResult>("edit_playlist_tracks", { name, add, remove, removeEntries: opts.removeEntries ?? null, allowDuplicates: opts.allowDuplicates ?? false }),
   /** Every song as shown, repeats included, in its new order (Downtify 3.10+). */
   reorder: (name: string, ids: string[]) => invoke<PlaylistSummary[]>("reorder_playlist", { name, ids }),
   rename: (name: string, newName: string) => invoke<PlaylistSummary[]>("rename_playlist", { name, newName }),
