@@ -835,6 +835,64 @@ pub async fn edit_playlist_tracks(
     })
 }
 
+/// Put a manual playlist's songs in a new order (Downtify 3.10+). `ids` is
+/// every song in the list as shown, repeats included, in its new place.
+/// The server answers 409 if the playlist changed meanwhile; then the app
+/// re-reads it so the list matches the server again.
+#[tauri::command]
+pub async fn reorder_playlist(app: tauri::AppHandle, state: State<'_, AppState>, name: String, ids: Vec<String>) -> Result<Vec<db::PlaylistSummary>, String> {
+    let session = web_session()?;
+    let client = client_for(&state)?;
+    let files = {
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        let mut out = Vec::with_capacity(ids.len());
+        for id in &ids {
+            let t = db::get_track(&conn, id)?.ok_or_else(|| "A song in this playlist isn't in the library index; sync and try again".to_string())?;
+            let f = t.row.get("file").and_then(|v| v.as_str()).ok_or_else(|| "A song in this playlist has no file on the server".to_string())?;
+            out.push(f.to_string());
+        }
+        out
+    };
+    let result = client
+        .web_json(&session, reqwest::Method::PUT, "/api/library/playlists/order", Some(&serde_json::json!({ "name": name, "files": files })))
+        .await
+        .map_err(web_err);
+    let refresh = |app: tauri::AppHandle| {
+        tauri::async_runtime::spawn(async move {
+            let st = app.state::<AppState>();
+            if let Ok(c) = client_for(&st) {
+                if pull_playlists(&st, &c).await.is_ok() {
+                    let _ = app.emit("playlists-refreshed", ());
+                }
+            }
+        });
+    };
+    let v = match result {
+        Ok(v) => v,
+        Err(e) => {
+            refresh(app);
+            return Err(if e.contains("Not Found (404)") || e.contains("(405)") {
+                "Reordering needs Downtify 3.10 or newer on the server".into()
+            } else if e.contains("(409)") {
+                "The playlist changed on the server meanwhile, so it was reloaded. Try the move again".into()
+            } else {
+                e
+            });
+        }
+    };
+    let playlists = {
+        let conn = state.db.lock().map_err(|e| e.to_string())?;
+        if let Some(files) = v.get("files").and_then(|f| f.as_array()) {
+            let paths: Vec<String> = files.iter().filter_map(|f| f.as_str().map(|s| s.to_string())).collect();
+            let ids = db::ids_for_files(&conn, &paths)?;
+            db::set_playlist_tracks(&conn, &name, &ids)?;
+        }
+        db::list_playlists(&conn)?
+    };
+    refresh(app);
+    Ok(playlists)
+}
+
 #[tauri::command]
 pub async fn rename_playlist(state: State<'_, AppState>, name: String, new_name: String) -> Result<Vec<db::PlaylistSummary>, String> {
     let session = web_session()?;

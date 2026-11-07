@@ -962,3 +962,40 @@ table.tracks th.sorted {
   font-size: 0.7em;
   color: var(--accent);
 }
+
+/* Playlists: each song's place, swapped for the play key on hover. */
+table.tracks.numbered .c-play {
+  width: 44px;
+  text-align: center;
+}
+table.tracks.numbered td.c-play {
+  position: relative;
+}
+table.tracks .row-num {
+  color: var(--fg-2);
+  font-size: 0.85em;
+  font-variant-numeric: tabular-nums;
+}
+table.tracks.numbered td.c-play .rowplay {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+}
+table.tracks.numbered tr:hover .row-num,
+table.tracks.numbered tr.current .row-num {
+  visibility: hidden;
+}
+table.tracks.numbered tr.selected:not(:hover):not(.current) .rowplay {
+  opacity: 0;
+}
+table.tracks.numbered tr.current .row-num {
+  color: var(--accent);
+}
+
+/* Where dragged songs will land. */
+table.tracks tr.drop-before td {
+  box-shadow: inset 0 2px 0 var(--accent);
+}
+table.tracks tr.drop-after td {
+  box-shadow: inset 0 -2px 0 var(--accent);
+}

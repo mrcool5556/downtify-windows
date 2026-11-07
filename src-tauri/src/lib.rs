@@ -138,6 +138,7 @@ pub fn run() {
             commands::web_status,
             commands::create_playlist,
             commands::edit_playlist_tracks,
+            commands::reorder_playlist,
             commands::rename_playlist,
             commands::delete_playlist,
             commands::refresh_playlists,

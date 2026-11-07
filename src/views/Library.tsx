@@ -374,6 +374,17 @@ export function Library({
     }
   }
 
+  /** Drag to a new place in a playlist: show it at once, then save it. */
+  async function reorderPlaylist(name: string, list: Track[]) {
+    setTracks(list);
+    try {
+      reloadPlaylists(await playlistsApi.reorder(name, list.map((t) => t.id)));
+    } catch (e) {
+      setNotice(String(e));
+      refreshLists();
+    }
+  }
+
   // ── Drag and drop onto sidebar playlists ────────────────────────────
 
   function readDrag(e: React.DragEvent): DragPayload | null {
@@ -821,6 +832,8 @@ export function Library({
             tracks={tracks}
             online={online}
             showAlbum={!scope.album}
+            numbered={!!scope.playlist}
+            onReorder={scope.playlist && isEditable(scope.playlist) && online && !search && !localOnly ? (list) => reorderPlaylist(scope.playlist!.name, list) : undefined}
             onPlay={(i, list) => player.playList(list, i, playContext)}
             env={env}
             openMenu={ctx.open}
@@ -1482,22 +1495,31 @@ function ColResizer({ col }: { col: keyof ColWidths }) {
   );
 }
 
-/** Click / Ctrl / Shift selection over a list of tracks. */
-function useSelection(tracks: Track[]) {
+/**
+ * Click / Ctrl / Shift selection over a list of tracks. Rows are told apart
+ * by `keys` (see rowKeys), so a song a playlist holds twice is two rows.
+ */
+function useSelection(tracks: Track[], keys: string[]) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const anchor = useRef<number>(-1);
   useEffect(() => {
     setSelected((s) => {
-      const ids = new Set(tracks.map((t) => t.id));
-      const next = new Set([...s].filter((id) => ids.has(id)));
+      const all = new Set(keys);
+      const next = new Set([...s].filter((k) => all.has(k)));
       return next.size === s.size ? s : next;
     });
-  }, [tracks]);
+  }, [keys]);
+  const isSelected = (index: number) => selected.has(keys[index]);
+  /** The rows a drag or menu on `index` acts on: the selection if it holds the row. */
+  function rowsFor(index: number): number[] {
+    if (!isSelected(index)) return [index];
+    return keys.map((k, i) => (selected.has(k) ? i : -1)).filter((i) => i >= 0);
+  }
   function click(e: React.MouseEvent, index: number) {
-    const id = tracks[index].id;
+    const id = keys[index];
     if (e.shiftKey && anchor.current >= 0) {
       const [a, b] = [Math.min(anchor.current, index), Math.max(anchor.current, index)];
-      const range = tracks.slice(a, b + 1).map((t) => t.id);
+      const range = keys.slice(a, b + 1);
       setSelected((s) => (e.ctrlKey ? new Set([...s, ...range]) : new Set(range)));
     } else if (e.ctrlKey) {
       setSelected((s) => {
@@ -1514,13 +1536,12 @@ function useSelection(tracks: Track[]) {
   }
   /** For a right-click: keep the selection if the row is in it, else select just that row. */
   function forMenu(index: number): Track[] {
-    const id = tracks[index].id;
-    if (selected.has(id)) return tracks.filter((t) => selected.has(t.id));
-    setSelected(new Set([id]));
+    if (isSelected(index)) return rowsFor(index).map((i) => tracks[i]);
+    setSelected(new Set([keys[index]]));
     anchor.current = index;
     return [tracks[index]];
   }
-  return { selected, click, forMenu };
+  return { isSelected, rowsFor, click, forMenu };
 }
 
 function startDrag(e: React.DragEvent, tracks: Track[], fromPlaylist?: string) {
@@ -1548,8 +1569,8 @@ interface ListProps {
 
 function TrackGrid({ tracks, online, onPlay, env, openMenu, addToPlaylist, removeFromPlaylist }: ListProps) {
   const { current, playing, player } = usePlayer();
-  const sel = useSelection(tracks);
   const keys = useMemo(() => rowKeys(tracks), [tracks]);
+  const sel = useSelection(tracks, keys);
   if (tracks.length === 0) return <div className="empty">Nothing here.</div>;
   return (
     <div className="grid songs">
@@ -1560,12 +1581,12 @@ function TrackGrid({ tracks, online, onPlay, env, openMenu, addToPlaylist, remov
           <button
             key={keys[i]}
             data-track-id={t.id}
-            className={`tile ${isCurrent ? "current" : ""} ${playable ? "" : "unplayable"} ${sel.selected.has(t.id) ? "selected" : ""}`}
+            className={`tile ${isCurrent ? "current" : ""} ${playable ? "" : "unplayable"} ${sel.isSelected(i) ? "selected" : ""}`}
             onClick={(e) => sel.click(e, i)}
             onDoubleClick={() => playable && (isCurrent ? player.toggle() : onPlay(i, tracks))}
             onContextMenu={(e) => openMenu(e, trackMenu(sel.forMenu(i), env, { playFirst: () => onPlay(i, tracks), addToPlaylist, removeFromPlaylist }))}
             draggable
-            onDragStart={(e) => startDrag(e, sel.selected.has(t.id) ? tracks.filter((x) => sel.selected.has(x.id)) : [t], env.currentPlaylist?.name)}
+            onDragStart={(e) => startDrag(e, sel.rowsFor(i).map((x) => tracks[x]), env.currentPlaylist?.name)}
             title="Double-click to play · right-click for more"
           >
             <div className="tile-art-wrap">
@@ -1615,7 +1636,7 @@ function rowKeys(tracks: Track[]): string[] {
   });
 }
 
-function sortTracks(rows: { t: Track; key: string }[], col: SortCol, desc: boolean) {
+function sortTracks<R extends { t: Track }>(rows: R[], col: SortCol, desc: boolean): R[] {
   const key = (t: Track) => (col === "title" ? t.title || t.file : col === "artist" ? t.artist : t.album);
   const out = [...rows].sort(({ t: a }, { t: b }) => {
     const d = col === "duration" ? a.duration - b.duration : collator.compare(key(a), key(b));
@@ -1625,18 +1646,64 @@ function sortTracks(rows: { t: Track; key: string }[], col: SortCol, desc: boole
   return desc ? out.reverse() : out;
 }
 
-function TrackTable({ tracks: given, online, showAlbum, onPlay: playAt, compact, env, openMenu, addToPlaylist, removeFromPlaylist }: ListProps & { showAlbum: boolean; compact?: boolean }) {
+function TrackTable({
+  tracks: given,
+  online,
+  showAlbum,
+  onPlay: playAt,
+  compact,
+  numbered,
+  onReorder,
+  env,
+  openMenu,
+  addToPlaylist,
+  removeFromPlaylist,
+}: ListProps & {
+  showAlbum: boolean;
+  compact?: boolean;
+  /** Show each song's place in the list (playlists). */
+  numbered?: boolean;
+  /** Drag rows to a new place; gets the whole list in its new order. */
+  onReorder?: (list: Track[]) => void;
+}) {
   const { player, current, playing } = usePlayer();
   // Click a header: A to Z, Z to A, then back to the list's own order.
   const [sort, setSort] = useState<{ col: SortCol; desc: boolean } | null>(null);
   const rows = useMemo(() => {
     const keys = rowKeys(given);
-    const all = given.map((t, i) => ({ t, key: keys[i] }));
+    const all = given.map((t, i) => ({ t, key: keys[i], pos: i }));
     return sort ? sortTracks(all, sort.col, sort.desc) : all;
   }, [given, sort]);
   const tracks = useMemo(() => rows.map((r) => r.t), [rows]);
+  const rowKeyList = useMemo(() => rows.map((r) => r.key), [rows]);
   const onPlay = (i: number) => playAt(i, tracks);
-  const sel = useSelection(tracks);
+  const sel = useSelection(tracks, rowKeyList);
+  // Dragging rows into a new place: only in the list's own order (not sorted).
+  const canReorder = !!onReorder && !sort;
+  const dragging = useRef<number[] | null>(null);
+  const [dropAt, setDropAt] = useState<{ i: number; after: boolean } | null>(null);
+  function reorderOver(e: React.DragEvent, i: number) {
+    if (!canReorder || !dragging.current) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const after = e.clientY > r.top + r.height / 2;
+    if (dropAt?.i !== i || dropAt.after !== after) setDropAt({ i, after });
+  }
+  function reorderDrop(e: React.DragEvent, i: number) {
+    const moving = dragging.current;
+    if (!canReorder || !moving || !dropAt) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const at = i + (dropAt.after ? 1 : 0);
+    const set = new Set(moving);
+    const rest = given.filter((_, p) => !set.has(p));
+    const insert = at - moving.filter((p) => p < at).length;
+    const next = [...rest.slice(0, insert), ...moving.map((p) => given[p]), ...rest.slice(insert)];
+    setDropAt(null);
+    dragging.current = null;
+    if (next.some((t, p) => t !== given[p])) onReorder!(next);
+  }
   function sortBy(col: SortCol, e: React.MouseEvent) {
     if ((e.target as HTMLElement).closest(".col-resizer")) return;
     setSort((s) => (!s || s.col !== col ? { col, desc: false } : !s.desc ? { col, desc: true } : null));
@@ -1666,13 +1733,18 @@ function TrackTable({ tracks: given, online, showAlbum, onPlay: playAt, compact,
   if (tracks.length === 0) return <div className="empty">Nothing here.</div>;
   return (
     <table
-      className={`tracks ${compact ? "compact" : ""}`}
+      className={`tracks ${compact ? "compact" : ""} ${numbered ? "numbered" : ""}`}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropAt(null);
+      }}
       style={{ "--w-title": `${widths.title}%`, "--w-artist": `${widths.artist}%`, "--w-album": `${showAlbum ? widths.album : 0}%` } as React.CSSProperties}
     >
       {!compact && (
         <thead>
           <tr>
-            <th className="c-play"></th>
+            <th className="c-play" title={numbered ? (canReorder ? "Place in the playlist. Drag songs to move them" : "Place in the playlist") : undefined}>
+              {numbered ? "#" : ""}
+            </th>
             <th className="c-art"></th>
             <th {...sortable("title")} className={`c-title ${sortable("title").className}`}>
               Title{arrow("title")}
@@ -1699,20 +1771,32 @@ function TrackTable({ tracks: given, online, showAlbum, onPlay: playAt, compact,
         {tracks.map((t, i) => {
           const isCurrent = current?.id === t.id;
           const playable = !!t.local_path || online;
+          const drop = dropAt?.i === i ? (dropAt.after ? "drop-after" : "drop-before") : "";
           return (
             <tr
               key={rows[i].key}
-              className={`${t.local_path ? "local" : "remote"} ${isCurrent ? "current" : ""} ${sel.selected.has(t.id) ? "selected" : ""} ${playable ? "" : "unplayable"}`}
+              className={`${t.local_path ? "local" : "remote"} ${isCurrent ? "current" : ""} ${sel.isSelected(i) ? "selected" : ""} ${playable ? "" : "unplayable"} ${drop}`}
               data-track-id={t.id}
               onClick={(e) => sel.click(e, i)}
               onDoubleClick={() => playable && onPlay(i)}
               onContextMenu={(e) => openMenu(e, trackMenu(sel.forMenu(i), env, { playFirst: () => onPlay(i), addToPlaylist, removeFromPlaylist }))}
               draggable
-              onDragStart={(e) => startDrag(e, sel.selected.has(t.id) ? tracks.filter((x) => sel.selected.has(x.id)) : [t], env.currentPlaylist?.name)}
-              onDragEnd={() => setTimeout(() => setBodyKey((k) => k + 1), 0)}
+              onDragStart={(e) => {
+                const picked = sel.rowsFor(i);
+                dragging.current = picked.map((x) => rows[x].pos);
+                startDrag(e, picked.map((x) => tracks[x]), env.currentPlaylist?.name);
+              }}
+              onDragOver={(e) => reorderOver(e, i)}
+              onDrop={(e) => reorderDrop(e, i)}
+              onDragEnd={() => {
+                dragging.current = null;
+                setDropAt(null);
+                setTimeout(() => setBodyKey((k) => k + 1), 0);
+              }}
               title={playable ? "Double-click to play · right-click for more" : "Not downloaded and the server is offline"}
             >
               <td className="c-play">
+                {numbered && <span className="row-num">{rows[i].pos + 1}</span>}
                 <button
                   className="icon rowplay"
                   disabled={!playable}

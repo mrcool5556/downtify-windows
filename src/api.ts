@@ -221,6 +221,8 @@ export const playlistsApi = {
   refresh: () => invoke<PlaylistSummary[]>("refresh_playlists"),
   create: (name: string) => invoke<PlaylistSummary[]>("create_playlist", { name }),
   editTracks: (name: string, add: string[], remove: string[]) => invoke<EditResult>("edit_playlist_tracks", { name, add, remove }),
+  /** Every song as shown, repeats included, in its new order (Downtify 3.10+). */
+  reorder: (name: string, ids: string[]) => invoke<PlaylistSummary[]>("reorder_playlist", { name, ids }),
   rename: (name: string, newName: string) => invoke<PlaylistSummary[]>("rename_playlist", { name, newName }),
   delete: (name: string) => invoke<PlaylistSummary[]>("delete_playlist", { name }),
 };
