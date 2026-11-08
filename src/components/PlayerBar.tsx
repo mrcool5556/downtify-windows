@@ -188,13 +188,15 @@ export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onRev
             value={Math.min(p.position, p.duration || 0)}
             onChange={(e) => player.seek(Number(e.target.value))}
             disabled={!current || !p.duration}
+            className={p.loading && current ? "loading" : ""}
+            title={p.loading && current ? "Loading…" : undefined}
             style={{ backgroundSize: `${pct}% 100%` }}
           />
           <span className="pb-time">{fmtDuration(p.duration)}</span>
         </div>
-        {(p.error || barNotice || p.loading) && (
+        {(p.error || barNotice) && (
           <div className={`pb-status ${p.error ? "err" : ""}`} role="status">
-            {p.error || barNotice || "Loading…"}
+            {p.error || barNotice}
           </div>
         )}
       </div>

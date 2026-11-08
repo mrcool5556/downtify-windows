@@ -999,3 +999,26 @@ table.tracks tr.drop-before td {
 table.tracks tr.drop-after td {
   box-shadow: inset 0 -2px 0 var(--accent);
 }
+
+/* While a song loads, the seek bar sweeps a soft glow instead of showing
+   a "Loading…" bubble. Comes after the slider styles so it wins in every theme. */
+:root .playerbar .pb-seek input[type="range"].loading {
+  opacity: 1;
+  background-image: linear-gradient(90deg, transparent, var(--accent), transparent);
+  background-size: 35% 100% !important;
+  background-repeat: no-repeat;
+  animation: seek-loading 1.1s ease-in-out infinite;
+}
+@keyframes seek-loading {
+  from {
+    background-position: -60% 0;
+  }
+  to {
+    background-position: 160% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root .playerbar .pb-seek input[type="range"].loading {
+    animation-duration: 3s;
+  }
+}
