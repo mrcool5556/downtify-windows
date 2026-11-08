@@ -158,6 +158,10 @@
 :root[data-corners] .mini-art {
   border-radius: var(--r-art);
 }
+/* The mini player's own window takes the card corners, kept small enough for a strip. */
+:root[data-corners] .mini {
+  border-radius: min(var(--r-lg), 18px);
+}
 
 /* ── Windows and cards ── */
 :root[data-surface="flat"] .card,

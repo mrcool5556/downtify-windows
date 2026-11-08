@@ -99,3 +99,7 @@ export const PRESETS: { name: string; feel: string; mix: StyleMix }[] = [
 export function sameMix(a: StyleMix, b: StyleMix): boolean {
   return a.theme === b.theme && a.buttons === b.buttons && (Object.keys(ASPECT_DEFAULTS) as AspectKey[]).every((k) => a.look[k] === b.look[k]);
 }
+
+/** The parts of the mix the mini player can have its own way (it has no cards,
+ *  text fields or switches, and its panel has its own see-through look). */
+export const MINI_ASPECTS: AspectKey[] = ["font", "corners", "lip", "lipshadow"];

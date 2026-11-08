@@ -1,6 +1,6 @@
 // Per-PC look-and-feel choices, remembered in localStorage.
 import { useSyncExternalStore } from "react";
-import { ASPECT_DEFAULTS, AspectKey, Aspects, ControlStyle, StyleMix, ThemeId, migrateThemeId, themeById } from "./themes";
+import { ASPECT_DEFAULTS, AspectKey, Aspects, ControlStyle, MINI_ASPECTS, StyleMix, ThemeId, migrateThemeId, themeById } from "./themes";
 
 export type Density = "compact" | "comfortable" | "grid";
 export type GroupKey = "play" | "skip" | "toggles" | "status" | "sliders" | "topbar";
@@ -43,6 +43,8 @@ export interface LayoutPrefs {
   rows: RowStyle;
   /** Fonts, corners, windows, lip, text fields and switches (the design library's mix). */
   look: Aspects;
+  /** The mini player's own fonts, corners and lip; a missing key means same as the window. */
+  miniLook: Partial<Aspects>;
   /** Mixes the user saved by name. */
   mixes: { name: string; mix: StyleMix }[];
 }
@@ -64,6 +66,7 @@ const DEFAULTS: LayoutPrefs = {
   shape: "default",
   rows: "simple",
   look: ASPECT_DEFAULTS,
+  miniLook: {},
   mixes: [],
 };
 
@@ -85,6 +88,7 @@ function load(): LayoutPrefs {
       advanced: { ...DEFAULTS.advanced, ...(saved.advanced ?? {}) },
       show: { ...DEFAULTS.show, ...(saved.show ?? {}) },
       look: { ...ASPECT_DEFAULTS, ...(saved.look ?? {}) },
+      miniLook: saved.miniLook && typeof saved.miniLook === "object" ? saved.miniLook : {},
       mixes: Array.isArray(saved.mixes) ? saved.mixes.map((m) => ({ ...m, mix: { ...m.mix, theme: migrateThemeId(m.mix?.theme), look: { ...ASPECT_DEFAULTS, ...(m.mix?.look ?? {}) } } })) : [],
     };
   } catch {
@@ -115,8 +119,9 @@ function applyTheme() {
   root.dataset.shape = prefs.shape;
   root.dataset.rows = prefs.rows;
   // The mix: each aspect is an attribute; "theme" leaves it off (the theme's own look).
+  const look = miniActive ? { ...prefs.look, ...prefs.miniLook } : prefs.look;
   for (const k of Object.keys(ASPECT_DEFAULTS) as AspectKey[]) {
-    const v = prefs.look[k];
+    const v = look[k];
     if (v === "theme") root.removeAttribute(`data-${k}`);
     else root.setAttribute(`data-${k}`, v);
   }
@@ -223,4 +228,11 @@ export function currentMix(p: LayoutPrefs = prefs): StyleMix {
 /** Put a preset or saved mix on the main window. */
 export function applyMix(m: StyleMix) {
   setLayout({ theme: m.theme, controlStyle: m.buttons, look: { ...ASPECT_DEFAULTS, ...m.look } });
+}
+
+/** Give the mini player a preset's or saved mix's whole look. */
+export function applyMixToMini(m: StyleMix) {
+  const miniLook: Partial<Aspects> = {};
+  for (const k of MINI_ASPECTS) (miniLook as Record<string, string>)[k] = m.look[k];
+  setLayout({ miniTheme: m.theme, miniStyle: m.buttons, miniLook });
 }

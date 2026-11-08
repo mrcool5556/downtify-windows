@@ -97,6 +97,8 @@ w(sel(":root[data-corners]", TB + FIELDS + [".seg"]) + " {\n  border-radius: var
 w(sel(":root[data-corners]", IN_SURF + FLOAT_SURF + [".theme-card", ".style-opt", ".toast"]) + " {\n  border-radius: var(--r-lg);\n}")
 w(sel(":root[data-corners]", [".ctx-item", ".badge"]) + " {\n  border-radius: var(--r-sm);\n}")
 w(sel(":root[data-corners]", ART) + " {\n  border-radius: var(--r-art);\n}")
+w("/* The mini player's own window takes the card corners, kept small enough for a strip. */")
+w(':root[data-corners] .mini {\n  border-radius: min(var(--r-lg), 18px);\n}')
 
 # ── surfaces ─────────────────────────────────────────────────────────────
 w("\n/* ── Windows and cards ── */")

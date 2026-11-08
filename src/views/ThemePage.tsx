@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { ButtonShape, GROUPS, GroupKey, GroupStyle, LayoutPrefs, RowStyle, ShowKey, applyMix, currentMix, setLayout, useLayout } from "../layout";
-import { ASPECTS, AspectKey, Aspects, BUTTON_STYLES, ControlStyle, PRESETS, THEMES, ThemeId, ThemeInfo, sameMix, themeById } from "../themes";
+import { ButtonShape, GROUPS, GroupKey, GroupStyle, LayoutPrefs, RowStyle, ShowKey, applyMix, applyMixToMini, currentMix, setLayout, useLayout } from "../layout";
+import { ASPECTS, AspectKey, Aspects, BUTTON_STYLES, ControlStyle, MINI_ASPECTS, PRESETS, THEMES, ThemeId, ThemeInfo, sameMix, themeById } from "../themes";
 import { invoke } from "@tauri-apps/api/core";
 import { Settings } from "../api";
 
@@ -131,7 +131,40 @@ export function ThemePage({ settings, onSettings }: { settings: Settings; onSett
 
       <section className="card">
         <h2>Mini player</h2>
-        <p className="hint">The mini player can look different from the main window.</p>
+        <p className="hint">The mini player can look different from the main window. Anything left on "Same as main window" follows it.</p>
+        <div className="setting-row">
+          <span>Copy a look</span>
+          <select
+            value=""
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === "__main") setLayout({ miniTheme: "", miniStyle: "", miniLook: {} });
+              else {
+                const m = PRESETS.find((x) => `p:${x.name}` === v)?.mix ?? p.mixes.find((x) => `m:${x.name}` === v)?.mix;
+                if (m) applyMixToMini(m);
+              }
+            }}
+          >
+            <option value="">Pick a preset or mix…</option>
+            <option value="__main">Match the main window</option>
+            <optgroup label="Presets">
+              {PRESETS.map((x) => (
+                <option key={x.name} value={`p:${x.name}`}>
+                  {x.name}
+                </option>
+              ))}
+            </optgroup>
+            {p.mixes.length > 0 && (
+              <optgroup label="My mixes">
+                {p.mixes.map((x) => (
+                  <option key={x.name} value={`m:${x.name}`}>
+                    {x.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </select>
+        </div>
         <div className="setting-row">
           <span>Theme</span>
           <select value={p.miniTheme} onChange={(e) => setLayout({ miniTheme: e.target.value as ThemeId | "" })}>
@@ -144,7 +177,7 @@ export function ThemePage({ settings, onSettings }: { settings: Settings; onSett
           </select>
         </div>
         <div className="setting-row">
-          <span>Controls</span>
+          <span>Buttons</span>
           <select value={p.miniStyle} onChange={(e) => setLayout({ miniStyle: e.target.value as ControlStyle | "" })}>
             <option value="">Same as main window ({BUTTON_STYLES.find(([v]) => v === p.controlStyle)?.[1]})</option>
             {BUTTON_STYLES.map(([v, label]) => (
@@ -154,6 +187,9 @@ export function ThemePage({ settings, onSettings }: { settings: Settings; onSett
             ))}
           </select>
         </div>
+        {MINI_ASPECTS.map((k) => (
+          <MiniAspectRow key={k} k={k} p={p} />
+        ))}
         <label className="check">
           <input
             type="checkbox"
@@ -296,5 +332,32 @@ function Presets({ p }: { p: LayoutPrefs }) {
         </button>
       </div>
     </section>
+  );
+}
+
+/** One of the mini's own style choices, with "same as main window" first. */
+function MiniAspectRow({ k, p }: { k: AspectKey; p: LayoutPrefs }) {
+  const a = ASPECTS[k];
+  const mainLabel = a.options.find(([v]) => v === p.look[k])?.[1] ?? "";
+  return (
+    <div className="setting-row">
+      <span>{a.label}</span>
+      <select
+        value={p.miniLook[k] ?? ""}
+        onChange={(e) => {
+          const next = { ...p.miniLook } as Record<string, string>;
+          if (e.target.value === "") delete next[k];
+          else next[k] = e.target.value;
+          setLayout({ miniLook: next as Partial<Aspects> });
+        }}
+      >
+        <option value="">Same as main window ({mainLabel})</option>
+        {a.options.map(([v, label]) => (
+          <option key={v} value={v}>
+            {label}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }
