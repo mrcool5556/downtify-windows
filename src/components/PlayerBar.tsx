@@ -170,6 +170,13 @@ export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onRev
           <button className={`icon k-toggle ${p.repeat !== "off" ? "on" : ""}`} onClick={() => player.cycleRepeat()} title={`Repeat: ${p.repeat}`}>
             {p.repeat === "one" ? <RepeatOneIcon /> : <RepeatIcon />}
           </button>
+          <button
+            className={`icon k-util ${p.lyricsOpen ? "on" : ""}`}
+            onClick={() => player.setLyricsOpen(!p.lyricsOpen)}
+            title={p.lyricsOpen ? "Hide lyrics" : "Lyrics"}
+          >
+            <LyricsIcon />
+          </button>
         </div>
         <div className="pb-seek">
           <span className="pb-time">{fmtDuration(p.position)}</span>
@@ -185,13 +192,6 @@ export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onRev
           />
           <span className="pb-time">{fmtDuration(p.duration)}</span>
         </div>
-        <button
-          className={`icon k-util pb-lyrics ${p.lyricsOpen ? "on" : ""}`}
-          onClick={() => player.setLyricsOpen(!p.lyricsOpen)}
-          title={p.lyricsOpen ? "Hide lyrics" : "Lyrics"}
-        >
-          <LyricsIcon />
-        </button>
         {(p.error || barNotice || p.loading) && (
           <div className={`pb-status ${p.error ? "err" : ""}`} role="status">
             {p.error || barNotice || "Loading…"}

@@ -3081,11 +3081,3 @@ details.adv > summary h2 {
   opacity: 1;
   transform: scale(1.06);
 }
-.pb-center {
-  position: relative;
-}
-.pb-lyrics {
-  position: absolute;
-  right: 0;
-  top: 4px;
-}
