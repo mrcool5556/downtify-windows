@@ -348,21 +348,31 @@ mini = """
   z-index: 3;
   transition: box-shadow 0.35s;
 }
-:root[data-surface="soft-inset"] .mini {
-  --d: 10px;
+:root {
+  /* The dent sits in the desktop, not in the theme, so its light edge is a
+     fixed soft white that shows on any wallpaper. Depth comes from the
+     Theme page (--inset-depth, set on <html>). */
+  --mini-lo: rgba(0, 0, 0, 0.55);
+  --mini-hi: rgba(255, 255, 255, 0.32);
+  --mini-hi-soft: rgba(255, 255, 255, 0.16);
 }
-:root[data-surface="soft-inset"] .mini:hover {
-  --d: 15px;
+:root[data-surface="soft-inset"] .mini,
+:root[data-surface="indented"] .mini {
+  --d: var(--inset-depth, 10px);
+}
+:root[data-surface="soft-inset"] .mini:hover,
+:root[data-surface="indented"] .mini:hover {
+  --d: calc(var(--inset-depth, 10px) * 1.4);
 }
 :root[data-surface="soft-inset"] .mini::after {
-  box-shadow: inset var(--d) var(--d) calc(var(--d) * 2.4) var(--soft-lo), inset calc(var(--d) * -0.45) calc(var(--d) * -0.45) calc(var(--d) * 1.6) var(--hi-soft),
-    inset 1px 1px 0 var(--lo-rim), inset -1px -1px 0 var(--hi);
+  box-shadow: inset var(--d) var(--d) calc(var(--d) * 2.4) var(--mini-lo), inset calc(var(--d) * -0.45) calc(var(--d) * -0.45) calc(var(--d) * 1.6) var(--mini-hi-soft),
+    inset 1px 1px 0 var(--mini-lo), inset -1px -1px 0 var(--mini-hi);
 }
 :root[data-surface="indented"] .mini {
   background: color-mix(in srgb, var(--bg-3) calc(var(--mini-alpha) * 100%), transparent);
 }
 :root[data-surface="indented"] .mini::after {
-  box-shadow: inset 4px 6px 12px rgba(0, 0, 0, 0.35), inset 1px 2px 3px rgba(0, 0, 0, 0.2), inset -1px -1px 0 rgba(255, 255, 255, 0.25);
+  box-shadow: inset calc(var(--d) * 0.4) calc(var(--d) * 0.6) calc(var(--d) * 1.2) rgba(0, 0, 0, 0.45), inset 1px 2px 3px rgba(0, 0, 0, 0.25), inset -1px -1px 0 var(--mini-hi);
 }
 :root[data-surface="bevel"] .mini::after {
   box-shadow: var(--bevel);

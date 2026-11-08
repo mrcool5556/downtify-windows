@@ -190,6 +190,15 @@ export function ThemePage({ settings, onSettings }: { settings: Settings; onSett
         {MINI_ASPECTS.map((k) => (
           <MiniAspectRow key={k} k={k} p={p} />
         ))}
+        {["soft-inset", "indented"].includes(p.miniLook.surface ?? p.look.surface) && (
+          <div className="setting-row">
+            <span>Inset depth</span>
+            <span className="depth-ctl">
+              <input type="range" min={3} max={30} step={1} value={p.miniDepth} onChange={(e) => setLayout({ miniDepth: Number(e.target.value) })} />
+              <small className="hint">{p.miniDepth} px</small>
+            </span>
+          </div>
+        )}
         <label className="check">
           <input
             type="checkbox"

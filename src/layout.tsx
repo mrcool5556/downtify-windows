@@ -45,6 +45,8 @@ export interface LayoutPrefs {
   look: Aspects;
   /** The mini player's own fonts, corners and lip; a missing key means same as the window. */
   miniLook: Partial<Aspects>;
+  /** How deep the mini sits when its window is Soft inset or Indented, in px. */
+  miniDepth: number;
   /** Mixes the user saved by name. */
   mixes: { name: string; mix: StyleMix }[];
 }
@@ -67,6 +69,7 @@ const DEFAULTS: LayoutPrefs = {
   rows: "simple",
   look: ASPECT_DEFAULTS,
   miniLook: {},
+  miniDepth: 10,
   mixes: [],
 };
 
@@ -120,6 +123,7 @@ function applyTheme() {
   root.dataset.rows = prefs.rows;
   // The mix: each aspect is an attribute; "theme" leaves it off (the theme's own look).
   const look = miniActive ? { ...prefs.look, ...prefs.miniLook } : prefs.look;
+  root.style.setProperty("--inset-depth", `${prefs.miniDepth}px`);
   for (const k of Object.keys(ASPECT_DEFAULTS) as AspectKey[]) {
     const v = look[k];
     if (v === "theme") root.removeAttribute(`data-${k}`);

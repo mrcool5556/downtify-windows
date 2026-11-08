@@ -3250,3 +3250,15 @@ details.adv > summary h2 {
   flex: 1;
   max-width: 280px;
 }
+.depth-ctl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.depth-ctl input {
+  width: 180px;
+}
+.depth-ctl small {
+  width: 40px;
+  text-align: right;
+}
