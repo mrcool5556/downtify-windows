@@ -2320,8 +2320,9 @@ button.icon svg {
 .mini.faded .q-sub,
 .mini.faded .mini-drawer-head {
   color: #fff;
-  /* the small grey line was thin over light backgrounds: 1 px wider letters */
-  -webkit-text-stroke: 1px #fff;
+  /* drawn like the song name (semi-bold white) so it reads as well over
+     light backgrounds; still a size smaller */
+  font-weight: 600;
 }
 .mini.faded button.icon,
 .mini.faded input[type="range"] {
