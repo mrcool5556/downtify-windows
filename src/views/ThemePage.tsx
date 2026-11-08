@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ButtonShape, GROUPS, GroupKey, GroupStyle, LayoutPrefs, RowStyle, ShowKey, applyMix, applyMixToMini, currentMix, setLayout, useLayout } from "../layout";
-import { ASPECTS, AspectKey, Aspects, BUTTON_STYLES, ControlStyle, MINI_ASPECTS, MINI_SURFACES, PRESETS, THEMES, ThemeId, ThemeInfo, sameMix, themeById } from "../themes";
+import { ASPECTS, AspectKey, Aspects, BUTTON_STYLES, ControlStyle, MINI_ASPECTS, MINI_EXTRA_SURFACES, MINI_SURFACES, PRESETS, THEMES, ThemeId, ThemeInfo, sameMix, themeById } from "../themes";
 import { invoke } from "@tauri-apps/api/core";
 import { Settings } from "../api";
 
@@ -190,9 +190,9 @@ export function ThemePage({ settings, onSettings }: { settings: Settings; onSett
         {MINI_ASPECTS.map((k) => (
           <MiniAspectRow key={k} k={k} p={p} />
         ))}
-        {["soft-inset", "indented"].includes(p.miniLook.surface ?? p.look.surface) && (
+        {["soft-inset", "indented", "recessed"].includes(p.miniLook.surface ?? p.look.surface) && (
           <div className="setting-row">
-            <span>Inset depth</span>
+            <span>{(p.miniLook.surface as string) === "recessed" ? "Edge depth" : "Inset depth"}</span>
             <span className="depth-ctl">
               <input type="range" min={3} max={30} step={1} value={p.miniDepth} onChange={(e) => setLayout({ miniDepth: Number(e.target.value) })} />
               <small className="hint">{p.miniDepth} px</small>
@@ -361,7 +361,7 @@ function MiniAspectRow({ k, p }: { k: AspectKey; p: LayoutPrefs }) {
         }}
       >
         <option value="">Same as main window ({mainLabel})</option>
-        {a.options.filter(([v]) => k !== "surface" || MINI_SURFACES.includes(v)).map(([v, label]) => (
+        {[...a.options.filter(([v]) => k !== "surface" || MINI_SURFACES.includes(v)), ...(k === "surface" ? MINI_EXTRA_SURFACES : [])].map(([v, label]) => (
           <option key={v} value={v}>
             {label}
           </option>

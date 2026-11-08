@@ -106,3 +106,5 @@ export const MINI_ASPECTS: AspectKey[] = ["surface", "font", "corners", "lip", "
 /** Window looks that work on the mini's see-through window (no glass: the
  *  desktop behind can't be blurred; no paper: its texture ignores opacity). */
 export const MINI_SURFACES = ["theme", "flat", "soft-inset", "indented", "bevel"];
+/** Window looks only the mini has: a crisp cut-out edge with no shading. */
+export const MINI_EXTRA_SURFACES: [string, string][] = [["recessed", "Recessed edge"]];

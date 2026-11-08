@@ -377,6 +377,25 @@ mini = """
 :root[data-surface="bevel"] .mini::after {
   box-shadow: var(--bevel);
 }
+
+/* Recessed edge (app-only): just a crisp wall around the rim, no shading
+   over the middle, so it reads as a cut-out on light pages too. The wall
+   is a fifth of the inset depth: 2 px at 10, 4 px at 20. */
+:root[data-surface="recessed"] .mini {
+  position: relative;
+  border-color: transparent;
+  --w: calc(var(--inset-depth, 10px) / 5);
+}
+:root[data-surface="recessed"] .mini::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 3;
+  box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.5), inset var(--w) var(--w) var(--w) rgba(0, 0, 0, 0.28),
+    inset -1px -1px 0 rgba(255, 255, 255, 0.75), inset calc(var(--w) * -1) calc(var(--w) * -1) var(--w) rgba(255, 255, 255, 0.3);
+}
 """
 open("src/mix.css", "a", encoding="utf-8").write(mini)
 print("added mini window surfaces")
