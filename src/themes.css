@@ -42,6 +42,24 @@
   color-scheme: light;
 }
 
+:root[data-theme="studio-dark"] {
+  --bg: #121417;
+  --bg-2: #1a1d21;
+  --bg-3: #252a30;
+  --fg: #eceae5;
+  --fg-2: #a3a7ad;
+  --accent: #4fd1b8;
+  --accent-2: #7fe3cf;
+  --on-accent: #062a25;
+  --warn: #f2c14e;
+  --danger: #ff8a80;
+  --border: #30353b;
+  --bevel: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -2px 0 rgba(0, 0, 0, 0.35), 0 2px 3px rgba(0, 0, 0, 0.5);
+  --inset: inset 0 2px 3px rgba(0, 0, 0, 0.55), inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+  --lip: linear-gradient(180deg, #5b6168 0%, #2d3237 30%, #16191c 100%);
+  color-scheme: dark;
+}
+
 :root[data-theme="retro-console"] {
   --bg: #c4c4c8;
   --bg-2: #d6d6d9;
@@ -96,7 +114,7 @@
   color-scheme: dark;
 }
 
-:root[data-theme="gr1mos"] {
+:root[data-theme="machined"] {
   --bg: #07090c;
   --bg-2: #11161c;
   --bg-3: #1a2027;
@@ -114,6 +132,26 @@
   --app-font: "GR1MOS Body", "Segoe UI", system-ui, sans-serif;
   --app-font-display: "GR1MOS Display", "Segoe UI", system-ui, sans-serif;
   color-scheme: dark;
+}
+
+:root[data-theme="machined-light"] {
+  --bg: #f2efe8;
+  --bg-2: #ffffff;
+  --bg-3: #e7e3da;
+  --fg: #15120c;
+  --fg-2: #4d5258;
+  --accent: #9a6f15;
+  --accent-2: #7a5710;
+  --on-accent: #ffffff;
+  --warn: #8a5a10;
+  --danger: #c8303a;
+  --border: rgba(20, 16, 10, 0.12);
+  --bevel: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 -2px 0 rgba(0, 0, 0, 0.08), 0 2px 3px rgba(0, 0, 0, 0.14);
+  --inset: inset 0 2px 3px rgba(0, 0, 0, 0.14), inset 0 -1px 0 rgba(255, 255, 255, 0.8);
+  --lip: linear-gradient(180deg, #fff1b0 0%, #f0c75c 14%, #e6b84a 38%, #c9972c 66%, #8f6a1d 90%, #5a4012 100%);
+  --app-font: "GR1MOS Body", "Segoe UI", system-ui, sans-serif;
+  --app-font-display: "GR1MOS Display", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
 }
 
 :root[data-theme="cozy"] {
@@ -220,8 +258,10 @@ h3,
 .brand {
   font-family: var(--app-font-display);
 }
-:root[data-theme="gr1mos"] button.primary,
-:root[data-theme="gr1mos"] button.small {
+:root[data-theme="machined"] button.primary,
+:root[data-theme="machined"] button.small,
+:root[data-theme="machined-light"] button.primary,
+:root[data-theme="machined-light"] button.small {
   border-radius: 999px;
 }
 

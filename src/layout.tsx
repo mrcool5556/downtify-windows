@@ -73,6 +73,9 @@ function load(): LayoutPrefs {
     return {
       ...p,
       theme: migrateThemeId(p.theme as string),
+      miniTheme: p.miniTheme ? migrateThemeId(p.miniTheme as string) : "",
+      darkPick: migrateThemeId(p.darkPick as string),
+      lightPick: migrateThemeId(p.lightPick as string),
       advanced: { ...DEFAULTS.advanced, ...(saved.advanced ?? {}) },
       show: { ...DEFAULTS.show, ...(saved.show ?? {}) },
     };
