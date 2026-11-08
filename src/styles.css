@@ -3002,7 +3002,8 @@ details.adv > summary h2 {
   font-size: 12px;
 }
 
-/* Lyrics page: sits over the song list, opened from the player bar. */
+/* Lyrics page: sits over the song list, opened from the player bar.
+   About panel (song + artist) on the left, lyrics on the right. */
 .pane-wrap {
   flex: 1;
   min-width: 0;
@@ -3015,30 +3016,116 @@ details.adv > summary h2 {
   inset: 0;
   z-index: 5;
   display: flex;
-  flex-direction: column;
   background: var(--bg);
-  padding: 12px 16px 0;
 }
-.lyrics-head {
+.lyrics-about {
+  width: 280px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: 16px;
+  border-right: 1px solid var(--border);
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border);
+  flex-direction: column;
+  gap: 4px;
 }
-.lyrics-song {
-  flex: 1;
-  min-width: 0;
+.about-cover {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
 }
-.lyrics-song h2 {
+.about-cover.placeholder {
+  display: grid;
+  place-items: center;
+  font-size: 64px;
+  color: var(--fg-2);
+  background: var(--bg-3);
+}
+.about-title {
   margin: 0;
   font-size: 18px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.25;
 }
-.lyrics-from {
-  white-space: nowrap;
+.about-line {
+  font-size: 14px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.about-line .cell-link {
+  font-size: inherit;
+}
+.lyrics-about .small {
+  font-size: 12px;
+}
+.about-artist {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.about-artist-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.about-photo {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.about-photo.placeholder {
+  display: grid;
+  place-items: center;
+  background: var(--bg-3);
+  color: var(--fg-2);
+  font-size: 22px;
+  font-weight: 700;
+}
+.about-artist-name {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+.about-genre {
+  font-size: 11px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--fg-2);
+  margin-top: 2px;
+}
+.about-bio {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--fg-2);
+  white-space: pre-line;
+  display: -webkit-box;
+  -webkit-line-clamp: 8;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.about-bio.open {
+  display: block;
+}
+.lyrics-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.lyrics-close {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  z-index: 1;
 }
 .lyrics-empty {
   margin: auto;
@@ -3051,13 +3138,13 @@ details.adv > summary h2 {
   overflow-y: auto;
   overflow-x: hidden;
   text-align: center;
-  padding: 30vh 16px;
+  padding: 30vh 24px;
 }
 .lyrics-plain {
   white-space: pre-wrap;
   font-size: 20px;
   line-height: 1.7;
-  padding-top: 24px;
+  padding-top: 56px;
 }
 .lyrics-lines p {
   margin: 0;

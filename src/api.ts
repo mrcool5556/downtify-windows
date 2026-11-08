@@ -255,3 +255,45 @@ export const sharingApi = {
 export function artFor(t: Track, size: 150 | 300 | 600 = 150): string {
   return t.online ? t.online.cover : coverUrl(t.id, size);
 }
+
+// ── Artist profile (about panel beside the lyrics) ─────────────────────
+
+export interface ArtistProfile {
+  name: string;
+  bio: string;
+  origin: string;
+  /** When a group formed, or when a solo artist was born (see is_group). */
+  born_or_formed: string;
+  genre: string;
+  is_group: boolean | null;
+}
+
+export interface ArtistInfo {
+  profile: ArtistProfile | null;
+  art: { photo_url?: string | null; photo_version?: number | null } | null;
+}
+
+const artistCache = new Map<string, Promise<ArtistInfo | null>>();
+
+/** The server's profile and photo for an artist. `seed` lets the server fill
+ *  in a profile it has never made (library artists only). */
+export function artistInfo(name: string, seed: boolean): Promise<ArtistInfo | null> {
+  let p = artistCache.get(name);
+  if (!p) {
+    p = invoke<ArtistInfo | null>("artist_info", { name, seed });
+    p.catch(() => artistCache.delete(name));
+    artistCache.set(name, p);
+  }
+  return p;
+}
+
+export const artistPhotoUrl = (path: string, version?: number | null) =>
+  `${MEDIA_ORIGIN}/artist-art?path=${encodeURIComponent(path)}&v=${version ?? 0}`;
+
+/** The artist the server files a song's profile under: the album artist,
+ *  else the first credited artist. */
+export function profileArtist(t: Track): string {
+  const aa = (t.album_artist || "").trim();
+  if (aa && !/^various artists$/i.test(aa)) return aa;
+  return (t.artists?.[0] || t.artist.split(/;|,/)[0] || "").trim();
+}

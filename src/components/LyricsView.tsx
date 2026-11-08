@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from "react";
+import { artFor, artistInfo, ArtistInfo, artistPhotoUrl, fmtDuration, profileArtist, Track } from "../api";
 import { usePlayer, usePlayerProgress } from "../player/usePlayer";
 import { loadLyrics, SongLyrics } from "../lyrics";
+import { navBus } from "../navBus";
 
 /**
- * The lyrics page, over the song list. Synced lyrics follow the song: the
- * line being sung is lit and kept in the middle, and clicking a line jumps
- * there. Plain lyrics are shown as text.
+ * The lyrics page, over the song list: an about panel for the song and its
+ * artist on the left, the lyrics on the right. Synced lyrics follow the
+ * song: the line being sung is lit and kept in the middle, and clicking a
+ * line jumps there. Plain lyrics are shown as text.
  */
 export function LyricsView() {
   const { current, player } = usePlayer();
@@ -31,34 +34,123 @@ export function LyricsView() {
     return () => window.removeEventListener("keydown", onKey);
   }, [player]);
 
-  const from = lyrics?.source === "server" ? "From your Downtify server" : lyrics?.source === "lrclib" ? "From LRCLIB" : "";
-
   return (
     <div className="lyrics-page">
-      <div className="lyrics-head">
-        <div className="lyrics-song">
-          <h2>{current ? current.title || current.file : "Lyrics"}</h2>
-          {current && <div className="hint">{current.artist}</div>}
-        </div>
-        {from && <span className="hint lyrics-from">{from}</span>}
-        <button className="icon" onClick={() => player.setLyricsOpen(false)} title="Close lyrics (Esc)">
+      {current && <AboutPanel t={current} />}
+      <div className="lyrics-main">
+        <button className="icon k-util lyrics-close" onClick={() => player.setLyricsOpen(false)} title="Close lyrics (Esc)">
           ✕
         </button>
+        {!current ? (
+          <div className="lyrics-empty">Play a song to see its lyrics.</div>
+        ) : failed ? (
+          <div className="lyrics-empty">Couldn't get lyrics: {failed}</div>
+        ) : !lyrics ? (
+          <div className="lyrics-empty">Looking for lyrics…</div>
+        ) : lyrics.lines.length ? (
+          <SyncedLines lyrics={lyrics} onSeek={(t) => player.seek(t)} />
+        ) : lyrics.plain.trim() ? (
+          <div className="lyrics-plain">{lyrics.plain}</div>
+        ) : (
+          <div className="lyrics-empty">No lyrics found for this song.</div>
+        )}
       </div>
-      {!current ? (
-        <div className="lyrics-empty">Play a song to see its lyrics.</div>
-      ) : failed ? (
-        <div className="lyrics-empty">Couldn't get lyrics: {failed}</div>
-      ) : !lyrics ? (
-        <div className="lyrics-empty">Looking for lyrics…</div>
-      ) : lyrics.lines.length ? (
-        <SyncedLines lyrics={lyrics} onSeek={(t) => player.seek(t)} />
-      ) : lyrics.plain.trim() ? (
-        <div className="lyrics-plain">{lyrics.plain}</div>
-      ) : (
-        <div className="lyrics-empty">No lyrics found for this song.</div>
-      )}
     </div>
+  );
+}
+
+/** Cover, song details, and what the server knows about the artist. */
+function AboutPanel({ t }: { t: Track }) {
+  const name = profileArtist(t);
+  const [info, setInfo] = useState<ArtistInfo | null>(null);
+  const [coverOk, setCoverOk] = useState(true);
+  const [photoOk, setPhotoOk] = useState(true);
+  const [moreBio, setMoreBio] = useState(false);
+
+  useEffect(() => {
+    setInfo(null);
+    setCoverOk(true);
+    setPhotoOk(true);
+    setMoreBio(false);
+    if (!name) return;
+    let cancelled = false;
+    artistInfo(name, !t.online)
+      .then((i) => !cancelled && setInfo(i))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [name, t.id]);
+
+  const p = info?.profile;
+  const photo = info?.art?.photo_url;
+  const when = p?.born_or_formed ? (p.is_group === false ? `Born ${p.born_or_formed}` : `Formed ${p.born_or_formed}`) : "";
+  const facts = [when, p?.origin].filter(Boolean).join(" · ");
+  const bio = (p?.bio || "").trim();
+  const details = [
+    fmtDuration(t.duration),
+    !t.online && t.codec ? t.codec.toUpperCase() : "",
+    !t.online && t.bitrate ? `${Math.round(t.bitrate / 1000)} kbps` : "",
+  ].filter(Boolean);
+
+  return (
+    <aside className="lyrics-about">
+      {coverOk && (t.online ? t.online.cover : t.has_cover) ? (
+        <img className="about-cover" src={artFor(t, 600)} alt="" onError={() => setCoverOk(false)} />
+      ) : (
+        <div className="about-cover placeholder">♫</div>
+      )}
+      <h2 className="about-title">{t.title || t.file}</h2>
+      <div className="about-line">
+        {t.artist_id ? (
+          <button className="cell-link" title="Go to artist" onClick={() => navBus.go({ artist_id: t.artist_id, artist: t.album_artist || t.artist })}>
+            {t.artist}
+          </button>
+        ) : (
+          t.artist
+        )}
+      </div>
+      {t.album && (
+        <div className="about-line hint">
+          {t.album_id ? (
+            <button className="cell-link" title="Go to album" onClick={() => navBus.go({ album_id: t.album_id, album: t.album, album_artist: t.album_artist, cover_track_id: t.id })}>
+              {t.album}
+            </button>
+          ) : (
+            t.album
+          )}
+          {t.year ? ` · ${t.year.slice(0, 4)}` : ""}
+        </div>
+      )}
+      <div className="about-line hint small">{details.join(" · ")}</div>
+
+      {(photo || facts || p?.genre || bio) && (
+        <section className="about-artist">
+          <div className="about-artist-head">
+            {photo && photoOk ? (
+              <img className="about-photo" src={artistPhotoUrl(photo, info?.art?.photo_version)} alt="" onError={() => setPhotoOk(false)} />
+            ) : (
+              <div className="about-photo placeholder">{name.slice(0, 1).toUpperCase()}</div>
+            )}
+            <div className="about-artist-name">
+              <b>{p?.name || name}</b>
+              {facts && <div className="hint small">{facts}</div>}
+              {p?.genre && <span className="about-genre">{p.genre}</span>}
+            </div>
+          </div>
+          {bio && (
+            <>
+              <p className={`about-bio ${moreBio ? "open" : ""}`}>{bio}</p>
+              {bio.length > 320 && (
+                <button className="link small" onClick={() => setMoreBio((m) => !m)}>
+                  {moreBio ? "Show less" : "Read more"}
+                </button>
+              )}
+            </>
+          )}
+        </section>
+      )}
+    </aside>
   );
 }
 

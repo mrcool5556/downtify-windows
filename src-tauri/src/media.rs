@@ -37,6 +37,8 @@ pub fn handle(ctx: UriSchemeContext<'_, tauri::Wry>, req: Request<Vec<u8>>, resp
             serve_cover(&app, id, &query).await
         } else if path == "/playlist-cover" {
             serve_playlist_cover(&app, &query).await
+        } else if path == "/artist-art" {
+            serve_artist_art(&app, &query).await
         } else if let Some(vid) = path.strip_prefix("/online/") {
             serve_online(&app, vid, range.as_deref()).await
         } else {
@@ -185,6 +187,32 @@ fn query_param(query: &str, key: &str) -> Option<String> {
         .map(|v| v.to_string())
 }
 
+/// `%XX` escapes (and `+`) back to text, for query values the page encoded.
+fn percent_decode(s: &str) -> String {
+    let b = s.as_bytes();
+    let mut out = Vec::with_capacity(b.len());
+    let mut i = 0;
+    while i < b.len() {
+        match b[i] {
+            b'%' if i + 2 < b.len() => {
+                let hex = std::str::from_utf8(&b[i + 1..i + 3]).ok().and_then(|h| u8::from_str_radix(h, 16).ok());
+                match hex {
+                    Some(v) => {
+                        out.push(v);
+                        i += 3;
+                        continue;
+                    }
+                    None => out.push(b'%'),
+                }
+            }
+            b'+' => out.push(b' '),
+            c => out.push(c),
+        }
+        i += 1;
+    }
+    String::from_utf8_lossy(&out).into_owned()
+}
+
 fn fnv(s: &str) -> String {
     let mut h: u64 = 0xcbf29ce484222325;
     for b in s.bytes() {
@@ -229,6 +257,64 @@ async fn serve_playlist_cover(app: &AppHandle, query: &str) -> Result<Response<V
     Response::builder()
         .status(StatusCode::OK)
         .header(header::CONTENT_TYPE, "image/jpeg")
+        .header(header::CACHE_CONTROL, "max-age=86400")
+        .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+        .body(bytes)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
+}
+
+/// `/artist-art?path=/downloads/…&v=<version>`: an artist's photo as the
+/// server saved it (the address `GET /api/artists/art` gives), fetched with
+/// the device token and cached on disk per path and version.
+async fn serve_artist_art(app: &AppHandle, query: &str) -> Result<Response<Vec<u8>>, StatusCode> {
+    let path = percent_decode(&query_param(query, "path").ok_or(StatusCode::NOT_FOUND)?);
+    if !path.starts_with("/downloads/") || path.contains("..") {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    let version = query_param(query, "v").unwrap_or_default();
+    let dir = app
+        .path()
+        .app_cache_dir()
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .join("artist-art");
+    let cache = dir.join(format!("{}.img", fnv(&format!("{path}#{version}"))));
+    let bytes = match std::fs::read(&cache) {
+        Ok(b) if !b.is_empty() => b,
+        _ => {
+            let state = app.state::<AppState>();
+            let client = client_for(&state).map_err(|_| StatusCode::NOT_FOUND)?;
+            let encoded: String = path
+                .split('/')
+                .map(|seg| {
+                    seg.bytes()
+                        .map(|b| match b {
+                            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => (b as char).to_string(),
+                            _ => format!("%{b:02X}"),
+                        })
+                        .collect::<String>()
+                })
+                .collect::<Vec<_>>()
+                .join("/");
+            let resp = client.get(&encoded).send().await.map_err(|_| StatusCode::BAD_GATEWAY)?;
+            if !resp.status().is_success() {
+                return Err(StatusCode::NOT_FOUND);
+            }
+            let b = resp.bytes().await.map_err(|_| StatusCode::BAD_GATEWAY)?.to_vec();
+            let _ = std::fs::create_dir_all(&dir);
+            let _ = std::fs::write(&cache, &b);
+            b
+        }
+    };
+    let mime = if bytes.starts_with(&[0x89, b'P', b'N', b'G']) {
+        "image/png"
+    } else if bytes.len() > 12 && &bytes[8..12] == b"WEBP" {
+        "image/webp"
+    } else {
+        "image/jpeg"
+    };
+    Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, mime)
         .header(header::CACHE_CONTROL, "max-age=86400")
         .header(header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
         .body(bytes)

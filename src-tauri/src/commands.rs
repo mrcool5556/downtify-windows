@@ -1409,3 +1409,55 @@ pub async fn get_lyrics(
     let source = if l.is_empty() { "" } else { "lrclib" };
     Ok(LyricsResult { synced: l.synced, plain: l.plain, source })
 }
+
+/// What the server knows about an artist, for the about panel beside the
+/// lyrics: the saved profile (bio, origin, born/formed, genre) and the
+/// address of their photo, if one is saved. `seed` asks the server to fill a
+/// profile in the first time (what its own artist page does); it's only
+/// sent for artists in the library.
+#[tauri::command]
+pub async fn artist_info(state: State<'_, AppState>, name: String, seed: bool) -> Result<Value, String> {
+    let name = name.trim().to_string();
+    if name.is_empty() {
+        return Ok(Value::Null);
+    }
+    let client = client_for(&state)?;
+    let q = urlencoding_component(&name);
+    let get = |path: String| {
+        let client = client.clone();
+        async move {
+            let resp = client.get(&path).send().await.map_err(|e| e.to_string())?;
+            if !resp.status().is_success() {
+                return Err(format!("Server answered {}", resp.status().as_u16()));
+            }
+            resp.json::<Value>().await.map_err(|e| e.to_string())
+        }
+    };
+    let mut profile = get(format!("/api/artists/profile?name={q}")).await.unwrap_or(Value::Null);
+    let blank = |p: &Value| {
+        ["bio", "origin", "genre", "born_or_formed"]
+            .iter()
+            .all(|k| p.get(*k).and_then(|v| v.as_str()).map_or(true, |s| s.trim().is_empty()))
+    };
+    if seed && blank(&profile) {
+        if let Ok(p) = client
+            .send_json(reqwest::Method::POST, "/api/artists/profile/ensure", &serde_json::json!({ "name": name, "lang": "en" }))
+            .await
+        {
+            profile = p;
+        }
+    }
+    let art = get(format!("/api/artists/art?name={q}")).await.unwrap_or(Value::Null);
+    Ok(serde_json::json!({ "profile": profile, "art": art }))
+}
+
+fn urlencoding_component(s: &str) -> String {
+    let mut out = String::new();
+    for b in s.bytes() {
+        match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => out.push(b as char),
+            _ => out.push_str(&format!("%{b:02X}")),
+        }
+    }
+    out
+}
