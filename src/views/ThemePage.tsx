@@ -12,10 +12,26 @@ export function ThemePage({ settings, onSettings }: { settings: Settings; onSett
     <>
       <section className="card">
         <h2>Colour theme</h2>
-        <p className="hint">Click a theme to use it. The sun and moon button in the top bar switches between your last dark and last light choice.</p>
-        <div className="theme-grid">
-          {THEMES.map((t) => (
-            <ThemeCard key={t.id} t={t} selected={p.theme === t.id} heavy={p.controlStyle === "heavy"} onPick={() => setLayout({ theme: t.id })} />
+        <p className="hint">Click a theme to use it. Your dark side and your light side each keep their own style; the sun and moon button in the top bar (marked on each side) swaps between them.</p>
+        <div className="theme-cols">
+          {(["dark", "light"] as const).map((tone) => (
+            <div key={tone} className="theme-col">
+              <h3 className="theme-col-head">
+                {tone === "dark" ? "☾ Dark themes" : "☀ Light themes"}
+              </h3>
+              <div className="theme-grid">
+                {THEMES.filter((t) => t.tone === tone).map((t) => (
+                  <ThemeCard
+                    key={t.id}
+                    t={t}
+                    selected={p.theme === t.id}
+                    sideDefault={(tone === "dark" ? p.darkPick : p.lightPick) === t.id ? tone : undefined}
+                    heavy={p.controlStyle === "heavy"}
+                    onPick={() => setLayout({ theme: t.id })}
+                  />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
         <div className="setting-row tight">
@@ -250,7 +266,7 @@ function mixNote(look: Aspects, buttons: ControlStyle): string {
 }
 
 /** A small live preview drawn with the theme's own colours. */
-function ThemeCard({ t, selected, heavy, onPick }: { t: ThemeInfo; selected: boolean; heavy: boolean; onPick: () => void }) {
+function ThemeCard({ t, selected, sideDefault, heavy, onPick }: { t: ThemeInfo; selected: boolean; sideDefault?: "dark" | "light"; heavy: boolean; onPick: () => void }) {
   const s = t.swatch;
   return (
     <button className={`theme-card ${selected ? "on" : ""}`} onClick={onPick} title={`${t.name}: ${t.feel}`} data-preview-theme={t.id}>
@@ -280,6 +296,11 @@ function ThemeCard({ t, selected, heavy, onPick }: { t: ThemeInfo; selected: boo
         </small>
       </span>
       {selected && <span className="tc-check">✓</span>}
+      {sideDefault && !selected && (
+        <span className="tc-side-badge" title={`The sun and moon button brings you here (your ${sideDefault} side)`}>
+          {sideDefault === "dark" ? "☾" : "☀"}
+        </span>
+      )}
     </button>
   );
 }
@@ -303,16 +324,31 @@ function Presets({ p }: { p: LayoutPrefs }) {
       <h2>Presets</h2>
       <p className="hint">A preset sets the colours, buttons and every part of the style at once. Change anything afterwards to make it yours.</p>
       <div className="preset-grid">
-        {PRESETS.map((pr) => (
-          <button key={pr.name} className={`preset ${sameMix(now, pr.mix) ? "on" : ""}`} onClick={() => applyMix(pr.mix)} title={`${pr.name}: ${themeById(pr.mix.theme).name} colours, ${BUTTON_STYLES.find(([v]) => v === pr.mix.buttons)?.[1]} buttons`}>
-            <span className="preset-swatch" style={{ background: themeById(pr.mix.theme).swatch.bg }}>
-              <i style={{ background: themeById(pr.mix.theme).swatch.accent }} />
-            </span>
-            <b>{pr.name}</b>
-            <small>{pr.feel}</small>
-          </button>
+        {PRESETS.filter((pr) => !p.hiddenPresets.includes(pr.name)).map((pr) => (
+          <span key={pr.name} className="preset-wrap">
+            <button className={`preset ${sameMix(now, pr.mix) ? "on" : ""}`} onClick={() => applyMix(pr.mix)} title={`${pr.name}: ${themeById(pr.mix.theme).name} colours, ${BUTTON_STYLES.find(([v]) => v === pr.mix.buttons)?.[1]} buttons`}>
+              <span className="preset-swatch" style={{ background: themeById(pr.mix.theme).swatch.bg }}>
+                <i style={{ background: themeById(pr.mix.theme).swatch.accent }} />
+              </span>
+              <b>{pr.name}</b>
+              <small>{pr.feel}</small>
+            </button>
+            <button className="icon preset-x" title={`Remove "${pr.name}" from Presets`} onClick={() => setLayout({ hiddenPresets: [...p.hiddenPresets, pr.name] })}>
+              ✕
+            </button>
+          </span>
         ))}
       </div>
+      {p.hiddenPresets.length > 0 && (
+        <div className="preset-restore">
+          <span className="hint">
+            {p.hiddenPresets.length} preset{p.hiddenPresets.length === 1 ? "" : "s"} removed.
+          </span>
+          <button className="small" onClick={() => setLayout({ hiddenPresets: [] })}>
+            Restore default presets
+          </button>
+        </div>
+      )}
       {pinned.length > 0 && (
         <p className="hint mix-note">
           {pinned.length === 1 ? "One part of the player keeps" : `${pinned.length} parts of the player keep`} its own style from Advanced ({pinned.map((g) => g.label.toLowerCase()).join(", ")}), so presets don't change {pinned.length === 1 ? "it" : "them"}.{" "}

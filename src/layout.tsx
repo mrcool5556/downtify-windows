@@ -23,6 +23,8 @@ export const GROUPS: { key: GroupKey; label: string }[] = [
 export interface ToneLook {
   buttons: ControlStyle;
   look: Aspects;
+  /** Advanced per-part button styles (older saves may not have it). */
+  advanced?: Record<GroupKey, GroupStyle>;
 }
 
 export interface LayoutPrefs {
@@ -55,6 +57,8 @@ export interface LayoutPrefs {
   miniDepth: number;
   /** The style used with dark themes and with light themes; sun/moon swaps between them. */
   toneLooks: { dark?: ToneLook; light?: ToneLook };
+  /** Built-in presets the user removed from the Presets card (by name). */
+  hiddenPresets: string[];
   /** Mixes the user saved by name. */
   mixes: { name: string; mix: StyleMix }[];
 }
@@ -79,6 +83,7 @@ const DEFAULTS: LayoutPrefs = {
   miniLook: {},
   miniDepth: 10,
   toneLooks: {},
+  hiddenPresets: [],
   mixes: [],
 };
 
@@ -102,6 +107,7 @@ function load(): LayoutPrefs {
       look: { ...ASPECT_DEFAULTS, ...(saved.look ?? {}) },
       miniLook: saved.miniLook && typeof saved.miniLook === "object" ? saved.miniLook : {},
       toneLooks: saved.toneLooks && typeof saved.toneLooks === "object" ? saved.toneLooks : {},
+      hiddenPresets: Array.isArray(saved.hiddenPresets) ? saved.hiddenPresets : [],
       mixes: Array.isArray(saved.mixes) ? saved.mixes.map((m) => ({ ...m, mix: { ...m.mix, theme: migrateThemeId(m.mix?.theme), look: { ...ASPECT_DEFAULTS, ...(m.mix?.look ?? {}) } } })) : [],
     };
   } catch {
@@ -149,7 +155,28 @@ export function setMiniActive(on: boolean) {
   applyTheme();
 }
 
+const snapshotLook = (p: LayoutPrefs): ToneLook => ({ buttons: p.controlStyle, look: p.look, advanced: p.advanced });
+
 export function setLayout(patch: Partial<LayoutPrefs>) {
+  // A plain theme pick from the other side (dark <-> light) works like
+  // sun/moon: keep the side you leave, and bring the other side's look.
+  // Presets and saved mixes set the style themselves, so they don't swap.
+  if (patch.theme && !patch.controlStyle && !patch.look && !patch.advanced) {
+    const from = themeById(prefs.theme).tone;
+    const to = themeById(patch.theme).tone;
+    if (from !== to) {
+      prefs = { ...prefs, toneLooks: { ...prefs.toneLooks, [from]: snapshotLook(prefs) } };
+      const saved = prefs.toneLooks[to];
+      if (saved) {
+        patch = {
+          ...patch,
+          controlStyle: saved.buttons,
+          look: { ...ASPECT_DEFAULTS, ...saved.look },
+          ...(saved.advanced ? { advanced: { ...DEFAULTS.advanced, ...saved.advanced } } : {}),
+        };
+      }
+    }
+  }
   prefs = { ...prefs, ...patch };
   // Picking a theme also records it as your dark or light choice for the sun button.
   if (patch.theme) {
@@ -157,9 +184,9 @@ export function setLayout(patch: Partial<LayoutPrefs>) {
     else prefs.lightPick = patch.theme;
   }
   // Whatever style is on now is remembered as this side's (dark or light) look.
-  if (patch.theme || patch.controlStyle || patch.look) {
+  if (patch.theme || patch.controlStyle || patch.look || patch.advanced) {
     const side = themeById(prefs.theme).tone;
-    prefs.toneLooks = { ...prefs.toneLooks, [side]: { buttons: prefs.controlStyle, look: prefs.look } };
+    prefs.toneLooks = { ...prefs.toneLooks, [side]: snapshotLook(prefs) };
   }
   try {
     localStorage.setItem(KEY, JSON.stringify(prefs));
@@ -228,20 +255,11 @@ export function DensityPicker({ small }: { small?: boolean }) {
   );
 }
 
-/** Sun/moon: swap to the other side's whole look (its colours and its style).
- *  A side you haven't styled yet starts with the style you have now. */
+/** Sun/moon: swap to the other side's whole look (its colours and its style,
+ *  see setLayout). A side never styled starts with the style you have now. */
 export function switchTone() {
   const tone = themeById(prefs.theme).tone;
-  const other = tone === "dark" ? "light" : "dark";
-  const next = other === "dark" ? prefs.darkPick : prefs.lightPick;
-  // Keep this side's look before leaving it (it may never have been saved).
-  prefs.toneLooks = { ...prefs.toneLooks, [tone]: { buttons: prefs.controlStyle, look: prefs.look } };
-  const saved = prefs.toneLooks[other];
-  setLayout({
-    theme: next,
-    controlStyle: saved?.buttons ?? prefs.controlStyle,
-    look: saved ? { ...ASPECT_DEFAULTS, ...saved.look } : prefs.look,
-  });
+  setLayout({ theme: tone === "dark" ? prefs.lightPick : prefs.darkPick });
 }
 
 export function ThemeToggle() {
