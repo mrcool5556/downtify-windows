@@ -65,14 +65,20 @@ export function ThemePage({ settings, onSettings }: { settings: Settings; onSett
           <h2>Advanced</h2>
           <small className="hint">Style and show each part of the player on its own</small>
         </summary>
-        <p className="hint">"Follow" uses the Controls choice above (or the mini player's own, in the mini).</p>
+        <p className="hint">"Follow" uses the Buttons choice in Style above (or the mini player's own, in the mini). Pick another style to give just that part its own look.</p>
         {GROUPS.map((g) => (
-          <div key={g.key} className="setting-row">
+          <div key={g.key} className="setting-row mix-row">
             <span>{g.label}</span>
-            <div className="seg seg-text" role="radiogroup" aria-label={g.label}>
-              {(["follow", "modern", "heavy"] as GroupStyle[]).map((v) => (
-                <button key={v} className={p.advanced[g.key] === v ? "on" : ""} onClick={() => setLayout({ advanced: { ...p.advanced, [g.key as GroupKey]: v } })}>
-                  {v === "follow" ? "Follow" : v === "modern" ? "Modern" : "Heavy"}
+            <div className="seg seg-text seg-wrap" role="radiogroup" aria-label={g.label}>
+              {(
+                [
+                  ["follow", "Follow", "Same as the Buttons choice in Style"],
+                  // Sliders only come flat or lipped; the other styles are for keys.
+                  ...BUTTON_STYLES.filter(([v]) => g.key !== "sliders" || v === "modern" || v === "heavy"),
+                ] as [GroupStyle, string, string][]
+              ).map(([v, label, tip]) => (
+                <button key={v} className={p.advanced[g.key] === v ? "on" : ""} title={tip} onClick={() => setLayout({ advanced: { ...p.advanced, [g.key as GroupKey]: v } })}>
+                  {label}
                 </button>
               ))}
             </div>
@@ -80,8 +86,8 @@ export function ThemePage({ settings, onSettings }: { settings: Settings; onSett
         ))}
         <h3 className="adv-sub">Shape and selection</h3>
         <div className="setting-row">
-          <span>Button shape</span>
-          <div className="seg seg-text" role="radiogroup" aria-label="Button shape">
+          <span>Player key shape</span>
+          <div className="seg seg-text" role="radiogroup" aria-label="Player key shape">
             {(
               [
                 ["default", "Default"],
@@ -110,7 +116,7 @@ export function ThemePage({ settings, onSettings }: { settings: Settings; onSett
             ))}
           </div>
         </div>
-        <p className="hint">Default keeps each style's own corners: a round play button in Modern, square keys in Heavy. Highlighted adds an accent bar and tint, pressed in when the controls are Heavy.</p>
+        <p className="hint">Player key shape is for the round player keys only (Corners in Style covers panels, cards and text buttons). Default keeps each style's own: a round play key when Flat, square keys when Lipped. Highlighted adds an accent bar and tint to selected rows, pressed in when the buttons are Lipped.</p>
 
         <h3 className="adv-sub">Show</h3>
         <p className="hint">Turned off, an item is hidden in both the full window and the mini. The mini also hides items on its own when it gets narrow; they stay in its right-click menu.</p>
@@ -213,7 +219,7 @@ export function ThemePage({ settings, onSettings }: { settings: Settings; onSett
   );
 }
 
-/** The lip choices only matter when something is Lipped (Heavy). */
+/** The lip choices only matter when something is Lipped. */
 function usesLip(main: ControlStyle, advanced: Record<GroupKey, GroupStyle>): boolean {
   return main === "heavy" || Object.values(advanced).includes("heavy");
 }
