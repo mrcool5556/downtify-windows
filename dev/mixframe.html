@@ -1,0 +1,90 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>mix frame</title>
+    <!-- One mix, set from the query string (?theme=&style=&font=&corners=&surface=&lip=&lipshadow=&inputs=&toggles=&shape=&play=…).
+         Uses the app's real stylesheets with copies of the markup each setting touches. See dev/mixtest.html. -->
+    <script type="module">
+      import "/src/styles.css";
+      import "/src/themes.css";
+      import "/src/mix.css";
+      import "/src/mini-readable.css";
+      const LIGHT = ["studio-light", "retro-console", "cozy", "lavender-glass", "machined-light"];
+      const q = new URLSearchParams(location.search);
+      const r = document.documentElement;
+      const theme = q.get("theme") || "downtify";
+      r.dataset.theme = theme;
+      r.dataset.tone = LIGHT.includes(theme) ? "light" : "dark";
+      const style = q.get("style") || "modern";
+      r.dataset.style = style;
+      for (const g of ["play", "skip", "toggles", "status", "sliders", "topbar"]) r.setAttribute(`data-s-${g}`, q.get(g) || style);
+      r.dataset.shape = q.get("shape") || "default";
+      r.dataset.rows = "simple";
+      for (const k of ["font", "corners", "surface", "lip", "lipshadow", "inputs", "toggles"]) {
+        const v = q.get(k);
+        if (v && v !== "theme") r.setAttribute(`data-${k}`, v);
+      }
+      document.getElementById("label").textContent = q.get("label") || "";
+      // view=bar: only the top bar and player bar (for the key sheets)
+      if (q.get("view") === "bar") document.body.classList.add("bar-only");
+    </script>
+    <style>
+      html, body { margin: 0; height: auto; overflow: hidden; }
+      body { padding: 6px; background: var(--bg); color: var(--fg); font-size: 12px; }
+      #label { font: 600 11px/1.2 system-ui; opacity: .8; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .row { display: flex; gap: 8px; align-items: flex-start; }
+      .card { padding: 10px; width: auto; }
+      .card h2 { margin: 0 0 6px; font-size: 14px; }
+      .setting-row { padding: 4px 0; }
+      .tile { width: 92px; }
+      .ctx { position: static; display: inline-block; }
+      body.bar-only .row { display: none; }
+      .playerbar { min-height: 60px; padding: 4px 8px; grid-template-columns: 1fr 2fr 1fr; }
+    </style>
+  </head>
+  <body>
+    <div id="label"></div>
+    <header class="topbar" style="display:flex;gap:6px;align-items:center;padding:4px 0">
+      <div class="histnav"><button class="icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 3 5 8l5 5"/></svg></button></div>
+      <div class="searchbox"><span class="searchbox-icon">⌕</span><input placeholder="Search everything" /><kbd>Ctrl K</kbd></div>
+      <div class="topbar-right"><button class="icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="3"/></svg></button></div>
+      <button class="ghost syncbtn">Sync</button>
+    </header>
+    <div class="row">
+      <section class="card">
+        <h2>Settings card</h2>
+        <div class="setting-row"><div class="seg seg-text"><button class="on">One</button><button>Two</button><button>Three</button></div></div>
+        <div class="setting-row" style="gap:6px;justify-content:flex-start"><button class="primary">Save</button><button class="small">Check</button><button class="ghost">Cancel</button><button class="danger">Delete</button></div>
+        <div class="setting-row" style="gap:6px;justify-content:flex-start"><input value="Text field" style="width:100px" /><select><option>Dropdown</option></select></div>
+        <label class="check"><input type="checkbox" checked /> Checkbox on</label>
+        <label class="check"><input type="checkbox" /> Checkbox off</label>
+        <div class="setting-row" style="gap:10px;justify-content:flex-start">
+          <span class="pill-toggle on"><span class="pill-knob"></span></span>
+          <span class="pill-toggle"><span class="pill-knob"></span></span>
+        </div>
+      </section>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button class="tile"><div class="tile-art" style="height:70px;background:linear-gradient(135deg,#c33,#339)"></div><div class="tile-title">Album</div><div class="tile-sub">Artist</div></button>
+        <div class="ctx"><ul class="ctx-list"><li class="ctx-item"><span class="ctx-check"></span><span class="ctx-label">Play</span></li><li class="ctx-item"><span class="ctx-check"></span><span class="ctx-label">Add to playlist</span></li></ul></div>
+      </div>
+    </div>
+    <footer class="playerbar">
+      <div class="pb-track"><div class="pb-art placeholder">♫</div><div class="pb-meta"><div class="pb-title">Song title</div><div class="pb-sub">Artist</div></div>
+        <span class="k-status"><button class="icon heart k-status k-heart">♡</button></span></div>
+      <div class="pb-center">
+        <div class="pb-controls">
+          <button class="icon k-util"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/></svg></button>
+          <button class="icon k-toggle on"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h3l6 8h3M2 12h3l6-8h3"/></svg></button>
+          <button class="icon k-skip k-prev"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M4 3h2v10H4zM13 3 7 8l6 5z"/></svg></button>
+          <button class="icon big k-play"><svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M5 3l8 5-8 5z"/></svg></button>
+          <button class="icon k-skip"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M10 3h2v10h-2zM3 3l6 5-6 5z"/></svg></button>
+          <button class="icon k-toggle"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7V6a2 2 0 0 1 2-2h8M13 9v1a2 2 0 0 1-2 2H3"/></svg></button>
+          <button class="icon k-util"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h9M2 8h9M2 12h6"/></svg></button>
+        </div>
+        <div class="pb-seek"><span class="pb-time">1:10</span><input type="range" min="0" max="100" value="40" style="background-size:40% 100%" /><span class="pb-time">3:07</span></div>
+      </div>
+      <div class="pb-right"><button class="icon k-util">♪</button><input class="pb-volume" type="range" min="0" max="100" value="60" style="background-size:60% 100%" /></div>
+    </footer>
+  </body>
+</html>

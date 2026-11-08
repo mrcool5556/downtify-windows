@@ -75,6 +75,10 @@ TB = [  # text buttons
     ".card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *)",
     ".confirm-box button:not(.icon, .link)",
 ]
+# Wrapped in :where() so the generic text-button rules carry no weight of
+# their own: the main action (button.primary) and Delete (button.danger)
+# rules always win over them, whatever box the button sits in.
+TB_SEL = ":where(" + ", ".join(TB) + ")"
 FIELDS = [
     'input:not([type="range"], [type="checkbox"], [type="radio"], .searchbox *, .rename)',
     "select",
@@ -93,7 +97,7 @@ for k, (sm, md, lg, art) in {
     w(f':root[data-corners="{k}"] {{\n  --r-sm: {sm};\n  --r-md: {md};\n  --r-lg: {lg};\n  --r-art: {art};\n}}')
 def sel(prefix, items):
     return ",\n".join(f"{prefix} {s}" for s in items)
-w(sel(":root[data-corners]", TB + FIELDS + [".seg"]) + " {\n  border-radius: var(--r-md);\n}")
+w(sel(":root[data-corners]", [TB_SEL] + FIELDS + [".seg"]) + " {\n  border-radius: var(--r-md);\n}")
 w(sel(":root[data-corners]", IN_SURF + FLOAT_SURF + [".theme-card", ".style-opt", ".toast"]) + " {\n  border-radius: var(--r-lg);\n}")
 w(sel(":root[data-corners]", [".ctx-item", ".badge"]) + " {\n  border-radius: var(--r-sm);\n}")
 w(sel(":root[data-corners]", ART) + " {\n  border-radius: var(--r-art);\n}")
@@ -126,7 +130,7 @@ for k, g in {
     "accent": "linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 30%, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.38) 100%), var(--accent)",
 }.items():
     w(f':root[data-lip="{k}"] {{\n  --lip: {g};\n}}')
-w(':root[data-lipshadow="none"] {\n  --lip-ring: 0 0 #0000;\n  --lip-drop: none;\n}\n:root,\n:root[data-lipshadow="drop"] {\n  --lip-drop: 0 0 0 1px rgba(0, 0, 0, 0.45), 0 2px 3px rgba(0, 0, 0, 0.35);\n}')
+w(':root[data-lipshadow="none"] {\n  --lip-ring: 0 0 #0000;\n  --lip-drop: none;\n}\n:root,\n:root[data-lipshadow="drop"] {\n  --lip-drop: 0 0 0 1px rgba(0, 0, 0, 0.45), 0 2px 3px rgba(0, 0, 0, 0.35);\n}\n/* Drop shadow reaches the Lipped player keys too (their edge is --lip-ring) */\n:root[data-lipshadow=\"drop\"] {\n  --lip-ring: 0 0 0 1px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.45);\n}')
 
 # ── buttons ──────────────────────────────────────────────────────────────
 w("\n/* ── Buttons ──\n   Text buttons follow the main choice (data-style); player keys follow\n   their part (data-s-*), as Heavy always has. */")
@@ -142,9 +146,11 @@ def keys(v):
         f':root[data-s-topbar="{v}"] .syncbtn',
     ]
 def play(v):
-    return [f':root[data-s-play="{v}"] .k-play']
+    return [f':root[data-s-play="{v}"] button.icon.k-play']
 def tb(v):
-    return [f':root[data-style="{v}"] {s}' for s in TB]
+    return [f':root[data-style="{v}"] {TB_SEL}']
+def danger(v):
+    return [f':root[data-style="{v}"] button.danger']
 def primary(v):
     return [f':root[data-style="{v}"] button.primary']
 def j(lst, suffix=""):
@@ -153,6 +159,7 @@ def j(lst, suffix=""):
 # Lipped text buttons (Heavy keys already have their own rules in themes.css).
 w(j(tb("heavy")) + " {\n  border: 3px solid transparent;\n  background: linear-gradient(var(--face, var(--bg-3)), var(--face, var(--bg-3))) padding-box, var(--lip) border-box;\n  box-shadow: var(--lip-drop);\n}")
 w(j(primary("heavy")) + " {\n  --face: var(--accent);\n}")
+w(j(danger("heavy")) + " {\n  --face: var(--danger);\n  color: #fff;\n}")
 w(j(tb("heavy"), ":active:not(:disabled)") + " {\n  transform: translateY(1px);\n  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.35);\n}")
 
 KEY_SIZE = "min-width: 30px;\n  min-height: 28px;\n  padding: 3px 7px;"
@@ -162,6 +169,12 @@ for v in ["raised", "inset", "neon", "cut-paper", "bevel95"]:
     w(j(k) + " {\n  " + KEY_SIZE + "\n}")
     w(j(k + t) + " {\n  --face: var(--bg-3);\n}")
     w(j(p + pr) + " {\n  --face: var(--accent);\n  color: var(--on-accent);\n}")
+    if v == "inset":
+        w(j(danger(v)) + " {\n  color: var(--danger);\n}")
+    elif v == "neon":
+        w(j(danger(v)) + " {\n  color: var(--danger);\n  border-color: var(--danger);\n}")
+    else:
+        w(j(danger(v)) + " {\n  --face: var(--danger);\n  color: #fff;\n}")
     allb = k + p + t
     if v == "raised":
         w(j(allb) + " {\n  border-color: transparent;\n  background: var(--face);\n  box-shadow: var(--bevel), 0 2px 0 rgba(0, 0, 0, 0.18);\n}")
@@ -183,6 +196,28 @@ for v in ["raised", "inset", "neon", "cut-paper", "bevel95"]:
         w(j(allb, ":active:not(:disabled)") + " {\n  box-shadow: inset 1px 1px rgba(0, 0, 0, 0.65), inset -1px -1px rgba(255, 255, 255, 0.85), inset 2px 2px rgba(0, 0, 0, 0.3), inset -2px -2px rgba(255, 255, 255, 0.35);\n}")
     # Toggles that are on keep the accent so you can tell.
     w(j([s + ".on" for s in k]) + " {\n  color: var(--accent);\n}")
+
+# Play key hover keeps its face in the faced styles.
+PLAY_HOVER = {
+    "raised": "background: var(--face);" + "\n  color: var(--on-accent);",
+    "bevel95": "background: var(--face);" + "\n  color: var(--on-accent);",
+    "cut-paper": "background-color: var(--face);" + "\n  color: var(--on-accent);",
+    "inset": "background: color-mix(in srgb, var(--accent) 24%, var(--bg-3));" + "\n  color: var(--accent);",
+    "neon": "background: var(--accent);" + "\n  color: var(--on-accent);",
+}
+w("/* Play key hover keeps its face in the faced styles */")
+for v, body in PLAY_HOVER.items():
+    w(j(play(v), ":hover:not(:disabled)") + " {\n  " + body + "\n}")
+
+# An explicit Player key shape (Advanced) beats a button style's own corners
+# (Cut paper and 90s bevel square theirs off). Same weight as the style
+# rules and later, so it wins; "Default" adds no attribute rule, so each
+# style keeps its own.
+KEYSEL = ["button.icon:is(.k-play, .k-skip, .k-toggle, .k-util)", ".k-status button.icon", ".k-status.icon"]
+w("/* Player key shape (Advanced) wins over a style's own corners */")
+w(sel(':root[data-shape="round"]', KEYSEL) + " {\n  border-radius: 999px;\n}")
+w(sel(':root[data-shape="square"]', KEYSEL[1:] + ["button.icon:is(.k-skip, .k-toggle, .k-util)"]) + " {\n  border-radius: 8px;\n}")
+w(':root[data-shape="square"] button.icon.k-play {\n  border-radius: 10px;\n}')
 
 # ── text fields ──────────────────────────────────────────────────────────
 w("\n/* ── Text fields ── */")
@@ -399,3 +434,139 @@ mini = """
 """
 open("src/mix.css", "a", encoding="utf-8").write(mini)
 print("added mini window surfaces")
+
+# ── Settings checkboxes follow Switches too ──────────────────────────────
+# The app's on/off settings are plain checkboxes in label.check rows; with a
+# Switches choice they're drawn as that switch (no attribute = the native
+# checkbox, as before).
+checks = """
+/* ── Settings checkboxes take the Switches style ── */
+:root[data-toggles] .check input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex-shrink: 0;
+  margin: 0 2px 0 0;
+  cursor: pointer;
+  vertical-align: middle;
+}
+:root[data-toggles] .check input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+}
+:root[data-toggles] .check input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+:root[data-toggles="pill"] .check input[type="checkbox"] {
+  width: 34px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--border);
+  transition: background 0.15s;
+}
+:root[data-toggles="pill"] .check input[type="checkbox"]::after {
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--fg);
+  transition: transform 0.15s;
+}
+:root[data-toggles="pill"] .check input[type="checkbox"]:checked {
+  background: var(--accent);
+}
+:root[data-toggles="pill"] .check input[type="checkbox"]:checked::after {
+  transform: translateX(14px);
+  background: var(--on-accent);
+}
+
+:root[data-toggles="flap"] .check input[type="checkbox"] {
+  width: 44px;
+  height: 22px;
+  border-radius: 3px;
+  background: var(--bg-3);
+  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.3);
+  perspective: 200px;
+}
+:root[data-toggles="flap"] .check input[type="checkbox"]::after {
+  inset: 3px;
+  border-radius: 2px;
+  display: grid;
+  place-items: center;
+  content: "OFF";
+  font: 700 9px/1 var(--app-font);
+  letter-spacing: 0.08em;
+  color: var(--fg-2);
+  background-color: var(--bg-2);
+  background-image: var(--uix-fiber);
+  background-size: 240px 240px;
+  background-blend-mode: multiply;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  transition: transform 0.35s cubic-bezier(0.3, 1.4, 0.5, 1), background-color 0.2s;
+}
+:root[data-toggles="flap"] .check input[type="checkbox"]:checked::after {
+  content: "ON";
+  color: var(--on-accent);
+  background-color: var(--accent);
+  transform: rotateX(360deg);
+}
+
+:root[data-toggles="retro"] .check input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  border-radius: 0;
+  background: var(--bg-2);
+  box-shadow: inset 1px 1px rgba(0, 0, 0, 0.65), inset -1px -1px rgba(255, 255, 255, 0.85), inset 2px 2px rgba(0, 0, 0, 0.3), inset -2px -2px rgba(255, 255, 255, 0.35);
+}
+:root[data-toggles="retro"] .check input[type="checkbox"]::after {
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font: 700 12px/1 var(--app-font);
+  color: var(--fg);
+}
+:root[data-toggles="retro"] .check input[type="checkbox"]:checked::after {
+  content: "\2713";
+}
+"""
+open("src/mix.css", "a", encoding="utf-8").write(checks)
+print("added checkbox switches")
+
+# ── Paper texture over see-through colours ───────────────────────────────
+# The glass themes' panel and key colours are partly transparent, and the
+# fibre texture (multiplied over them) then shows nearly white, hiding the
+# text. Every paper layer gets the page colour underneath: page colour,
+# then the panel/key colour, then the fibre on top.
+import re as _re
+css = open("src/mix.css", encoding="utf-8").read()
+pat = _re.compile(
+    r"background-color: (var\(--[a-z0-9-]+\));\n(\s*)background-image: var\(--uix-fiber\);\n\s*background-size: 240px 240px;\n\s*background-blend-mode: multiply;"
+)
+css, n = pat.subn(
+    lambda m: (
+        f"background-color: var(--bg);\n{m.group(2)}"
+        f"background-image: var(--uix-fiber), linear-gradient({m.group(1)}, {m.group(1)});\n{m.group(2)}"
+        f"background-size: 240px 240px, auto;\n{m.group(2)}"
+        f"background-blend-mode: multiply, normal;"
+    ),
+    css,
+)
+open("src/mix.css", "w", encoding="utf-8").write(css)
+print("paper layers made solid:", n)
+# Flaps that are ON colour the flap through that middle layer now.
+css = open("src/mix.css", encoding="utf-8").read()
+css, n2 = _re.subn(
+    r"background-color: var\(--accent\);(\n\s*)(color: var\(--on-accent\);\n\s*transform: rotateX\(360deg\);|color: var\(--on-accent\);\n\s*background-color: var\(--accent\);\n\s*transform: rotateX\(360deg\);)",
+    lambda m: f"background-image: var(--uix-fiber), linear-gradient(var(--accent), var(--accent));{m.group(1)}{m.group(2)}",
+    css,
+)
+css, n3 = _re.subn(
+    r"(content: \"ON\";\n\s*color: var\(--on-accent\);\n\s*)background-color: var\(--accent\);",
+    lambda m: m.group(1) + "background-image: var(--uix-fiber), linear-gradient(var(--accent), var(--accent));",
+    css,
+)
+open("src/mix.css", "w", encoding="utf-8").write(css)
+print("flap ON layers:", n2 + n3)

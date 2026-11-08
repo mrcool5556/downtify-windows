@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Mix and match test sheet</title>
+    <!-- Contact sheet for checking that every Style setting mixes with every
+         other: a grid of dev/mixframe.html frames, one mix each, using the
+         app's real stylesheets. Open http://localhost:14230/dev/mixtest.html
+         while the dev server runs; ?sheet=<name> picks a sweep (see SHEETS). -->
+    <style>
+      body { margin: 0; padding: 8px; background: #222; color: #ddd; font: 13px system-ui; }
+      h1 { font-size: 15px; margin: 0 0 6px; }
+      .grid { display: grid; grid-template-columns: repeat(var(--cols, 4), 470px); gap: 6px; }
+      iframe { width: 470px; height: 410px; border: 0; background: #000; }
+      .view-bar iframe { height: 150px; }
+    </style>
+  </head>
+  <body>
+    <h1 id="title"></h1>
+    <div class="grid" id="grid"></div>
+    <script>
+      const THEMES4 = ["downtify", "studio-light", "machined", "cozy"];
+      const BUTTONS = ["modern", "heavy", "raised", "inset", "neon", "cut-paper", "bevel95"];
+      const OPTS = {
+        font: ["theme", "studio", "machined", "paper", "pixel", "neon"],
+        corners: ["theme", "sharp", "rounded", "pill"],
+        surface: ["theme", "flat", "soft-inset", "indented", "glass", "paper", "bevel"],
+        lip: ["theme", "gold", "silver", "bronze", "ink", "accent"],
+        lipshadow: ["theme", "none", "drop"],
+        inputs: ["theme", "boxed", "sunk", "underline", "notebook"],
+        toggles: ["theme", "pill", "flap", "retro"],
+      };
+      const ALL_THEMES = ["downtify", "studio-light", "studio-dark", "retro-console", "arcade", "night-glass", "machined", "machined-light", "cozy", "lavender-glass"];
+      const pick = (a) => a[Math.floor(Math.random() * a.length)];
+      // Each sheet: a list of mixes, and how many columns.
+      const SHEETS = {
+        buttons: { cols: 4, mixes: BUTTONS.flatMap((s) => THEMES4.map((t) => ({ theme: t, style: s }))) },
+        shape: { cols: 3, mixes: BUTTONS.flatMap((s) => ["default", "round", "square"].map((sh) => ({ theme: "machined", style: s, shape: sh }))) },
+        lip: { cols: 4, mixes: OPTS.lip.flatMap((l) => THEMES4.map((t) => ({ theme: t, style: "heavy", lip: l }))) },
+        lipshadow: { cols: 3, mixes: THEMES4.flatMap((t) => OPTS.lipshadow.map((l) => ({ theme: t, style: "heavy", lipshadow: l }))) },
+        corners: { cols: 4, mixes: OPTS.corners.flatMap((c) => ["modern", "heavy", "cut-paper", "bevel95"].map((s) => ({ theme: "studio-light", style: s, corners: c }))) },
+        perpart: { cols: 4, mixes: BUTTONS.flatMap((s) => [{ style: "modern", play: s }, { style: s, play: "modern" }, { style: "heavy", skip: s, toggles: s }, { style: s, topbar: "heavy" }].map((m) => ({ theme: "downtify", ...m }))) },
+        random: { cols: 4, mixes: Array.from({ length: 24 }, () => { const m = { theme: pick(ALL_THEMES), style: pick(BUTTONS) }; for (const k in OPTS) m[k] = pick(OPTS[k]); return m; }) },
+      };
+      for (const k of ["font", "surface", "inputs", "toggles"]) SHEETS[k] = { cols: 4, mixes: OPTS[k].flatMap((v) => THEMES4.map((t) => ({ theme: t, [k]: v }))) };
+
+      // Key sheets: just the top bar and player bar, in shorter frames.
+      SHEETS.keys = { cols: 4, view: "bar", mixes: SHEETS.buttons.mixes };
+      SHEETS.shape.view = "bar";
+      SHEETS.perpart.view = "bar";
+      SHEETS.lipshadow.view = "bar";
+      SHEETS.lip.view = "bar";
+      const name = new URLSearchParams(location.search).get("sheet") || "buttons";
+      const sheet = SHEETS[name];
+      document.getElementById("title").textContent = `Sheet: ${name} (${sheet.mixes.length} mixes)`;
+      const grid = document.getElementById("grid");
+      grid.style.setProperty("--cols", sheet.cols);
+      if (sheet.view) document.body.classList.add("view-" + sheet.view);
+      for (const m of sheet.mixes) {
+        const label = Object.entries(m).filter(([, v]) => v && v !== "theme").map(([k, v]) => `${k}=${v}`).join(" ");
+        const f = document.createElement("iframe");
+        f.src = "/dev/mixframe.html?" + new URLSearchParams({ ...m, label, view: sheet.view || "all" });
+        grid.appendChild(f);
+      }
+    </script>
+  </body>
+</html>

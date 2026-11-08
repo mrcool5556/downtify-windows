@@ -258,10 +258,10 @@ h3,
 .brand {
   font-family: var(--app-font-display);
 }
-:root[data-theme="machined"] button.primary,
-:root[data-theme="machined"] button.small,
-:root[data-theme="machined-light"] button.primary,
-:root[data-theme="machined-light"] button.small {
+:root[data-theme="machined"]:not([data-corners]) button.primary,
+:root[data-theme="machined"]:not([data-corners]) button.small,
+:root[data-theme="machined-light"]:not([data-corners]) button.primary,
+:root[data-theme="machined-light"]:not([data-corners]) button.small {
   border-radius: 999px;
 }
 

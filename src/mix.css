@@ -123,13 +123,7 @@
   --r-lg: 28px;
   --r-art: 16px;
 }
-:root[data-corners] button.primary,
-:root[data-corners] button.ghost:not(.syncbtn),
-:root[data-corners] button.small:not(.link),
-:root[data-corners] button.danger,
-:root[data-corners] button.chip-btn,
-:root[data-corners] .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *),
-:root[data-corners] .confirm-box button:not(.icon, .link),
+:root[data-corners] :where(button.primary, button.ghost:not(.syncbtn), button.small:not(.link), button.danger, button.chip-btn, .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *), .confirm-box button:not(.icon, .link)),
 :root[data-corners] input:not([type="range"], [type="checkbox"], [type="radio"], .searchbox *, .rename),
 :root[data-corners] select,
 :root[data-corners] .searchbox,
@@ -206,10 +200,10 @@
 :root[data-surface="paper"] .ctx,
 :root[data-surface="paper"] .confirm-box,
 :root[data-surface="paper"] .overlay-card {
-  background-color: var(--bg-2);
-  background-image: var(--uix-fiber);
-  background-size: 240px 240px;
-  background-blend-mode: multiply;
+  background-color: var(--bg);
+  background-image: var(--uix-fiber), linear-gradient(var(--bg-2), var(--bg-2));
+  background-size: 240px 240px, auto;
+  background-blend-mode: multiply, normal;
   border-color: transparent;
   box-shadow: 0 1px 0 rgba(30, 18, 4, 0.4), 3px 4px 0 rgba(30, 18, 4, 0.22);
 }
@@ -258,17 +252,15 @@
 :root[data-lipshadow="drop"] {
   --lip-drop: 0 0 0 1px rgba(0, 0, 0, 0.45), 0 2px 3px rgba(0, 0, 0, 0.35);
 }
+/* Drop shadow reaches the Lipped player keys too (their edge is --lip-ring) */
+:root[data-lipshadow="drop"] {
+  --lip-ring: 0 0 0 1px rgba(0, 0, 0, 0.45), 0 2px 4px rgba(0, 0, 0, 0.45);
+}
 
 /* ── Buttons ──
    Text buttons follow the main choice (data-style); player keys follow
    their part (data-s-*), as Heavy always has. */
-:root[data-style="heavy"] button.primary,
-:root[data-style="heavy"] button.ghost:not(.syncbtn),
-:root[data-style="heavy"] button.small:not(.link),
-:root[data-style="heavy"] button.danger,
-:root[data-style="heavy"] button.chip-btn,
-:root[data-style="heavy"] .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *),
-:root[data-style="heavy"] .confirm-box button:not(.icon, .link) {
+:root[data-style="heavy"] :where(button.primary, button.ghost:not(.syncbtn), button.small:not(.link), button.danger, button.chip-btn, .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *), .confirm-box button:not(.icon, .link)) {
   border: 3px solid transparent;
   background: linear-gradient(var(--face, var(--bg-3)), var(--face, var(--bg-3))) padding-box, var(--lip) border-box;
   box-shadow: var(--lip-drop);
@@ -276,13 +268,11 @@
 :root[data-style="heavy"] button.primary {
   --face: var(--accent);
 }
-:root[data-style="heavy"] button.primary:active:not(:disabled),
-:root[data-style="heavy"] button.ghost:not(.syncbtn):active:not(:disabled),
-:root[data-style="heavy"] button.small:not(.link):active:not(:disabled),
-:root[data-style="heavy"] button.danger:active:not(:disabled),
-:root[data-style="heavy"] button.chip-btn:active:not(:disabled),
-:root[data-style="heavy"] .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *):active:not(:disabled),
-:root[data-style="heavy"] .confirm-box button:not(.icon, .link):active:not(:disabled) {
+:root[data-style="heavy"] button.danger {
+  --face: var(--danger);
+  color: #fff;
+}
+:root[data-style="heavy"] :where(button.primary, button.ghost:not(.syncbtn), button.small:not(.link), button.danger, button.chip-btn, .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *), .confirm-box button:not(.icon, .link)):active:not(:disabled) {
   transform: translateY(1px);
   box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.35);
 }
@@ -307,19 +297,17 @@
 :root[data-s-topbar="raised"] .histnav .icon,
 :root[data-s-topbar="raised"] .topbar-right > button.icon,
 :root[data-s-topbar="raised"] .syncbtn,
-:root[data-style="raised"] button.primary,
-:root[data-style="raised"] button.ghost:not(.syncbtn),
-:root[data-style="raised"] button.small:not(.link),
-:root[data-style="raised"] button.danger,
-:root[data-style="raised"] button.chip-btn,
-:root[data-style="raised"] .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *),
-:root[data-style="raised"] .confirm-box button:not(.icon, .link) {
+:root[data-style="raised"] :where(button.primary, button.ghost:not(.syncbtn), button.small:not(.link), button.danger, button.chip-btn, .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *), .confirm-box button:not(.icon, .link)) {
   --face: var(--bg-3);
 }
-:root[data-s-play="raised"] .k-play,
+:root[data-s-play="raised"] button.icon.k-play,
 :root[data-style="raised"] button.primary {
   --face: var(--accent);
   color: var(--on-accent);
+}
+:root[data-style="raised"] button.danger {
+  --face: var(--danger);
+  color: #fff;
 }
 :root[data-s-skip="raised"] .k-skip,
 :root[data-s-toggles="raised"] .k-toggle,
@@ -329,14 +317,8 @@
 :root[data-s-topbar="raised"] .histnav .icon,
 :root[data-s-topbar="raised"] .topbar-right > button.icon,
 :root[data-s-topbar="raised"] .syncbtn,
-:root[data-s-play="raised"] .k-play,
-:root[data-style="raised"] button.primary,
-:root[data-style="raised"] button.ghost:not(.syncbtn),
-:root[data-style="raised"] button.small:not(.link),
-:root[data-style="raised"] button.danger,
-:root[data-style="raised"] button.chip-btn,
-:root[data-style="raised"] .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *),
-:root[data-style="raised"] .confirm-box button:not(.icon, .link) {
+:root[data-s-play="raised"] button.icon.k-play,
+:root[data-style="raised"] :where(button.primary, button.ghost:not(.syncbtn), button.small:not(.link), button.danger, button.chip-btn, .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *), .confirm-box button:not(.icon, .link)) {
   border-color: transparent;
   background: var(--face);
   box-shadow: var(--bevel), 0 2px 0 rgba(0, 0, 0, 0.18);
@@ -349,14 +331,8 @@
 :root[data-s-topbar="raised"] .histnav .icon:active:not(:disabled),
 :root[data-s-topbar="raised"] .topbar-right > button.icon:active:not(:disabled),
 :root[data-s-topbar="raised"] .syncbtn:active:not(:disabled),
-:root[data-s-play="raised"] .k-play:active:not(:disabled),
-:root[data-style="raised"] button.primary:active:not(:disabled),
-:root[data-style="raised"] button.ghost:not(.syncbtn):active:not(:disabled),
-:root[data-style="raised"] button.small:not(.link):active:not(:disabled),
-:root[data-style="raised"] button.danger:active:not(:disabled),
-:root[data-style="raised"] button.chip-btn:active:not(:disabled),
-:root[data-style="raised"] .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *):active:not(:disabled),
-:root[data-style="raised"] .confirm-box button:not(.icon, .link):active:not(:disabled) {
+:root[data-s-play="raised"] button.icon.k-play:active:not(:disabled),
+:root[data-style="raised"] :where(button.primary, button.ghost:not(.syncbtn), button.small:not(.link), button.danger, button.chip-btn, .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *), .confirm-box button:not(.icon, .link)):active:not(:disabled) {
   transform: translateY(1px);
   box-shadow: var(--inset);
 }
@@ -391,19 +367,16 @@
 :root[data-s-topbar="inset"] .histnav .icon,
 :root[data-s-topbar="inset"] .topbar-right > button.icon,
 :root[data-s-topbar="inset"] .syncbtn,
-:root[data-style="inset"] button.primary,
-:root[data-style="inset"] button.ghost:not(.syncbtn),
-:root[data-style="inset"] button.small:not(.link),
-:root[data-style="inset"] button.danger,
-:root[data-style="inset"] button.chip-btn,
-:root[data-style="inset"] .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *),
-:root[data-style="inset"] .confirm-box button:not(.icon, .link) {
+:root[data-style="inset"] :where(button.primary, button.ghost:not(.syncbtn), button.small:not(.link), button.danger, button.chip-btn, .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *), .confirm-box button:not(.icon, .link)) {
   --face: var(--bg-3);
 }
-:root[data-s-play="inset"] .k-play,
+:root[data-s-play="inset"] button.icon.k-play,
 :root[data-style="inset"] button.primary {
   --face: var(--accent);
   color: var(--on-accent);
+}
+:root[data-style="inset"] button.danger {
+  color: var(--danger);
 }
 :root[data-s-skip="inset"] .k-skip,
 :root[data-s-toggles="inset"] .k-toggle,
@@ -413,19 +386,13 @@
 :root[data-s-topbar="inset"] .histnav .icon,
 :root[data-s-topbar="inset"] .topbar-right > button.icon,
 :root[data-s-topbar="inset"] .syncbtn,
-:root[data-s-play="inset"] .k-play,
-:root[data-style="inset"] button.primary,
-:root[data-style="inset"] button.ghost:not(.syncbtn),
-:root[data-style="inset"] button.small:not(.link),
-:root[data-style="inset"] button.danger,
-:root[data-style="inset"] button.chip-btn,
-:root[data-style="inset"] .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *),
-:root[data-style="inset"] .confirm-box button:not(.icon, .link) {
+:root[data-s-play="inset"] button.icon.k-play,
+:root[data-style="inset"] :where(button.primary, button.ghost:not(.syncbtn), button.small:not(.link), button.danger, button.chip-btn, .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *), .confirm-box button:not(.icon, .link)) {
   border-color: transparent;
   background: var(--bg-3);
   box-shadow: var(--inset);
 }
-:root[data-s-play="inset"] .k-play,
+:root[data-s-play="inset"] button.icon.k-play,
 :root[data-style="inset"] button.primary {
   background: color-mix(in srgb, var(--accent) 24%, var(--bg-3));
   color: var(--accent);
@@ -438,14 +405,8 @@
 :root[data-s-topbar="inset"] .histnav .icon:active:not(:disabled),
 :root[data-s-topbar="inset"] .topbar-right > button.icon:active:not(:disabled),
 :root[data-s-topbar="inset"] .syncbtn:active:not(:disabled),
-:root[data-s-play="inset"] .k-play:active:not(:disabled),
-:root[data-style="inset"] button.primary:active:not(:disabled),
-:root[data-style="inset"] button.ghost:not(.syncbtn):active:not(:disabled),
-:root[data-style="inset"] button.small:not(.link):active:not(:disabled),
-:root[data-style="inset"] button.danger:active:not(:disabled),
-:root[data-style="inset"] button.chip-btn:active:not(:disabled),
-:root[data-style="inset"] .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *):active:not(:disabled),
-:root[data-style="inset"] .confirm-box button:not(.icon, .link):active:not(:disabled) {
+:root[data-s-play="inset"] button.icon.k-play:active:not(:disabled),
+:root[data-style="inset"] :where(button.primary, button.ghost:not(.syncbtn), button.small:not(.link), button.danger, button.chip-btn, .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *), .confirm-box button:not(.icon, .link)):active:not(:disabled) {
   box-shadow: var(--inset), inset 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 :root[data-s-skip="inset"] .k-skip.on,
@@ -479,19 +440,17 @@
 :root[data-s-topbar="neon"] .histnav .icon,
 :root[data-s-topbar="neon"] .topbar-right > button.icon,
 :root[data-s-topbar="neon"] .syncbtn,
-:root[data-style="neon"] button.primary,
-:root[data-style="neon"] button.ghost:not(.syncbtn),
-:root[data-style="neon"] button.small:not(.link),
-:root[data-style="neon"] button.danger,
-:root[data-style="neon"] button.chip-btn,
-:root[data-style="neon"] .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *),
-:root[data-style="neon"] .confirm-box button:not(.icon, .link) {
+:root[data-style="neon"] :where(button.primary, button.ghost:not(.syncbtn), button.small:not(.link), button.danger, button.chip-btn, .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *), .confirm-box button:not(.icon, .link)) {
   --face: var(--bg-3);
 }
-:root[data-s-play="neon"] .k-play,
+:root[data-s-play="neon"] button.icon.k-play,
 :root[data-style="neon"] button.primary {
   --face: var(--accent);
   color: var(--on-accent);
+}
+:root[data-style="neon"] button.danger {
+  color: var(--danger);
+  border-color: var(--danger);
 }
 :root[data-s-skip="neon"] .k-skip,
 :root[data-s-toggles="neon"] .k-toggle,
@@ -501,20 +460,14 @@
 :root[data-s-topbar="neon"] .histnav .icon,
 :root[data-s-topbar="neon"] .topbar-right > button.icon,
 :root[data-s-topbar="neon"] .syncbtn,
-:root[data-style="neon"] button.primary,
-:root[data-style="neon"] button.ghost:not(.syncbtn),
-:root[data-style="neon"] button.small:not(.link),
-:root[data-style="neon"] button.danger,
-:root[data-style="neon"] button.chip-btn,
-:root[data-style="neon"] .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *),
-:root[data-style="neon"] .confirm-box button:not(.icon, .link) {
+:root[data-style="neon"] :where(button.primary, button.ghost:not(.syncbtn), button.small:not(.link), button.danger, button.chip-btn, .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *), .confirm-box button:not(.icon, .link)) {
   background: transparent;
   color: var(--accent);
   border: 2px solid var(--accent);
   text-shadow: 0 0 6px var(--accent-soft);
   box-shadow: 0 0 8px var(--accent-soft), inset 0 0 8px var(--accent-soft);
 }
-:root[data-s-play="neon"] .k-play,
+:root[data-s-play="neon"] button.icon.k-play,
 :root[data-style="neon"] button.primary {
   background: var(--accent);
   border-color: var(--accent);
@@ -529,14 +482,8 @@
 :root[data-s-topbar="neon"] .histnav .icon:hover:not(:disabled),
 :root[data-s-topbar="neon"] .topbar-right > button.icon:hover:not(:disabled),
 :root[data-s-topbar="neon"] .syncbtn:hover:not(:disabled),
-:root[data-s-play="neon"] .k-play:hover:not(:disabled),
-:root[data-style="neon"] button.primary:hover:not(:disabled),
-:root[data-style="neon"] button.ghost:not(.syncbtn):hover:not(:disabled),
-:root[data-style="neon"] button.small:not(.link):hover:not(:disabled),
-:root[data-style="neon"] button.danger:hover:not(:disabled),
-:root[data-style="neon"] button.chip-btn:hover:not(:disabled),
-:root[data-style="neon"] .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *):hover:not(:disabled),
-:root[data-style="neon"] .confirm-box button:not(.icon, .link):hover:not(:disabled) {
+:root[data-s-play="neon"] button.icon.k-play:hover:not(:disabled),
+:root[data-style="neon"] :where(button.primary, button.ghost:not(.syncbtn), button.small:not(.link), button.danger, button.chip-btn, .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *), .confirm-box button:not(.icon, .link)):hover:not(:disabled) {
   box-shadow: 0 0 16px var(--accent), inset 0 0 12px var(--accent-soft);
 }
 :root[data-s-skip="neon"] .k-skip.on,
@@ -570,19 +517,17 @@
 :root[data-s-topbar="cut-paper"] .histnav .icon,
 :root[data-s-topbar="cut-paper"] .topbar-right > button.icon,
 :root[data-s-topbar="cut-paper"] .syncbtn,
-:root[data-style="cut-paper"] button.primary,
-:root[data-style="cut-paper"] button.ghost:not(.syncbtn),
-:root[data-style="cut-paper"] button.small:not(.link),
-:root[data-style="cut-paper"] button.danger,
-:root[data-style="cut-paper"] button.chip-btn,
-:root[data-style="cut-paper"] .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *),
-:root[data-style="cut-paper"] .confirm-box button:not(.icon, .link) {
+:root[data-style="cut-paper"] :where(button.primary, button.ghost:not(.syncbtn), button.small:not(.link), button.danger, button.chip-btn, .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *), .confirm-box button:not(.icon, .link)) {
   --face: var(--bg-3);
 }
-:root[data-s-play="cut-paper"] .k-play,
+:root[data-s-play="cut-paper"] button.icon.k-play,
 :root[data-style="cut-paper"] button.primary {
   --face: var(--accent);
   color: var(--on-accent);
+}
+:root[data-style="cut-paper"] button.danger {
+  --face: var(--danger);
+  color: #fff;
 }
 :root[data-s-skip="cut-paper"] .k-skip,
 :root[data-s-toggles="cut-paper"] .k-toggle,
@@ -592,20 +537,14 @@
 :root[data-s-topbar="cut-paper"] .histnav .icon,
 :root[data-s-topbar="cut-paper"] .topbar-right > button.icon,
 :root[data-s-topbar="cut-paper"] .syncbtn,
-:root[data-s-play="cut-paper"] .k-play,
-:root[data-style="cut-paper"] button.primary,
-:root[data-style="cut-paper"] button.ghost:not(.syncbtn),
-:root[data-style="cut-paper"] button.small:not(.link),
-:root[data-style="cut-paper"] button.danger,
-:root[data-style="cut-paper"] button.chip-btn,
-:root[data-style="cut-paper"] .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *),
-:root[data-style="cut-paper"] .confirm-box button:not(.icon, .link) {
+:root[data-s-play="cut-paper"] button.icon.k-play,
+:root[data-style="cut-paper"] :where(button.primary, button.ghost:not(.syncbtn), button.small:not(.link), button.danger, button.chip-btn, .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *), .confirm-box button:not(.icon, .link)) {
   border: 0;
   border-radius: 2px;
-  background-color: var(--face);
-  background-image: var(--uix-fiber);
-  background-size: 240px 240px;
-  background-blend-mode: multiply;
+  background-color: var(--bg);
+  background-image: var(--uix-fiber), linear-gradient(var(--face), var(--face));
+  background-size: 240px 240px, auto;
+  background-blend-mode: multiply, normal;
   box-shadow: 0 1px 0 rgba(30, 18, 4, 0.45), 4px 4px 0 rgba(30, 18, 4, 0.3);
   transform: rotate(-0.6deg);
 }
@@ -617,14 +556,8 @@
 :root[data-s-topbar="cut-paper"] .histnav .icon:hover:not(:disabled),
 :root[data-s-topbar="cut-paper"] .topbar-right > button.icon:hover:not(:disabled),
 :root[data-s-topbar="cut-paper"] .syncbtn:hover:not(:disabled),
-:root[data-s-play="cut-paper"] .k-play:hover:not(:disabled),
-:root[data-style="cut-paper"] button.primary:hover:not(:disabled),
-:root[data-style="cut-paper"] button.ghost:not(.syncbtn):hover:not(:disabled),
-:root[data-style="cut-paper"] button.small:not(.link):hover:not(:disabled),
-:root[data-style="cut-paper"] button.danger:hover:not(:disabled),
-:root[data-style="cut-paper"] button.chip-btn:hover:not(:disabled),
-:root[data-style="cut-paper"] .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *):hover:not(:disabled),
-:root[data-style="cut-paper"] .confirm-box button:not(.icon, .link):hover:not(:disabled) {
+:root[data-s-play="cut-paper"] button.icon.k-play:hover:not(:disabled),
+:root[data-style="cut-paper"] :where(button.primary, button.ghost:not(.syncbtn), button.small:not(.link), button.danger, button.chip-btn, .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *), .confirm-box button:not(.icon, .link)):hover:not(:disabled) {
   transform: rotate(-0.6deg) translate(-1px, -1px);
   box-shadow: 0 1px 0 rgba(30, 18, 4, 0.45), 5px 5px 0 rgba(30, 18, 4, 0.3);
 }
@@ -636,14 +569,8 @@
 :root[data-s-topbar="cut-paper"] .histnav .icon:active:not(:disabled),
 :root[data-s-topbar="cut-paper"] .topbar-right > button.icon:active:not(:disabled),
 :root[data-s-topbar="cut-paper"] .syncbtn:active:not(:disabled),
-:root[data-s-play="cut-paper"] .k-play:active:not(:disabled),
-:root[data-style="cut-paper"] button.primary:active:not(:disabled),
-:root[data-style="cut-paper"] button.ghost:not(.syncbtn):active:not(:disabled),
-:root[data-style="cut-paper"] button.small:not(.link):active:not(:disabled),
-:root[data-style="cut-paper"] button.danger:active:not(:disabled),
-:root[data-style="cut-paper"] button.chip-btn:active:not(:disabled),
-:root[data-style="cut-paper"] .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *):active:not(:disabled),
-:root[data-style="cut-paper"] .confirm-box button:not(.icon, .link):active:not(:disabled) {
+:root[data-s-play="cut-paper"] button.icon.k-play:active:not(:disabled),
+:root[data-style="cut-paper"] :where(button.primary, button.ghost:not(.syncbtn), button.small:not(.link), button.danger, button.chip-btn, .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *), .confirm-box button:not(.icon, .link)):active:not(:disabled) {
   transform: rotate(-0.6deg) translate(2px, -2px);
   box-shadow: 0 1px 0 rgba(30, 18, 4, 0.5), 1px 1px 0 rgba(30, 18, 4, 0.3);
 }
@@ -678,19 +605,17 @@
 :root[data-s-topbar="bevel95"] .histnav .icon,
 :root[data-s-topbar="bevel95"] .topbar-right > button.icon,
 :root[data-s-topbar="bevel95"] .syncbtn,
-:root[data-style="bevel95"] button.primary,
-:root[data-style="bevel95"] button.ghost:not(.syncbtn),
-:root[data-style="bevel95"] button.small:not(.link),
-:root[data-style="bevel95"] button.danger,
-:root[data-style="bevel95"] button.chip-btn,
-:root[data-style="bevel95"] .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *),
-:root[data-style="bevel95"] .confirm-box button:not(.icon, .link) {
+:root[data-style="bevel95"] :where(button.primary, button.ghost:not(.syncbtn), button.small:not(.link), button.danger, button.chip-btn, .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *), .confirm-box button:not(.icon, .link)) {
   --face: var(--bg-3);
 }
-:root[data-s-play="bevel95"] .k-play,
+:root[data-s-play="bevel95"] button.icon.k-play,
 :root[data-style="bevel95"] button.primary {
   --face: var(--accent);
   color: var(--on-accent);
+}
+:root[data-style="bevel95"] button.danger {
+  --face: var(--danger);
+  color: #fff;
 }
 :root[data-s-skip="bevel95"] .k-skip,
 :root[data-s-toggles="bevel95"] .k-toggle,
@@ -700,14 +625,8 @@
 :root[data-s-topbar="bevel95"] .histnav .icon,
 :root[data-s-topbar="bevel95"] .topbar-right > button.icon,
 :root[data-s-topbar="bevel95"] .syncbtn,
-:root[data-s-play="bevel95"] .k-play,
-:root[data-style="bevel95"] button.primary,
-:root[data-style="bevel95"] button.ghost:not(.syncbtn),
-:root[data-style="bevel95"] button.small:not(.link),
-:root[data-style="bevel95"] button.danger,
-:root[data-style="bevel95"] button.chip-btn,
-:root[data-style="bevel95"] .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *),
-:root[data-style="bevel95"] .confirm-box button:not(.icon, .link) {
+:root[data-s-play="bevel95"] button.icon.k-play,
+:root[data-style="bevel95"] :where(button.primary, button.ghost:not(.syncbtn), button.small:not(.link), button.danger, button.chip-btn, .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *), .confirm-box button:not(.icon, .link)) {
   border: 0;
   border-radius: 0;
   background: var(--face);
@@ -722,14 +641,8 @@
 :root[data-s-topbar="bevel95"] .histnav .icon:active:not(:disabled),
 :root[data-s-topbar="bevel95"] .topbar-right > button.icon:active:not(:disabled),
 :root[data-s-topbar="bevel95"] .syncbtn:active:not(:disabled),
-:root[data-s-play="bevel95"] .k-play:active:not(:disabled),
-:root[data-style="bevel95"] button.primary:active:not(:disabled),
-:root[data-style="bevel95"] button.ghost:not(.syncbtn):active:not(:disabled),
-:root[data-style="bevel95"] button.small:not(.link):active:not(:disabled),
-:root[data-style="bevel95"] button.danger:active:not(:disabled),
-:root[data-style="bevel95"] button.chip-btn:active:not(:disabled),
-:root[data-style="bevel95"] .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *):active:not(:disabled),
-:root[data-style="bevel95"] .confirm-box button:not(.icon, .link):active:not(:disabled) {
+:root[data-s-play="bevel95"] button.icon.k-play:active:not(:disabled),
+:root[data-style="bevel95"] :where(button.primary, button.ghost:not(.syncbtn), button.small:not(.link), button.danger, button.chip-btn, .card button:not(.icon, .link, .theme-card, .style-opt, .cell-link, .tile, .nav, .pl, .seg *), .confirm-box button:not(.icon, .link)):active:not(:disabled) {
   box-shadow: inset 1px 1px rgba(0, 0, 0, 0.65), inset -1px -1px rgba(255, 255, 255, 0.85), inset 2px 2px rgba(0, 0, 0, 0.3), inset -2px -2px rgba(255, 255, 255, 0.35);
 }
 :root[data-s-skip="bevel95"] .k-skip.on,
@@ -741,6 +654,41 @@
 :root[data-s-topbar="bevel95"] .topbar-right > button.icon.on,
 :root[data-s-topbar="bevel95"] .syncbtn.on {
   color: var(--accent);
+}
+/* Play key hover keeps its face in the faced styles */
+:root[data-s-play="raised"] button.icon.k-play:hover:not(:disabled) {
+  background: var(--face);
+  color: var(--on-accent);
+}
+:root[data-s-play="bevel95"] button.icon.k-play:hover:not(:disabled) {
+  background: var(--face);
+  color: var(--on-accent);
+}
+:root[data-s-play="cut-paper"] button.icon.k-play:hover:not(:disabled) {
+  background-color: var(--face);
+  color: var(--on-accent);
+}
+:root[data-s-play="inset"] button.icon.k-play:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 24%, var(--bg-3));
+  color: var(--accent);
+}
+:root[data-s-play="neon"] button.icon.k-play:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+/* Player key shape (Advanced) wins over a style's own corners */
+:root[data-shape="round"] button.icon:is(.k-play, .k-skip, .k-toggle, .k-util),
+:root[data-shape="round"] .k-status button.icon,
+:root[data-shape="round"] .k-status.icon {
+  border-radius: 999px;
+}
+:root[data-shape="square"] .k-status button.icon,
+:root[data-shape="square"] .k-status.icon,
+:root[data-shape="square"] button.icon:is(.k-skip, .k-toggle, .k-util) {
+  border-radius: 8px;
+}
+:root[data-shape="square"] button.icon.k-play {
+  border-radius: 10px;
 }
 
 /* ── Text fields ── */
@@ -828,10 +776,10 @@
   border-radius: 2px;
   display: grid;
   place-items: center;
-  background-color: var(--bg-2);
-  background-image: var(--uix-fiber);
-  background-size: 240px 240px;
-  background-blend-mode: multiply;
+  background-color: var(--bg);
+  background-image: var(--uix-fiber), linear-gradient(var(--bg-2), var(--bg-2));
+  background-size: 240px 240px, auto;
+  background-blend-mode: multiply, normal;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   transform: none;
   transition: transform 0.35s cubic-bezier(0.3, 1.4, 0.5, 1), background-color 0.2s;
@@ -851,7 +799,7 @@
 }
 :root[data-toggles="flap"] .switch input:checked + .slider::after,
 :root[data-toggles="flap"] .pill-toggle.on .pill-knob {
-  background-color: var(--accent);
+  background-image: var(--uix-fiber), linear-gradient(var(--accent), var(--accent));
   color: var(--on-accent);
   transform: rotateX(360deg);
 }
@@ -980,4 +928,96 @@
   z-index: 3;
   box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.5), inset var(--w) var(--w) var(--w) rgba(0, 0, 0, 0.28),
     inset -1px -1px 0 rgba(255, 255, 255, 0.75), inset calc(var(--w) * -1) calc(var(--w) * -1) var(--w) rgba(255, 255, 255, 0.3);
+}
+
+/* ── Settings checkboxes take the Switches style ── */
+:root[data-toggles] .check input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  position: relative;
+  flex-shrink: 0;
+  margin: 0 2px 0 0;
+  cursor: pointer;
+  vertical-align: middle;
+}
+:root[data-toggles] .check input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+}
+:root[data-toggles] .check input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+:root[data-toggles="pill"] .check input[type="checkbox"] {
+  width: 34px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--border);
+  transition: background 0.15s;
+}
+:root[data-toggles="pill"] .check input[type="checkbox"]::after {
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--fg);
+  transition: transform 0.15s;
+}
+:root[data-toggles="pill"] .check input[type="checkbox"]:checked {
+  background: var(--accent);
+}
+:root[data-toggles="pill"] .check input[type="checkbox"]:checked::after {
+  transform: translateX(14px);
+  background: var(--on-accent);
+}
+
+:root[data-toggles="flap"] .check input[type="checkbox"] {
+  width: 44px;
+  height: 22px;
+  border-radius: 3px;
+  background: var(--bg-3);
+  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.3);
+  perspective: 200px;
+}
+:root[data-toggles="flap"] .check input[type="checkbox"]::after {
+  inset: 3px;
+  border-radius: 2px;
+  display: grid;
+  place-items: center;
+  content: "OFF";
+  font: 700 9px/1 var(--app-font);
+  letter-spacing: 0.08em;
+  color: var(--fg-2);
+  background-color: var(--bg);
+  background-image: var(--uix-fiber), linear-gradient(var(--bg-2), var(--bg-2));
+  background-size: 240px 240px, auto;
+  background-blend-mode: multiply, normal;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  transition: transform 0.35s cubic-bezier(0.3, 1.4, 0.5, 1), background-color 0.2s;
+}
+:root[data-toggles="flap"] .check input[type="checkbox"]:checked::after {
+  content: "ON";
+  color: var(--on-accent);
+  background-image: var(--uix-fiber), linear-gradient(var(--accent), var(--accent));
+  transform: rotateX(360deg);
+}
+
+:root[data-toggles="retro"] .check input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  border-radius: 0;
+  background: var(--bg-2);
+  box-shadow: inset 1px 1px rgba(0, 0, 0, 0.65), inset -1px -1px rgba(255, 255, 255, 0.85), inset 2px 2px rgba(0, 0, 0, 0.3), inset -2px -2px rgba(255, 255, 255, 0.35);
+}
+:root[data-toggles="retro"] .check input[type="checkbox"]::after {
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font: 700 12px/1 var(--app-font);
+  color: var(--fg);
+}
+:root[data-toggles="retro"] .check input[type="checkbox"]:checked::after {
+  content: "¹3";
 }
