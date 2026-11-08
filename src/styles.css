@@ -2319,7 +2319,9 @@ button.icon svg {
 .mini.faded .mini-sub,
 .mini.faded .q-sub,
 .mini.faded .mini-drawer-head {
-  color: #d8dce2;
+  color: #fff;
+  /* the small grey line was thin over light backgrounds: 1 px wider letters */
+  -webkit-text-stroke: 1px #fff;
 }
 .mini.faded button.icon,
 .mini.faded input[type="range"] {
