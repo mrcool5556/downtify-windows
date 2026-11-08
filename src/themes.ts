@@ -15,7 +15,34 @@ export type ThemeId =
   | "cozy"
   | "lavender-glass";
 
-export type ControlStyle = "modern" | "heavy";
+/** Button style. "modern" is the library's Flat and "heavy" its Lipped
+ *  (the names the app used first, kept so saved choices still work). */
+export type ControlStyle = "modern" | "heavy" | "raised" | "inset" | "neon" | "cut-paper" | "bevel95";
+
+export const BUTTON_STYLES: [ControlStyle, string, string][] = [
+  ["modern", "Flat", "Quiet, flat buttons (Modern)"],
+  ["heavy", "Lipped", "Raised keys in a metal rim that press down (Heavy)"],
+  ["raised", "Raised", "Keys standing up off the panel"],
+  ["inset", "Inset", "Keys pressed into the panel"],
+  ["neon", "Neon", "Glowing outlines in the theme colour"],
+  ["cut-paper", "Cut paper", "Paper shapes with a hard shadow"],
+  ["bevel95", "90s bevel", "Classic desktop buttons"],
+];
+
+/** The other parts of the look, each picked on its own. "theme" = as the colour theme has it. */
+export const ASPECTS = {
+  font: { label: "Fonts", options: [["theme", "As the theme"], ["studio", "Studio"], ["machined", "Machined"], ["paper", "Paper"], ["pixel", "Pixel"], ["neon", "Neon"]] },
+  corners: { label: "Corners", options: [["theme", "As the theme"], ["sharp", "Sharp"], ["rounded", "Rounded"], ["pill", "Pill"]] },
+  surface: { label: "Windows and cards", options: [["theme", "As the theme"], ["flat", "Flat"], ["soft-inset", "Soft inset"], ["indented", "Indented"], ["glass", "Glass"], ["paper", "Paper"], ["bevel", "Bevel"]] },
+  lip: { label: "Lip metal", options: [["theme", "As the theme"], ["gold", "Gold"], ["silver", "Silver"], ["bronze", "Bronze"], ["ink", "Ink"], ["accent", "Theme colour"]] },
+  lipshadow: { label: "Rim shadow", options: [["theme", "Thin edge"], ["none", "None"], ["drop", "Drop shadow"]] },
+  inputs: { label: "Text fields", options: [["theme", "As the theme"], ["boxed", "Boxed"], ["sunk", "Sunk"], ["underline", "Underline"], ["notebook", "Notebook"]] },
+  toggles: { label: "Switches", options: [["theme", "As the theme"], ["pill", "Pill"], ["flap", "Paper flap"], ["retro", "Retro box"]] },
+} as const;
+export type AspectKey = keyof typeof ASPECTS;
+export type AspectValue<K extends AspectKey> = (typeof ASPECTS)[K]["options"][number][0];
+export type Aspects = { [K in AspectKey]: AspectValue<K> };
+export const ASPECT_DEFAULTS: Aspects = { font: "theme", corners: "theme", surface: "theme", lip: "theme", lipshadow: "theme", inputs: "theme", toggles: "theme" };
 
 export interface ThemeInfo {
   id: ThemeId;

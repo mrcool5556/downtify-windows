@@ -3168,3 +3168,17 @@ details.adv > summary h2 {
   opacity: 1;
   transform: scale(1.06);
 }
+
+/* Theme page → Style: one row per part of the look. Long option lists wrap. */
+.mix-row > span {
+  flex-shrink: 0;
+  min-width: 120px;
+}
+.seg.seg-wrap {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  height: auto;
+}
+.mix-note {
+  color: var(--warn);
+}

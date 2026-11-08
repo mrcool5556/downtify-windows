@@ -1,5 +1,5 @@
 import { ButtonShape, GROUPS, GroupKey, GroupStyle, RowStyle, ShowKey, setLayout, useLayout } from "../layout";
-import { ControlStyle, THEMES, ThemeId, ThemeInfo, themeById } from "../themes";
+import { ASPECTS, AspectKey, Aspects, BUTTON_STYLES, ControlStyle, THEMES, ThemeId, ThemeInfo, themeById } from "../themes";
 import { invoke } from "@tauri-apps/api/core";
 import { Settings } from "../api";
 
@@ -25,8 +25,24 @@ export function ThemePage({ settings, onSettings }: { settings: Settings; onSett
       </section>
 
       <section className="card">
-        <h2>Controls</h2>
-        <StyleChoice value={p.controlStyle} onChange={(v) => setLayout({ controlStyle: v })} />
+        <h2>Style</h2>
+        <p className="hint">Each part of the look is picked on its own, so you can mix them freely. "As the theme" keeps the colour theme's own look.</p>
+        <div className="setting-row mix-row">
+          <span>Buttons</span>
+          <div className="seg seg-text seg-wrap" role="radiogroup" aria-label="Buttons">
+            {BUTTON_STYLES.map(([v, label, tip]) => (
+              <button key={v} className={p.controlStyle === v ? "on" : ""} title={tip} onClick={() => setLayout({ controlStyle: v })}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {(Object.keys(ASPECTS) as AspectKey[])
+          .filter((k) => (k === "lip" || k === "lipshadow" ? usesLip(p.controlStyle, p.advanced) : true))
+          .map((k) => (
+            <AspectRow key={k} k={k} value={p.look[k]} onChange={(v) => setLayout({ look: { ...p.look, [k]: v } as Aspects })} />
+          ))}
+        {mixNote(p.look, p.controlStyle) && <p className="hint mix-note">Heads up: {mixNote(p.look, p.controlStyle)}</p>}
       </section>
 
       <section className="card">
@@ -127,9 +143,12 @@ export function ThemePage({ settings, onSettings }: { settings: Settings; onSett
         <div className="setting-row">
           <span>Controls</span>
           <select value={p.miniStyle} onChange={(e) => setLayout({ miniStyle: e.target.value as ControlStyle | "" })}>
-            <option value="">Same as main window ({p.controlStyle === "heavy" ? "Heavy" : "Modern"})</option>
-            <option value="modern">Modern</option>
-            <option value="heavy">Heavy</option>
+            <option value="">Same as main window ({BUTTON_STYLES.find(([v]) => v === p.controlStyle)?.[1]})</option>
+            {BUTTON_STYLES.map(([v, label]) => (
+              <option key={v} value={v}>
+                {label}
+              </option>
+            ))}
           </select>
         </div>
         <label className="check">
@@ -146,29 +165,34 @@ export function ThemePage({ settings, onSettings }: { settings: Settings; onSett
   );
 }
 
-function StyleChoice({ value, onChange }: { value: ControlStyle; onChange: (v: ControlStyle) => void }) {
+/** The lip choices only matter when something is Lipped (Heavy). */
+function usesLip(main: ControlStyle, advanced: Record<GroupKey, GroupStyle>): boolean {
+  return main === "heavy" || Object.values(advanced).includes("heavy");
+}
+
+function AspectRow<K extends AspectKey>({ k, value, onChange }: { k: K; value: Aspects[K]; onChange: (v: Aspects[K]) => void }) {
+  const a = ASPECTS[k];
   return (
-    <div className="style-choice">
-      <button className={`style-opt ${value === "modern" ? "on" : ""}`} onClick={() => onChange("modern")}>
-        <span className="style-demo modern">
-          <span className="k">⏮</span>
-          <span className="k play">▶</span>
-          <span className="k">⏭</span>
-        </span>
-        <b>Modern</b>
-        <small>Flat, quiet buttons. Today's look.</small>
-      </button>
-      <button className={`style-opt ${value === "heavy" ? "on" : ""}`} onClick={() => onChange("heavy")}>
-        <span className="style-demo heavy">
-          <span className="k">⏮</span>
-          <span className="k play">▶</span>
-          <span className="k">⏭</span>
-        </span>
-        <b>Heavy</b>
-        <small>Raised keys in a metal bezel that press down.</small>
-      </button>
+    <div className="setting-row mix-row">
+      <span>{a.label}</span>
+      <div className="seg seg-text seg-wrap" role="radiogroup" aria-label={a.label}>
+        {a.options.map(([v, label]) => (
+          <button key={v} className={value === v ? "on" : ""} onClick={() => onChange(v as Aspects[K])}>
+            {label}
+          </button>
+        ))}
+      </div>
     </div>
   );
+}
+
+/** Pairings that can look weak: say so, but never block (the library's rule). */
+function mixNote(look: Aspects, buttons: ControlStyle): string {
+  if (look.surface === "soft-inset" && look.corners === "sharp") return "soft inset windows read best with rounded corners.";
+  if (look.font === "pixel" && look.inputs === "notebook") return "pixel letters and handwritten fields fight a little.";
+  if (buttons === "cut-paper" && look.surface === "glass") return "cut paper buttons look stuck on over glass; Paper windows suit them better.";
+  if (buttons === "neon" && look.surface === "paper") return "neon glow is hard to see on paper.";
+  return "";
 }
 
 /** A small live preview drawn with the theme's own colours. */

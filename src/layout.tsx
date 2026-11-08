@@ -1,6 +1,6 @@
 // Per-PC look-and-feel choices, remembered in localStorage.
 import { useSyncExternalStore } from "react";
-import { ControlStyle, ThemeId, migrateThemeId, themeById } from "./themes";
+import { ASPECT_DEFAULTS, AspectKey, Aspects, ControlStyle, ThemeId, migrateThemeId, themeById } from "./themes";
 
 export type Density = "compact" | "comfortable" | "grid";
 export type GroupKey = "play" | "skip" | "toggles" | "status" | "sliders" | "topbar";
@@ -41,6 +41,8 @@ export interface LayoutPrefs {
   show: Record<ShowKey, boolean>;
   shape: ButtonShape;
   rows: RowStyle;
+  /** Fonts, corners, windows, lip, text fields and switches (the design library's mix). */
+  look: Aspects;
 }
 
 const KEY = "downtify.layout";
@@ -59,6 +61,7 @@ const DEFAULTS: LayoutPrefs = {
   show: { toggles: true, volume: true, download: true, heart: true },
   shape: "default",
   rows: "simple",
+  look: ASPECT_DEFAULTS,
 };
 
 let prefs: LayoutPrefs = load();
@@ -78,6 +81,7 @@ function load(): LayoutPrefs {
       lightPick: migrateThemeId(p.lightPick as string),
       advanced: { ...DEFAULTS.advanced, ...(saved.advanced ?? {}) },
       show: { ...DEFAULTS.show, ...(saved.show ?? {}) },
+      look: { ...ASPECT_DEFAULTS, ...(saved.look ?? {}) },
     };
   } catch {
     return DEFAULTS;
@@ -106,6 +110,12 @@ function applyTheme() {
   for (const k of ["toggles", "volume", "download", "heart"] as ShowKey[]) root.toggleAttribute(`data-hide-${k}`, !prefs.show[k]);
   root.dataset.shape = prefs.shape;
   root.dataset.rows = prefs.rows;
+  // The mix: each aspect is an attribute; "theme" leaves it off (the theme's own look).
+  for (const k of Object.keys(ASPECT_DEFAULTS) as AspectKey[]) {
+    const v = prefs.look[k];
+    if (v === "theme") root.removeAttribute(`data-${k}`);
+    else root.setAttribute(`data-${k}`, v);
+  }
 }
 applyTheme();
 

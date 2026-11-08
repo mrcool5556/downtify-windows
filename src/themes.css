@@ -287,7 +287,7 @@ h3,
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--heavy-face) 88%, #fff 12%), var(--heavy-face)) padding-box,
     var(--lip) border-box;
-  box-shadow: var(--bevel), 0 0 0 1px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--bevel), var(--lip-ring, 0 0 0 1px rgba(0, 0, 0, 0.35));
   border-radius: 9px;
   color: var(--fg);
   transition: transform 0.12s, box-shadow 0.12s;
@@ -317,13 +317,13 @@ h3,
 :root[data-s-topbar="heavy"] .topbar-right > button.icon:active,
 :root[data-s-topbar="heavy"] .syncbtn:active:not(:disabled) {
   transform: translateY(2px);
-  box-shadow: var(--inset), 0 0 0 1px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--inset), var(--lip-ring, 0 0 0 1px rgba(0, 0, 0, 0.35));
 }
 /* A toggle that is on stays pressed in, with the accent showing. */
 :root[data-s-toggles="heavy"] .k-toggle.on,
 :root[data-style="heavy"] .k-util.on {
   transform: translateY(1px);
-  box-shadow: var(--inset), 0 0 0 1px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--inset), var(--lip-ring, 0 0 0 1px rgba(0, 0, 0, 0.35));
   color: var(--accent);
 }
 
@@ -670,11 +670,11 @@ h3,
 :root[data-s-status="heavy"] .k-status button.icon {
   border: 2px solid transparent;
   background: linear-gradient(var(--bg), var(--bg)) padding-box, var(--lip) border-box;
-  box-shadow: var(--inset), 0 0 0 1px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--inset), var(--lip-ring, 0 0 0 1px rgba(0, 0, 0, 0.35));
 }
 :root[data-s-status="heavy"] .k-status.icon.on,
 :root[data-s-status="heavy"] .k-status button.icon.on {
-  box-shadow: var(--inset), inset 0 0 8px color-mix(in srgb, var(--accent) 35%, transparent), 0 0 0 1px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--inset), inset 0 0 8px color-mix(in srgb, var(--accent) 35%, transparent), var(--lip-ring, 0 0 0 1px rgba(0, 0, 0, 0.35));
 }
 
 /* ── Button shape (Advanced) ── */
