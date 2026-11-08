@@ -2326,7 +2326,7 @@ button.icon svg {
 }
 .mini.faded button.icon,
 .mini.faded input[type="range"] {
-  color: #e8eaed;
+  /* colour comes from mini-readable.css (white only for Flat keys) */
   filter: drop-shadow(1px 0 0 var(--ol)) drop-shadow(-1px 0 0 var(--ol)) drop-shadow(0 1px 0 var(--ol)) drop-shadow(0 -1px 0 var(--ol));
 }
 .mini.faded button.icon.on,

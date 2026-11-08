@@ -1,0 +1,76 @@
+/* ── See-through mini: readable buttons ─────────────────────────────────
+   Only when the mini is see-through (.mini.faded). Loaded last so the older
+   mini blocks can't soften it. Works with the crisp outline (--ol) set in
+   styles.css.
+
+   White icons and the white play ring are only for Flat keys (data-s-* =
+   "modern"), which have no face of their own: Raised, Inset, Lipped, Cut
+   paper, Neon and 90s bevel draw their icon on their own key, in their own
+   colour, and white on a cream key would vanish. Every style gets the
+   thicker lines. */
+
+/* 2 px lines instead of 1.4-1.5, every style */
+:root .mini.faded button.icon svg *,
+:root .mini.faded .winbtn svg * {
+  stroke-width: 2px;
+}
+
+/* Window buttons are always flat: white */
+:root .mini.faded .winbtn,
+:root .mini.faded .mini-side-row.chrome .icon.pin {
+  color: #fff;
+}
+
+/* Flat keys: pure white */
+:root[data-s-skip="modern"] .mini.faded .k-skip,
+:root[data-s-toggles="modern"] .mini.faded .k-toggle,
+:root[data-s-status="modern"] .mini.faded .k-status.icon,
+:root[data-s-status="modern"] .mini.faded .k-status button.icon,
+:root[data-style="modern"] .mini.faded .mini-drawer-head button.icon {
+  color: #fff;
+}
+
+/* Flat play / pause: a 2 px white ring and a slightly bigger icon */
+:root[data-s-play="modern"] .mini.faded .mini-play.big {
+  background: transparent;
+  color: #fff;
+  border: 2px solid #fff;
+  box-shadow: none;
+}
+:root .mini.faded .mini-play.big svg {
+  transform: scale(1.12);
+}
+
+/* Flat shuffle / repeat when on: a white ring, so "on" doesn't depend on the
+   green showing through a busy background */
+:root[data-s-toggles="modern"] .mini.faded .k-toggle.on {
+  color: var(--accent);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px #fff;
+}
+
+/* Heart and download: a little bigger */
+:root .mini.faded .k-heart {
+  font-size: 17px;
+  line-height: 1;
+}
+:root .mini.faded .k-dl-wrap svg,
+:root .mini.faded .k-status svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Pin, minimise, expand, close: no dividers (they picked up the outline and
+   turned into thick black bars) */
+:root .mini.faded .mini-side-row.chrome .winbtn,
+:root .mini.faded .mini-side-row.chrome .icon.pin {
+  border-left-color: transparent;
+}
+
+/* Seek and volume: taller tracks with a dark edge so they don't vanish on white */
+:root .mini.faded .mini-seek,
+:root .mini.faded .mini-volume input[type="range"] {
+  height: 6px;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.75);
+}

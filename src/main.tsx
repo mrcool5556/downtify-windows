@@ -5,6 +5,7 @@ import { TextMenu } from "./components/TextMenu";
 import "./styles.css";
 import "./themes.css";
 import "./mix.css";
+import "./mini-readable.css";
 
 // No browser right-click menu (Back, Refresh, Print, Inspect…) anywhere in
 // the app. Text boxes get the app's own Cut / Copy / Paste menu (TextMenu).
