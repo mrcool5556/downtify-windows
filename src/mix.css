@@ -1021,3 +1021,28 @@
 :root[data-toggles="retro"] .check input[type="checkbox"]:checked::after {
   content: "¹3";
 }
+
+/* ── Glass: a lit backdrop behind the frosted cards (main window only) ── */
+:root[data-surface="glass"]:not([data-mini]) body,
+:root[data-surface="glass"]:not([data-mini]) #root {
+  background:
+    radial-gradient(circle at 18% 8%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 45%),
+    radial-gradient(circle at 92% 92%, color-mix(in srgb, var(--fg) 9%, transparent), transparent 42%),
+    var(--bg);
+  background-attachment: fixed;
+}
+:root[data-surface="glass"]:not([data-mini]) .shell {
+  background: transparent;
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root[data-surface="glass"] .card,
+  :root[data-surface="glass"] .tile,
+  :root[data-surface="glass"] .queue,
+  :root[data-surface="glass"] .ctx,
+  :root[data-surface="glass"] .confirm-box,
+  :root[data-surface="glass"] .overlay-card {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: var(--bg-2);
+  }
+}

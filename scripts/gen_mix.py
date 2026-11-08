@@ -570,3 +570,37 @@ css, n3 = _re.subn(
 )
 open("src/mix.css", "w", encoding="utf-8").write(css)
 print("flap ON layers:", n2 + n3)
+
+# ── Glass needs something behind it ──────────────────────────────────────
+# With Windows and cards = Glass, any theme gets the soft lit backdrop the
+# glass themes have (accent glow top-left, faint light bottom-right), so the
+# frosted cards, menus and dialogs have something to blur. Not the mini:
+# a window can't blur the desktop behind it.
+glass_bg = """
+/* ── Glass: a lit backdrop behind the frosted cards (main window only) ── */
+:root[data-surface="glass"]:not([data-mini]) body,
+:root[data-surface="glass"]:not([data-mini]) #root {
+  background:
+    radial-gradient(circle at 18% 8%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 45%),
+    radial-gradient(circle at 92% 92%, color-mix(in srgb, var(--fg) 9%, transparent), transparent 42%),
+    var(--bg);
+  background-attachment: fixed;
+}
+:root[data-surface="glass"]:not([data-mini]) .shell {
+  background: transparent;
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root[data-surface="glass"] .card,
+  :root[data-surface="glass"] .tile,
+  :root[data-surface="glass"] .queue,
+  :root[data-surface="glass"] .ctx,
+  :root[data-surface="glass"] .confirm-box,
+  :root[data-surface="glass"] .overlay-card {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: var(--bg-2);
+  }
+}
+"""
+open("src/mix.css", "a", encoding="utf-8").write(glass_bg)
+print("added glass backdrop")
