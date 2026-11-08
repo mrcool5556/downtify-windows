@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ButtonShape, GROUPS, GroupKey, GroupStyle, LayoutPrefs, RowStyle, ShowKey, applyMix, applyMixToMini, currentMix, setLayout, useLayout } from "../layout";
-import { ASPECTS, AspectKey, Aspects, BUTTON_STYLES, ControlStyle, MINI_ASPECTS, PRESETS, THEMES, ThemeId, ThemeInfo, sameMix, themeById } from "../themes";
+import { ASPECTS, AspectKey, Aspects, BUTTON_STYLES, ControlStyle, MINI_ASPECTS, MINI_SURFACES, PRESETS, THEMES, ThemeId, ThemeInfo, sameMix, themeById } from "../themes";
 import { invoke } from "@tauri-apps/api/core";
 import { Settings } from "../api";
 
@@ -337,7 +337,7 @@ function Presets({ p }: { p: LayoutPrefs }) {
 
 /** One of the mini's own style choices, with "same as main window" first. */
 function MiniAspectRow({ k, p }: { k: AspectKey; p: LayoutPrefs }) {
-  const a = ASPECTS[k];
+  const a = k === "surface" ? { ...ASPECTS.surface, label: "Window" } : ASPECTS[k];
   const mainLabel = a.options.find(([v]) => v === p.look[k])?.[1] ?? "";
   return (
     <div className="setting-row">
@@ -352,7 +352,7 @@ function MiniAspectRow({ k, p }: { k: AspectKey; p: LayoutPrefs }) {
         }}
       >
         <option value="">Same as main window ({mainLabel})</option>
-        {a.options.map(([v, label]) => (
+        {a.options.filter(([v]) => k !== "surface" || MINI_SURFACES.includes(v)).map(([v, label]) => (
           <option key={v} value={v}>
             {label}
           </option>

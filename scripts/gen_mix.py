@@ -311,3 +311,62 @@ w("""
 
 open("src/mix.css", "w", encoding="utf-8").write("\n".join(out))
 print("wrote", sum(len(x) for x in out), "chars")
+
+# ── the mini player's own window: pressed into the desktop ───────────────
+# From the library's soft-inset experiment (playground/experiments/soft-inset.html):
+# a wide, faint inner shadow over the whole player, light from the top left.
+# The panel's colour stays with the mini's opacity slider.
+mini = """
+/* ── Mini player window: soft inset / indented / bevel ──
+   Drawn over the content so it works on the see-through mini too: at low
+   opacity the desktop itself looks pressed in. */
+:root[data-tone="dark"] {
+  --hi: rgba(255, 255, 255, 0.07);
+  --hi-soft: rgba(255, 255, 255, 0.035);
+  --lo-rim: rgba(0, 0, 0, 0.45);
+}
+:root,
+:root[data-tone="light"] {
+  --hi: rgba(255, 255, 255, 0.8);
+  --hi-soft: rgba(255, 255, 255, 0.55);
+  --lo-rim: rgba(40, 30, 20, 0.12);
+}
+:root[data-surface="soft-inset"] .mini,
+:root[data-surface="indented"] .mini,
+:root[data-surface="bevel"] .mini {
+  position: relative;
+  border-color: transparent;
+}
+:root[data-surface="soft-inset"] .mini::after,
+:root[data-surface="indented"] .mini::after,
+:root[data-surface="bevel"] .mini::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 3;
+  transition: box-shadow 0.35s;
+}
+:root[data-surface="soft-inset"] .mini {
+  --d: 10px;
+}
+:root[data-surface="soft-inset"] .mini:hover {
+  --d: 15px;
+}
+:root[data-surface="soft-inset"] .mini::after {
+  box-shadow: inset var(--d) var(--d) calc(var(--d) * 2.4) var(--soft-lo), inset calc(var(--d) * -0.45) calc(var(--d) * -0.45) calc(var(--d) * 1.6) var(--hi-soft),
+    inset 1px 1px 0 var(--lo-rim), inset -1px -1px 0 var(--hi);
+}
+:root[data-surface="indented"] .mini {
+  background: color-mix(in srgb, var(--bg-3) calc(var(--mini-alpha) * 100%), transparent);
+}
+:root[data-surface="indented"] .mini::after {
+  box-shadow: inset 4px 6px 12px rgba(0, 0, 0, 0.35), inset 1px 2px 3px rgba(0, 0, 0, 0.2), inset -1px -1px 0 rgba(255, 255, 255, 0.25);
+}
+:root[data-surface="bevel"] .mini::after {
+  box-shadow: var(--bevel);
+}
+"""
+open("src/mix.css", "a", encoding="utf-8").write(mini)
+print("added mini window surfaces")

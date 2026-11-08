@@ -100,6 +100,9 @@ export function sameMix(a: StyleMix, b: StyleMix): boolean {
   return a.theme === b.theme && a.buttons === b.buttons && (Object.keys(ASPECT_DEFAULTS) as AspectKey[]).every((k) => a.look[k] === b.look[k]);
 }
 
-/** The parts of the mix the mini player can have its own way (it has no cards,
- *  text fields or switches, and its panel has its own see-through look). */
-export const MINI_ASPECTS: AspectKey[] = ["font", "corners", "lip", "lipshadow"];
+/** The parts of the mix the mini player can have its own way (it has no
+ *  text fields or switches). */
+export const MINI_ASPECTS: AspectKey[] = ["surface", "font", "corners", "lip", "lipshadow"];
+/** Window looks that work on the mini's see-through window (no glass: the
+ *  desktop behind can't be blurred; no paper: its texture ignores opacity). */
+export const MINI_SURFACES = ["theme", "flat", "soft-inset", "indented", "bevel"];
