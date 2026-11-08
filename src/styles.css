@@ -2287,7 +2287,13 @@ button.icon svg {
   flex-shrink: 0;
 }
 
-/* Mini: text halo so titles survive on any background when faded */
+/* Mini: a crisp outline (game-subtitle style) so text and icons read on
+   white, busy or game backgrounds when the mini is see-through. --ol fades
+   in as the opacity slider goes down: about 20% when nearly solid, full
+   from half-see-through. */
+.mini.faded {
+  --ol: color-mix(in srgb, #000 calc(min(1, (1 - var(--mini-alpha)) * 2 + 0.2) * 100%), transparent);
+}
 .mini.faded .mini-title,
 .mini.faded .mini-sub,
 .mini.faded .q-title,
@@ -2296,10 +2302,15 @@ button.icon svg {
 .mini.faded .mini-drawer-head,
 .mini.faded .mini-queue-empty {
   text-shadow:
-    0 0 2px #000,
-    0 0 3px #000,
-    0 0 6px rgba(0, 0, 0, 0.9),
-    0 1px 8px rgba(0, 0, 0, 0.8);
+    -1px -1px 0 var(--ol),
+    0 -1px 0 var(--ol),
+    1px -1px 0 var(--ol),
+    -1px 0 0 var(--ol),
+    1px 0 0 var(--ol),
+    -1px 1px 0 var(--ol),
+    0 1px 0 var(--ol),
+    1px 1px 0 var(--ol),
+    0 0 3px var(--ol);
 }
 .mini.faded .mini-title,
 .mini.faded .q-title {
@@ -2310,9 +2321,10 @@ button.icon svg {
 .mini.faded .mini-drawer-head {
   color: #d8dce2;
 }
-.mini.faded button.icon {
+.mini.faded button.icon,
+.mini.faded input[type="range"] {
   color: #e8eaed;
-  filter: drop-shadow(0 0 2px #000) drop-shadow(0 0 3px #000);
+  filter: drop-shadow(1px 0 0 var(--ol)) drop-shadow(-1px 0 0 var(--ol)) drop-shadow(0 1px 0 var(--ol)) drop-shadow(0 -1px 0 var(--ol));
 }
 .mini.faded button.icon.on,
 .mini.faded button.icon.heart.on {
@@ -2376,7 +2388,7 @@ button.icon svg {
   color: #fff;
   border-color: #fff;
   box-shadow: none;
-  filter: drop-shadow(0 0 1.5px #000) drop-shadow(0 0 2px rgba(0, 0, 0, 0.8));
+  filter: drop-shadow(1px 0 0 var(--ol)) drop-shadow(-1px 0 0 var(--ol)) drop-shadow(0 1px 0 var(--ol)) drop-shadow(0 -1px 0 var(--ol));
 }
 .mini.faded .mini-play.big:hover:not(:disabled) {
   background: rgba(0, 0, 0, 0.35);
@@ -2388,17 +2400,23 @@ button.icon svg {
 .mini.faded .mini-next-item small,
 .mini.faded .mini-drawer-head,
 .mini.faded .mini-queue-empty {
+  /* the same crisp outline as above (this later block used to soften it) */
   text-shadow:
-    0 0 1.5px #000,
-    0 0 3px rgba(0, 0, 0, 0.85);
+    -1px -1px 0 var(--ol),
+    0 -1px 0 var(--ol),
+    1px -1px 0 var(--ol),
+    -1px 0 0 var(--ol),
+    1px 0 0 var(--ol),
+    -1px 1px 0 var(--ol),
+    0 1px 0 var(--ol),
+    1px 1px 0 var(--ol),
+    0 0 3px var(--ol);
 }
 .mini.faded button.icon,
-.mini.faded .winbtn {
-  filter: drop-shadow(0 0 1.5px #000) drop-shadow(0 0 2px rgba(0, 0, 0, 0.7));
-}
+.mini.faded .winbtn,
 .mini.faded .mini-volume,
 .mini.faded .mini-opacity-ctl {
-  filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, 0.8));
+  filter: drop-shadow(1px 0 0 var(--ol)) drop-shadow(-1px 0 0 var(--ol)) drop-shadow(0 1px 0 var(--ol)) drop-shadow(0 -1px 0 var(--ol));
 }
 
 /* Solid page background unless the mini is showing */
