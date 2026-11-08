@@ -1,6 +1,6 @@
 // Per-PC look-and-feel choices, remembered in localStorage.
 import { useSyncExternalStore } from "react";
-import { ASPECT_DEFAULTS, AspectKey, Aspects, ControlStyle, ThemeId, migrateThemeId, themeById } from "./themes";
+import { ASPECT_DEFAULTS, AspectKey, Aspects, ControlStyle, StyleMix, ThemeId, migrateThemeId, themeById } from "./themes";
 
 export type Density = "compact" | "comfortable" | "grid";
 export type GroupKey = "play" | "skip" | "toggles" | "status" | "sliders" | "topbar";
@@ -43,6 +43,8 @@ export interface LayoutPrefs {
   rows: RowStyle;
   /** Fonts, corners, windows, lip, text fields and switches (the design library's mix). */
   look: Aspects;
+  /** Mixes the user saved by name. */
+  mixes: { name: string; mix: StyleMix }[];
 }
 
 const KEY = "downtify.layout";
@@ -62,6 +64,7 @@ const DEFAULTS: LayoutPrefs = {
   shape: "default",
   rows: "simple",
   look: ASPECT_DEFAULTS,
+  mixes: [],
 };
 
 let prefs: LayoutPrefs = load();
@@ -82,6 +85,7 @@ function load(): LayoutPrefs {
       advanced: { ...DEFAULTS.advanced, ...(saved.advanced ?? {}) },
       show: { ...DEFAULTS.show, ...(saved.show ?? {}) },
       look: { ...ASPECT_DEFAULTS, ...(saved.look ?? {}) },
+      mixes: Array.isArray(saved.mixes) ? saved.mixes.map((m) => ({ ...m, mix: { ...m.mix, theme: migrateThemeId(m.mix?.theme), look: { ...ASPECT_DEFAULTS, ...(m.mix?.look ?? {}) } } })) : [],
     };
   } catch {
     return DEFAULTS;
@@ -209,4 +213,14 @@ export function ThemeToggle() {
       {tone === "dark" ? "☀" : "☾"}
     </button>
   );
+}
+
+/** The main window's whole look right now, as a mix. */
+export function currentMix(p: LayoutPrefs = prefs): StyleMix {
+  return { theme: p.theme, buttons: p.controlStyle, look: p.look };
+}
+
+/** Put a preset or saved mix on the main window. */
+export function applyMix(m: StyleMix) {
+  setLayout({ theme: m.theme, controlStyle: m.buttons, look: { ...ASPECT_DEFAULTS, ...m.look } });
 }

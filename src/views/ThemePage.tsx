@@ -1,5 +1,6 @@
-import { ButtonShape, GROUPS, GroupKey, GroupStyle, RowStyle, ShowKey, setLayout, useLayout } from "../layout";
-import { ASPECTS, AspectKey, Aspects, BUTTON_STYLES, ControlStyle, THEMES, ThemeId, ThemeInfo, themeById } from "../themes";
+import { useState } from "react";
+import { ButtonShape, GROUPS, GroupKey, GroupStyle, LayoutPrefs, RowStyle, ShowKey, applyMix, currentMix, setLayout, useLayout } from "../layout";
+import { ASPECTS, AspectKey, Aspects, BUTTON_STYLES, ControlStyle, PRESETS, THEMES, ThemeId, ThemeInfo, sameMix, themeById } from "../themes";
 import { invoke } from "@tauri-apps/api/core";
 import { Settings } from "../api";
 
@@ -23,6 +24,8 @@ export function ThemePage({ settings, onSettings }: { settings: Settings; onSett
           </span>
         </div>
       </section>
+
+      <Presets p={p} />
 
       <section className="card">
         <h2>Style</h2>
@@ -227,5 +230,71 @@ function ThemeCard({ t, selected, heavy, onPick }: { t: ThemeInfo; selected: boo
       </span>
       {selected && <span className="tc-check">✓</span>}
     </button>
+  );
+}
+
+/** One-click looks from the design library, plus mixes you saved yourself. */
+function Presets({ p }: { p: LayoutPrefs }) {
+  const [name, setName] = useState("");
+  const now = currentMix(p);
+  const pinned = GROUPS.filter((g) => p.advanced[g.key] !== "follow");
+
+  function save() {
+    const n = name.trim();
+    if (!n) return;
+    const others = p.mixes.filter((m) => m.name.toLowerCase() !== n.toLowerCase());
+    setLayout({ mixes: [...others, { name: n, mix: now }] });
+    setName("");
+  }
+
+  return (
+    <section className="card">
+      <h2>Presets</h2>
+      <p className="hint">A preset sets the colours, buttons and every part of the style at once. Change anything afterwards to make it yours.</p>
+      <div className="preset-grid">
+        {PRESETS.map((pr) => (
+          <button key={pr.name} className={`preset ${sameMix(now, pr.mix) ? "on" : ""}`} onClick={() => applyMix(pr.mix)} title={`${pr.name}: ${themeById(pr.mix.theme).name} colours, ${BUTTON_STYLES.find(([v]) => v === pr.mix.buttons)?.[1]} buttons`}>
+            <span className="preset-swatch" style={{ background: themeById(pr.mix.theme).swatch.bg }}>
+              <i style={{ background: themeById(pr.mix.theme).swatch.accent }} />
+            </span>
+            <b>{pr.name}</b>
+            <small>{pr.feel}</small>
+          </button>
+        ))}
+      </div>
+      {pinned.length > 0 && (
+        <p className="hint mix-note">
+          {pinned.length === 1 ? "One part of the player keeps" : `${pinned.length} parts of the player keep`} its own style from Advanced ({pinned.map((g) => g.label.toLowerCase()).join(", ")}), so presets don't change {pinned.length === 1 ? "it" : "them"}.{" "}
+          <button className="link" onClick={() => setLayout({ advanced: Object.fromEntries(GROUPS.map((g) => [g.key, "follow"])) as Record<GroupKey, GroupStyle> })}>
+            Let presets style {pinned.length === 1 ? "it" : "them"} too
+          </button>
+        </p>
+      )}
+
+      <h3 className="adv-sub">My mixes</h3>
+      {p.mixes.length > 0 ? (
+        <div className="mix-list">
+          {p.mixes.map((m) => (
+            <span key={m.name} className={`mix-chip ${sameMix(now, m.mix) ? "on" : ""}`}>
+              <button className="chip-btn" onClick={() => applyMix(m.mix)} title={`Use "${m.name}"`}>
+                <span className="preset-dot" style={{ background: themeById(m.mix.theme).swatch.accent }} />
+                {m.name}
+              </button>
+              <button className="icon" title={`Delete "${m.name}"`} onClick={() => setLayout({ mixes: p.mixes.filter((x) => x.name !== m.name) })}>
+                ✕
+              </button>
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="hint">None yet. Make the look your own, then save it here by name.</p>
+      )}
+      <div className="mix-save">
+        <input value={name} placeholder="Name this mix" maxLength={40} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && save()} />
+        <button className="small" disabled={!name.trim()} onClick={save}>
+          {p.mixes.some((m) => m.name.toLowerCase() === name.trim().toLowerCase()) ? "Update" : "Save this mix"}
+        </button>
+      </div>
+    </section>
   );
 }

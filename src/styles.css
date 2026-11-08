@@ -3182,3 +3182,71 @@ details.adv > summary h2 {
 .mix-note {
   color: var(--warn);
 }
+
+/* Theme page → Presets and My mixes */
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+}
+.preset {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  align-items: center;
+  text-align: left;
+  padding: 8px 10px;
+}
+.preset .preset-swatch {
+  grid-row: span 2;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+}
+.preset .preset-swatch i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.preset small {
+  color: var(--fg-2);
+  font-size: 11px;
+}
+/* An outline, so it shows whatever the button style does to borders. */
+.preset.on,
+.mix-chip.on .chip-btn {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.mix-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 10px;
+}
+.mix-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.preset-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+.mix-save {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.mix-save input {
+  flex: 1;
+  max-width: 280px;
+}

@@ -76,3 +76,26 @@ export function migrateThemeId(id: string | undefined): ThemeId {
   if (id === "gr1mos") return "machined";
   return THEMES.some((t) => t.id === id) ? (id as ThemeId) : "downtify";
 }
+
+/** A whole look: colours, buttons and the rest of the mix. */
+export interface StyleMix {
+  theme: ThemeId;
+  buttons: ControlStyle;
+  look: Aspects;
+}
+
+const mix = (theme: ThemeId, buttons: ControlStyle, look: Partial<Aspects>): StyleMix => ({ theme, buttons, look: { ...ASPECT_DEFAULTS, ...look } });
+
+/** One-click starting points: the design library's five presets, plus the app's own default. */
+export const PRESETS: { name: string; feel: string; mix: StyleMix }[] = [
+  { name: "Downtify", feel: "The app's own look", mix: mix("downtify", "modern", {}) },
+  { name: "Studio", feel: "Calm, warm paper", mix: mix("studio-light", "modern", { font: "studio", corners: "rounded", surface: "flat", inputs: "boxed", toggles: "pill" }) },
+  { name: "Gold arcade", feel: "Black, gold rims", mix: mix("machined", "heavy", { font: "machined", corners: "pill", surface: "soft-inset", lip: "gold", lipshadow: "none", inputs: "sunk", toggles: "pill" }) },
+  { name: "Paper desk", feel: "Typewriter and cut paper", mix: mix("cozy", "cut-paper", { font: "paper", corners: "sharp", surface: "paper", inputs: "notebook", toggles: "flap" }) },
+  { name: "Retro 95", feel: "Grey bevels, pixel type", mix: mix("retro-console", "bevel95", { font: "pixel", corners: "sharp", surface: "bevel", lip: "silver", inputs: "sunk", toggles: "retro" }) },
+  { name: "Synth night", feel: "Neon over glass", mix: mix("night-glass", "neon", { font: "neon", corners: "rounded", surface: "glass", lip: "accent", inputs: "underline", toggles: "pill" }) },
+];
+
+export function sameMix(a: StyleMix, b: StyleMix): boolean {
+  return a.theme === b.theme && a.buttons === b.buttons && (Object.keys(ASPECT_DEFAULTS) as AspectKey[]).every((k) => a.look[k] === b.look[k]);
+}
