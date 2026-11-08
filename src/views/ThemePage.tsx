@@ -20,7 +20,7 @@ export function ThemePage({ settings, onSettings }: { settings: Settings; onSett
         </div>
         <div className="setting-row tight">
           <span className="hint">
-            Sun/moon switches between <b>{themeById(p.darkPick).name}</b> and <b>{themeById(p.lightPick).name}</b>.
+            Sun/moon switches between your dark look (<b>{lookSummary(p.darkPick, p.toneLooks.dark)}</b>) and your light look (<b>{lookSummary(p.lightPick, p.toneLooks.light)}</b>). Each remembers its own style: whatever you set while on a dark theme stays with dark, and the same for light.
           </span>
         </div>
       </section>
@@ -375,4 +375,10 @@ function MiniAspectRow({ k, p }: { k: AspectKey; p: LayoutPrefs }) {
       </select>
     </div>
   );
+}
+
+/** "Machined, Raised buttons" for the sun/moon line. */
+function lookSummary(theme: ThemeId, t?: { buttons: ControlStyle }): string {
+  const name = themeById(theme).name;
+  return t ? `${name}, ${BUTTON_STYLES.find(([v]) => v === t.buttons)?.[1]} buttons` : name;
 }

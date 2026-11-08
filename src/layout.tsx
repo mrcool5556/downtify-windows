@@ -19,6 +19,12 @@ export const GROUPS: { key: GroupKey; label: string }[] = [
   { key: "topbar", label: "Top bar buttons and search" },
 ];
 
+/** Everything but the colours, remembered per light/dark side. */
+export interface ToneLook {
+  buttons: ControlStyle;
+  look: Aspects;
+}
+
 export interface LayoutPrefs {
   density: Density;
   rowArt: boolean;
@@ -47,6 +53,8 @@ export interface LayoutPrefs {
   miniLook: Partial<Aspects>;
   /** How deep the mini sits when its window is Soft inset or Indented, in px. */
   miniDepth: number;
+  /** The style used with dark themes and with light themes; sun/moon swaps between them. */
+  toneLooks: { dark?: ToneLook; light?: ToneLook };
   /** Mixes the user saved by name. */
   mixes: { name: string; mix: StyleMix }[];
 }
@@ -70,6 +78,7 @@ const DEFAULTS: LayoutPrefs = {
   look: ASPECT_DEFAULTS,
   miniLook: {},
   miniDepth: 10,
+  toneLooks: {},
   mixes: [],
 };
 
@@ -92,6 +101,7 @@ function load(): LayoutPrefs {
       show: { ...DEFAULTS.show, ...(saved.show ?? {}) },
       look: { ...ASPECT_DEFAULTS, ...(saved.look ?? {}) },
       miniLook: saved.miniLook && typeof saved.miniLook === "object" ? saved.miniLook : {},
+      toneLooks: saved.toneLooks && typeof saved.toneLooks === "object" ? saved.toneLooks : {},
       mixes: Array.isArray(saved.mixes) ? saved.mixes.map((m) => ({ ...m, mix: { ...m.mix, theme: migrateThemeId(m.mix?.theme), look: { ...ASPECT_DEFAULTS, ...(m.mix?.look ?? {}) } } })) : [],
     };
   } catch {
@@ -145,6 +155,11 @@ export function setLayout(patch: Partial<LayoutPrefs>) {
   if (patch.theme) {
     if (themeById(patch.theme).tone === "dark") prefs.darkPick = patch.theme;
     else prefs.lightPick = patch.theme;
+  }
+  // Whatever style is on now is remembered as this side's (dark or light) look.
+  if (patch.theme || patch.controlStyle || patch.look) {
+    const side = themeById(prefs.theme).tone;
+    prefs.toneLooks = { ...prefs.toneLooks, [side]: { buttons: prefs.controlStyle, look: prefs.look } };
   }
   try {
     localStorage.setItem(KEY, JSON.stringify(prefs));
@@ -213,12 +228,28 @@ export function DensityPicker({ small }: { small?: boolean }) {
   );
 }
 
+/** Sun/moon: swap to the other side's whole look (its colours and its style).
+ *  A side you haven't styled yet starts with the style you have now. */
+export function switchTone() {
+  const tone = themeById(prefs.theme).tone;
+  const other = tone === "dark" ? "light" : "dark";
+  const next = other === "dark" ? prefs.darkPick : prefs.lightPick;
+  // Keep this side's look before leaving it (it may never have been saved).
+  prefs.toneLooks = { ...prefs.toneLooks, [tone]: { buttons: prefs.controlStyle, look: prefs.look } };
+  const saved = prefs.toneLooks[other];
+  setLayout({
+    theme: next,
+    controlStyle: saved?.buttons ?? prefs.controlStyle,
+    look: saved ? { ...ASPECT_DEFAULTS, ...saved.look } : prefs.look,
+  });
+}
+
 export function ThemeToggle() {
   const p = useLayout();
   const tone = themeById(p.theme).tone;
   const next = tone === "dark" ? p.lightPick : p.darkPick;
   return (
-    <button className="icon" onClick={() => setLayout({ theme: next })} title={`Switch to ${themeById(next).name}`}>
+    <button className="icon" onClick={switchTone} title={`Switch to your ${tone === "dark" ? "light" : "dark"} look (${themeById(next).name})`}>
       {tone === "dark" ? "☀" : "☾"}
     </button>
   );
