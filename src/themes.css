@@ -1000,21 +1000,24 @@ table.tracks tr.drop-after td {
   box-shadow: inset 0 -2px 0 var(--accent);
 }
 
-/* While a song loads, the seek bar sweeps a soft glow instead of showing
-   a "Loading…" bubble. Comes after the slider styles so it wins in every theme. */
+/* While a song loads, the seek bar fills with a faint tint of the theme
+   colour and a bright shimmer runs through it, instead of a "Loading…"
+   bubble. Comes after the slider styles so it wins in every theme. */
 :root .playerbar .pb-seek input[type="range"].loading {
   opacity: 1;
-  background-image: linear-gradient(90deg, transparent, var(--accent), transparent);
-  background-size: 35% 100% !important;
+  background-image:
+    linear-gradient(90deg, transparent, var(--accent) 35%, color-mix(in srgb, var(--accent) 45%, #fff) 50%, var(--accent) 65%, transparent),
+    linear-gradient(color-mix(in srgb, var(--accent) 22%, transparent), color-mix(in srgb, var(--accent) 22%, transparent));
+  background-size: 40% 100%, 100% 100% !important;
   background-repeat: no-repeat;
-  animation: seek-loading 1.1s ease-in-out infinite;
+  animation: seek-loading 1.2s ease-in-out infinite;
 }
 @keyframes seek-loading {
   from {
-    background-position: -60% 0;
+    background-position: -70% 0, 0 0;
   }
   to {
-    background-position: 160% 0;
+    background-position: 170% 0, 0 0;
   }
 }
 @media (prefers-reduced-motion: reduce) {
