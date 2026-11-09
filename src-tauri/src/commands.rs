@@ -494,6 +494,8 @@ pub fn now_playing(
             .iter()
             .filter_map(|s| crate::media::cover_cache_path(&app, &track_id, *s))
             .find(|p| p.exists());
+        let playing = status == "playing";
+        let _ = app.run_on_main_thread(move || crate::thumbbar::set_playing(playing));
         let guard = state.smtc.lock().map_err(|e| e.to_string())?;
         if let Some(smtc) = guard.as_ref() {
             smtc.update(&title, &artist, &album, &status, thumb.as_deref())

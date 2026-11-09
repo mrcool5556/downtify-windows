@@ -6,6 +6,8 @@ mod server;
 mod settings;
 #[cfg(windows)]
 mod smtc;
+#[cfg(windows)]
+mod thumbbar;
 mod tray;
 mod updater;
 pub mod window_mode;
@@ -95,6 +97,12 @@ pub fn run() {
                 let state = app.state::<AppState>();
                 let s = state.settings.lock().map(|s| s.clone()).unwrap_or_default();
                 window_mode::apply(app.handle(), &s);
+            }
+            #[cfg(windows)]
+            if let Some(h) = app.get_webview_window("main").and_then(|w| w.hwnd().ok()) {
+                if let Err(e) = thumbbar::init(app.handle(), h.0 as isize) {
+                    eprintln!("taskbar buttons unavailable: {e}");
+                }
             }
             if let Err(e) = tray::build(app.handle()) {
                 eprintln!("tray unavailable: {e}");

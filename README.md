@@ -29,7 +29,7 @@ Built with Tauri 2, React and Rust. Early and under active development; expect r
 - **Sort** any song list by clicking Title, Artist, Album or Time.
 - **Pairs** with your Downtify server using the same pairing code flow as the Android app. The device token lives in Windows Credential Manager.
 - **Syncs** your songs, albums, artists, playlists and likes into a local SQLite index using the server's delta-sync API, so re-syncs are cheap.
-- **Plays** your music: local file first, otherwise streamed from the server (original quality, or Opus 160 kbps when away from home). Player bar with seek, volume, shuffle, repeat, queue, likes, and Windows media keys.
+- **Plays** your music: local file first, otherwise streamed from the server (original quality, or Opus 160 kbps when away from home). Player bar with seek, volume, shuffle, repeat, queue, likes, Windows media keys, and Back / Play-Pause / Forward buttons under the taskbar preview.
 - **Downloads** songs or whole playlists to your music folder (default `Music\Downtify`, changeable), mirroring the server's folder layout as ordinary tagged files other players can use. Three at a time, resumable. "Sync to this PC" on a playlist downloads it and pulls new additions after every sync.
 - **Works offline**: with the server unreachable the app shows your local library and plays downloaded songs. Songs deleted on the server stay on your PC, marked, until you remove them.
 - **Edits playlists** after an optional one-time sign-in: create, rename, add and remove songs, drag and drop between playlists, right-click menus everywhere, multi-select.
@@ -65,7 +65,7 @@ cargo tauri build
 ## Layout
 
 - `src/` React frontend: `views/` (Setup, Library with Home, Downloads, Settings), `components/` (player bar, queue, context menu, download button), `player/store.ts` (the audio engine and queue), `downloads.ts`, `layout.tsx`.
-- `src-tauri/src/` Rust: `server.rs` (Downtify client API), `db.rs` (local SQLite), `downloads.rs` (download manager), `media.rs` (local file and cover protocol), `smtc.rs` (Windows media keys), `commands.rs`, `settings.rs`.
+- `src-tauri/src/` Rust: `server.rs` (Downtify client API), `db.rs` (local SQLite), `downloads.rs` (download manager), `media.rs` (local file and cover protocol), `smtc.rs` (Windows media keys), `thumbbar.rs` (taskbar preview buttons), `commands.rs`, `settings.rs`.
 
 Settings live in `%APPDATA%\dev.george.downtify\settings.json`, the library index in `%APPDATA%\dev.george.downtify\library.sqlite`, cached covers under `%LOCALAPPDATA%\dev.george.downtify`.
 
