@@ -621,7 +621,7 @@ export function Library({
               }}
               onDragLeave={() => setDropTarget((t) => (t === p.name ? null : t))}
               onDrop={(e) => dropOnPlaylist(e, p)}
-              title={`${playlistLabel(p)} · ${p.local_count}/${p.count} on this PC${isEditable(p) ? "" : " · imported, not editable"}`}
+              title={`${playlistLabel(p)} · ${p.local_count}/${p.count} on this PC${isEditable(p) ? "" : p.liked && p.mine ? " · drop songs here to like them" : " · imported, not editable"}`}
             >
               <PlaylistArt p={p} size={28} />
               {p.is_new && <span className="new-dot" title="New" />}
