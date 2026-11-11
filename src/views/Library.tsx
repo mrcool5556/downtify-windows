@@ -744,7 +744,12 @@ export function Library({
         </div>
 
         {error && <div className="error">{error}</div>}
-        {notice && <div className="toast">{notice}</div>}
+        {notice && (
+          // Floats just above the player bar, so it shows however far the list is scrolled.
+          <div className="toast float" style={{ bottom: (document.querySelector(".playerbar")?.getBoundingClientRect().height ?? 80) + 12 }}>
+            {notice}
+          </div>
+        )}
 
         {dupAsk && (
           <div className="confirm-box">

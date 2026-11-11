@@ -1363,6 +1363,16 @@ input.rename {
   color: var(--fg);
   font-size: 13px;
 }
+.toast.float {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  margin: 0;
+  max-width: min(560px, calc(100vw - 32px));
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
 .confirm-box {
   background: rgba(229, 72, 77, 0.1);
   border: 1px solid rgba(229, 72, 77, 0.5);
