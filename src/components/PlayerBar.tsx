@@ -2,6 +2,7 @@ import { useState } from "react";
 import { artFor, coverUrl, fmtDuration, playerApi } from "../api";
 import { usePlayer, usePlayerProgress } from "../player/usePlayer";
 import { likeBus } from "../likeBus";
+import { useTaskProgress } from "../taskProgress";
 import { DownloadButton } from "./DownloadButton";
 import { saveAndLike, usePendingLike } from "../saveLike";
 import { MiniIcon, LyricsIcon, RepeatIcon, RepeatOneIcon, ShuffleIcon, VolumeIcon, DiscoverIcon, NextIcon, PauseFillIcon, PlayFillIcon, PrevIcon } from "./Icons";
@@ -46,6 +47,7 @@ export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onRev
     }
   }
 
+  const task = useTaskProgress();
   const pendingLike = usePendingLike(current);
   async function toggleLike() {
     if (!current || likeBusy || !online) return;
@@ -178,6 +180,14 @@ export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onRev
             <LyricsIcon />
           </button>
         </div>
+        {task ? (
+          // A batch job (liking a big list) borrows the seek bar to show its progress.
+          <div className="pb-seek" title={`${task.label}… ${task.done} of ${task.total}`}>
+            <span className="pb-time">{task.done}</span>
+            <input type="range" className="task" min={0} max={task.total} value={task.done} disabled readOnly style={{ backgroundSize: `${(task.done / task.total) * 100}% 100%` }} />
+            <span className="pb-time">{task.total}</span>
+          </div>
+        ) : (
         <div className="pb-seek">
           <span className="pb-time">{fmtDuration(p.position)}</span>
           <input
@@ -194,6 +204,7 @@ export function PlayerBar({ online, onReveal, onMini }: { online: boolean; onRev
           />
           <span className="pb-time">{fmtDuration(p.duration)}</span>
         </div>
+        )}
         {(p.error || barNotice) && (
           <div className={`pb-status ${p.error ? "err" : ""}`} role="status">
             {p.error || barNotice}

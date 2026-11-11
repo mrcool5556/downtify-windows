@@ -1065,3 +1065,14 @@ table.tracks tr.drop-after td {
     animation-duration: 3s;
   }
 }
+
+/* A batch job's progress in the seek bar (see taskProgress.ts): full
+   strength although the slider is disabled, and no thumb to grab. */
+:root .playerbar .pb-seek input[type="range"].task {
+  opacity: 1;
+  cursor: default;
+  transition: background-size 0.2s ease-out;
+}
+:root .playerbar .pb-seek input[type="range"].task::-webkit-slider-thumb {
+  opacity: 0;
+}

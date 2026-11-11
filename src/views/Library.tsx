@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { taskProgress } from "../taskProgress";
 import { LyricsView } from "../components/LyricsView";
 import {
   Album,
@@ -432,11 +433,16 @@ export function Library({
           } catch {
             /* keep going */
           }
-          if (total > 20 && liked % 25 === 0) setNotice(`Liking songs… ${liked} of ${total}`);
+          if (total > 1) taskProgress.set({ label: "Liking songs", done: liked, total });
         }
       };
-      if (total > 20) setNotice(`Liking songs… 0 of ${total}`);
-      await Promise.all(Array.from({ length: Math.min(8, total) }, worker));
+      // The seek bar shows the progress (liked so far, and the total).
+      if (total > 1) taskProgress.set({ label: "Liking songs", done: 0, total });
+      try {
+        await Promise.all(Array.from({ length: Math.min(8, total) }, worker));
+      } finally {
+        taskProgress.set(null);
+      }
       setNotice(liked === payload.ids.length ? `Liked ${liked} song${liked === 1 ? "" : "s"}` : `Liked ${liked} of ${payload.ids.length} songs`);
       reloadPlaylists();
       if (scope.playlist?.liked) refreshLists();
