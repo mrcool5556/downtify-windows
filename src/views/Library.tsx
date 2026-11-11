@@ -417,16 +417,26 @@ export function Library({
         setNotice("Liking songs needs the server");
         return;
       }
+      // The server likes one song per request, so send several at once
+      // (8 in flight) instead of waiting for each before the next.
       let liked = 0;
-      for (const id of payload.ids) {
-        try {
-          const on = await playerApi.setLike(id, true);
-          likeBus.emit(id, on);
-          liked++;
-        } catch {
-          /* keep going */
+      let next = 0;
+      const total = payload.ids.length;
+      const worker = async () => {
+        while (next < total) {
+          const id = payload.ids[next++];
+          try {
+            const on = await playerApi.setLike(id, true);
+            likeBus.emit(id, on);
+            liked++;
+          } catch {
+            /* keep going */
+          }
+          if (total > 20 && liked % 25 === 0) setNotice(`Liking songs… ${liked} of ${total}`);
         }
-      }
+      };
+      if (total > 20) setNotice(`Liking songs… 0 of ${total}`);
+      await Promise.all(Array.from({ length: Math.min(8, total) }, worker));
       setNotice(liked === payload.ids.length ? `Liked ${liked} song${liked === 1 ? "" : "s"}` : `Liked ${liked} of ${payload.ids.length} songs`);
       reloadPlaylists();
       if (scope.playlist?.liked) refreshLists();
