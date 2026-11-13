@@ -148,6 +148,18 @@ export function Library({
   // ── Navigation plumbing ─────────────────────────────────────────────
 
   const lastReveal = useRef(revealNonce);
+  // Going anywhere (a playlist, an artist, the song's own list…) closes the
+  // lyrics, so the page never feels like a dead end. Skips the first render.
+  const lyricsOpenRef = useRef(lyricsOpen);
+  lyricsOpenRef.current = lyricsOpen;
+  const lyricsNavSeen = useRef(false);
+  useEffect(() => {
+    if (!lyricsNavSeen.current) {
+      lyricsNavSeen.current = true;
+      return;
+    }
+    if (lyricsOpenRef.current) player.setLyricsOpen(false);
+  }, [view, revealNonce]);
   useEffect(() => {
     if (revealNonce === lastReveal.current) return;
     lastReveal.current = revealNonce;
