@@ -182,6 +182,38 @@ export function Library({
     }
   }, [revealPending, tracks, current]);
 
+  // Follow the playing song like the queue does: when the song changes and
+  // the one that was playing is on screen, glide the new one to the middle.
+  // Scrolled away from it? The list stays put until you scroll back.
+  // A song you just clicked in the list isn't moved under your mouse.
+  const followPrev = useRef<string | null>(null);
+  const lastRowPress = useRef<{ id: string; at: number } | null>(null);
+  useEffect(() => {
+    const onDown = (e: PointerEvent) => {
+      const row = (e.target as Element | null)?.closest?.<HTMLElement>("[data-track-id]");
+      if (row) lastRowPress.current = { id: row.dataset.trackId ?? "", at: Date.now() };
+    };
+    document.addEventListener("pointerdown", onDown, true);
+    return () => document.removeEventListener("pointerdown", onDown, true);
+  }, []);
+  useEffect(() => {
+    const prev = followPrev.current;
+    const id = current?.id ?? null;
+    followPrev.current = id;
+    if (!prev || !id || prev === id || revealPending) return;
+    const press = lastRowPress.current;
+    if (press && press.id === id && Date.now() - press.at < 15000) return; // the song you just picked
+    const pane = document.querySelector<HTMLElement>(".pane");
+    const oldRow = document.querySelector<HTMLElement>(`[data-track-id="${CSS.escape(prev)}"]`);
+    const newRow = document.querySelector<HTMLElement>(`[data-track-id="${CSS.escape(id)}"]`);
+    if (!pane || !oldRow || !newRow) return;
+    const view = pane.getBoundingClientRect();
+    const r = oldRow.getBoundingClientRect();
+    if (r.bottom <= view.top || r.top >= view.bottom) return; // scrolled away
+    const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    newRow.scrollIntoView({ block: "center", behavior: smooth ? "smooth" : "auto" });
+  }, [current?.id]);
+
   useEffect(
     () =>
       navBus.on((t) => {
