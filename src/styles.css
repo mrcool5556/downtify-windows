@@ -1819,6 +1819,9 @@ table.tracks thead th {
 }
 .head-spacer {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .dl-confirm.icons {
   gap: 2px;

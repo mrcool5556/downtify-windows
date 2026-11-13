@@ -788,6 +788,19 @@ export function Library({
           )}
           {showingTracks && (
             <span className="head-spacer">
+              <button
+                className="icon jump-current"
+                disabled={!current || !tracks.some((t) => t.id === current.id)}
+                title={current && tracks.some((t) => t.id === current.id) ? "Jump to the playing song" : "The playing song isn't in this list"}
+                onClick={() => {
+                  if (!current) return;
+                  const row = document.querySelector<HTMLElement>(`[data-track-id="${CSS.escape(current.id)}"]`);
+                  const smooth = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+                  row?.scrollIntoView({ block: "center", behavior: smooth ? "smooth" : "auto" });
+                }}
+              >
+                ⌖
+              </button>
               <DensityPicker small />
             </span>
           )}
