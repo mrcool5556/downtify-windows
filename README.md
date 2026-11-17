@@ -29,14 +29,16 @@ Built with Tauri 2, React and Rust. Early and under active development; expect r
 - **Sort** any song list by clicking Title, Artist, Album or Time.
 - **Pairs** with your Downtify server using the same pairing code flow as the Android app. The device token lives in Windows Credential Manager.
 - **Syncs** your songs, albums, artists, playlists and likes into a local SQLite index using the server's delta-sync API, so re-syncs are cheap.
-- **Plays** your music: local file first, otherwise streamed from the server (original quality, or Opus 160 kbps when away from home). Player bar with seek, volume, shuffle, repeat, queue, likes, Windows media keys, and Back / Play-Pause / Forward buttons under the taskbar preview.
+- **Plays** your music: local file first, otherwise streamed from the server (original quality, or Opus 160 kbps when away from home). Player bar with seek, volume, shuffle, repeat, queue, likes, Windows media keys, and Back / Play-Pause / Forward buttons under the taskbar preview. The song list follows the music, gliding the next song to the middle unless you've scrolled away, and **⌖** jumps back to the playing song.
+- **Lyrics** for the song playing, over the song list. Synced lyrics follow along and clicking a line jumps there; an about panel shows the song and artist. Lyrics come from your server, or from LRCLIB when the server has none.
 - **Downloads** songs or whole playlists to your music folder (default `Music\Downtify`, changeable), mirroring the server's folder layout as ordinary tagged files other players can use. Three at a time, resumable. "Sync to this PC" on a playlist downloads it and pulls new additions after every sync.
 - **Works offline**: with the server unreachable the app shows your local library and plays downloaded songs. Songs deleted on the server stay on your PC, marked, until you remove them.
-- **Edits playlists** after an optional one-time sign-in: create, rename, add and remove songs, drag and drop between playlists, right-click menus everywhere, multi-select.
+- **Edits playlists** after an optional one-time sign-in: create, rename, add and remove songs, drag and drop between playlists (or drag the playing song from the player bar), Ctrl+A and multi-select. Playlists show each song's place; drag to reorder, flip the order, and choose whether to add duplicates (reordering needs Downtify 3.10+). Dropping songs on Liked Songs likes them all, with progress shown in the seek bar.
+- **Its own right-click menus** everywhere, including Cut / Copy / Paste in text boxes, and spelling fixes drawn from your own song, artist and album names.
 - **Shares playlists** (Downtify 3.7+): make a playlist private, shared with named people, or public; see "Shared with me" and "Public playlists" in the sidebar; follow public ones, save a copy of any you can open, and detach an imported playlist to make it editable.
 - **Home** page with recently added albums and songs, recently played, and your playlists front and centre.
-- **Mini player** (Ctrl+M): a small always-on-top bar with playback, heart, download, volume, an up-next drawer, and adjustable opacity that fades only the background so the song stays readable over whatever is behind it.
-- **Themes**: ten colour themes from our UI/UX design library (Downtify, Studio Light, Studio Dark, Retro Console, Arcade, Night Glass, Machined, Machined Light, Cozy, Lavender Glass) and a mix-and-match **Style** card: buttons (Flat, Lipped, Raised, Inset, Neon, Cut paper, 90s bevel), fonts, corners, windows and cards, lip metal, text fields and switches, each picked on its own. Six one-click presets (Downtify, Studio, Gold arcade, Paper desk, Retro 95, Synth night), your own saved mixes, and the mini player can have its own look.
+- **Mini player** (Ctrl+M): a small always-on-top bar with playback, heart, download, volume, an up-next drawer, and adjustable opacity that fades only the background, with outlined text and buttons so they stay readable over any wallpaper or game. It has its own look, including window styles that sit pressed into the desktop (Recessed, with adjustable depth).
+- **Themes**: ten colour themes from our UI/UX design library (Downtify, Studio Light, Studio Dark, Retro Console, Arcade, Night Glass, Machined, Machined Light, Cozy, Lavender Glass) and a mix-and-match **Style** card: buttons (Flat, Lipped, Raised, Inset, Neon, Cut paper, 90s bevel), fonts, corners, windows and cards, lip metal, text fields and switches, each picked on its own. Six one-click presets (Downtify, Studio, Gold arcade, Paper desk, Retro 95, Synth night) you can hide or restore, your own saved mixes, and per-part button styles under Advanced. The sun/moon button swaps between two whole looks, one dark and one light, each with its own theme and style.
 - **Frameless window**, tray icon with close-to-tray and start-with-Windows, global search that also takes a Spotify or YouTube Music link to download.
 
 Plays are reported to the server the way the web player does (queued while offline), and the server's Activity page sees what is playing.
@@ -64,7 +66,7 @@ cargo tauri build
 
 ## Layout
 
-- `src/` React frontend: `views/` (Setup, Library with Home, Downloads, Settings), `components/` (player bar, queue, context menu, download button), `player/store.ts` (the audio engine and queue), `downloads.ts`, `layout.tsx`.
+- `src/` React frontend: `views/` (Setup, Library with Home, Downloads, Settings, ThemePage), `components/` (player bar, queue, lyrics, context and text menus, download button), `player/store.ts` (the audio engine and queue), `downloads.ts`, `layout.tsx` (preferences and looks), `themes.ts` / `themes.css` / `mix.css` (themes and the style mix; `mix.css` is generated by `scripts/gen_mix.py`).
 - `src-tauri/src/` Rust: `server.rs` (Downtify client API), `db.rs` (local SQLite), `downloads.rs` (download manager), `media.rs` (local file and cover protocol), `smtc.rs` (Windows media keys), `thumbbar.rs` (taskbar preview buttons), `commands.rs`, `settings.rs`.
 
 Settings live in `%APPDATA%\dev.george.downtify\settings.json`, the library index in `%APPDATA%\dev.george.downtify\library.sqlite`, cached covers under `%LOCALAPPDATA%\dev.george.downtify`.
@@ -82,7 +84,10 @@ Settings live in `%APPDATA%\dev.george.downtify\settings.json`, the library inde
 | Mini player, frameless window, themes | done |
 | In-app updates from GitHub releases | done |
 | Theme page, Heavy controls, responsive mini, library-wide search | done |
-| Lyrics, gapless, equaliser | not planned yet |
+| Style mix, presets, two light/dark looks, mini window looks | done |
+| Lyrics, playlist reordering, own menus and spellcheck | done |
+| Taskbar preview buttons, list follows the playing song | done |
+| Gapless, equaliser | not planned yet |
 
 Sharing and detaching need Downtify 3.7.0 or newer on the server (added in response to [henriquesebastiao/downtify#465](https://github.com/henriquesebastiao/downtify/issues/465)). Older servers still work for everything else.
 
